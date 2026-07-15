@@ -1,0 +1,164 @@
+# Define macros (only works in top-level gitattributes files)
+[attr]unity-big         -text
+[attr]unity-json        eol=lf linguist-language=json
+### Additionally collapse Unity YAML files on GitHub diffs ###
+[attr]unity-yaml        merge=unityyamlmerge eol=lf linguist-language=yaml linguist-generated
+
+# Default to LF for line endings
+* text=auto eol=lf
+
+# Unity source files
+*.cginc                 text
+*.compute               text linguist-language=hlsl
+*.cs                    text diff=csharp
+*.hlsl                  text linguist-language=hlsl
+*.raytrace              text linguist-language=hlsl
+*.shader                text
+
+# Unity JSON files
+*.asmdef                unity-json
+*.asmref                unity-json
+*.index                 unity-json
+*.inputactions          unity-json
+*.shadergraph           unity-json
+*.shadersubgraph        unity-json
+
+# Unity UI Toolkit files
+*.tss                   text diff=css linguist-language=css
+*.uss                   text diff=css linguist-language=css
+*.uxml                  text linguist-language=xml linguist-detectable
+
+# Unity YAML files
+*.anim                  unity-yaml
+*.asset                 unity-yaml
+*.brush                 unity-yaml
+*.controller            unity-yaml
+*.flare                 unity-yaml
+*.fontsettings          unity-yaml
+*.giparams              unity-yaml
+*.guiskin               unity-yaml
+*.lighting              unity-yaml
+*.mask                  unity-yaml
+*.mat                   unity-yaml
+*.meta                  unity-yaml
+*.mixer                 unity-yaml
+*.overrideController    unity-yaml
+*.playable              unity-yaml
+*.prefab                unity-yaml
+*.preset                unity-yaml
+*.renderTexture         unity-yaml
+*.scenetemplate         unity-yaml
+*.shadervariants        unity-yaml
+*.signal                unity-yaml
+*.spriteatlas           unity-yaml
+*.spriteatlasv2         unity-yaml
+*.terrainlayer          unity-yaml
+*.unity                 unity-yaml
+
+# "physic" for 3D but "physics" for 2D
+*.physicMaterial        unity-yaml
+*.physicsMaterial2D     unity-yaml
+
+# Exclude from GitHub stats and diffs: third-party plugins, packages lock file
+Assets/Plugins/**           linguist-generated
+Packages/packages-lock.json linguist-generated
+
+# Potentially large Unity Files
+*.cubemap               unity-big
+*.unitypackage          unity-big
+
+# 3D models
+*.3dm                   unity-big
+*.3ds                   unity-big
+*.blend                 unity-big
+*.blend1                unity-big
+*.c4d                   unity-big
+*.collada               unity-big
+*.dae                   unity-big
+*.dxf                   unity-big
+*.FBX                   unity-big
+*.fbx                   unity-big
+*.jas                   unity-big
+*.lws                   unity-big
+*.lxo                   unity-big
+*.ma                    unity-big
+*.max                   unity-big
+*.mb                    unity-big
+*.obj                   unity-big
+*.ply                   unity-big
+*.skp                   unity-big
+*.stl                   unity-big
+*.ztl                   unity-big
+
+# Audio
+*.aif                   unity-big
+*.aiff                  unity-big
+*.it                    unity-big
+*.mod                   unity-big
+*.mp3                   unity-big
+*.ogg                   unity-big
+*.s3m                   unity-big
+*.wav                   unity-big
+*.xm                    unity-big
+
+# Video
+*.asf                   unity-big
+*.avi                   unity-big
+*.flv                   unity-big
+*.mov                   unity-big
+*.mp4                   unity-big
+*.mpeg                  unity-big
+*.mpg                   unity-big
+*.ogv                   unity-big
+*.wmv                   unity-big
+
+# Images
+*.bmp                   unity-big
+*.exr                   unity-big
+*.gif                   unity-big
+*.hdr                   unity-big
+*.iff                   unity-big
+*.jpeg                  unity-big
+*.jpg                   unity-big
+*.pict                  unity-big
+*.png                   unity-big
+*.psd                   unity-big
+*.tga                   unity-big
+*.tif                   unity-big
+*.tiff                  unity-big
+*.webp                  unity-big
+
+# Compressed Archive
+*.7z                    unity-big
+*.bz2                   unity-big
+*.gz                    unity-big
+*.rar                   unity-big
+*.tar                   unity-big
+*.zip                   unity-big
+
+# Compiled Dynamic Library
+*.dll                   unity-big
+*.pdb                   unity-big
+*.so                    unity-big
+
+# Fonts
+*.otf                   unity-big
+*.ttf                   unity-big
+
+# Executable/Installer
+*.apk                   unity-big
+*.exe                   unity-big
+
+# Documents
+*.pdf                   unity-big
+
+# ETC
+*.a                     unity-big
+*.reason                unity-big
+*.rns                   unity-big
+
+# Spine export file for Unity
+*.skel.bytes            unity-big
+
+# Exceptions for .asset files such as lightning pre-baking
+LightingData.asset     binary

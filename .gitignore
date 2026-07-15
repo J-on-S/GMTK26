@@ -5,6 +5,19 @@
 # Recommended: add any editor/OS/tool-specific ignore rules from the Global/ templates as needed.
 # See: https://github.com/github/gitignore/tree/main/Global
 #
+
+# Ignore common metadata files and directories
+*~
+.DS_Store
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+!*.code-workspace
+
 .utmp/
 /[Ll]ibrary/
 /[Tt]emp/
