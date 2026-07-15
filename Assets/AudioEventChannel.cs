@@ -28,7 +28,7 @@ public class AudioEventChannel : ScriptableObject
     /// </summary>
     /// <param name="clip">Audio clip (ScriptableObject)</param>
     /// <returns></returns>
-    public AudioMaster.PlayingClip? Play(Audio clip) => Played?.Invoke(clip);
+    public AudioMaster.PlayingClip Play(Audio clip) => Played?.Invoke(clip);
 
     /// <summary>
     /// Sets the volume level of the AudioMixer
@@ -77,7 +77,7 @@ public class AudioEventChannel : ScriptableObject
     /// </summary>
     /// <param name="clip">Clip to Play</param>
     /// <param name="duration">duration of fade</param>
-    public AudioMaster.PlayingClip? FadeStart(Audio clip, float duration = 1) => FadeIn?.Invoke(clip, duration);
+    public AudioMaster.PlayingClip FadeStart(Audio clip, float duration = 1) => FadeIn?.Invoke(clip, duration);
 
     /// <summary>
     /// Cross-Fade between two audio clips 

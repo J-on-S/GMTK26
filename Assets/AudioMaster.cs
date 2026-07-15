@@ -372,7 +372,7 @@ public class AudioMaster : MonoBehaviour
         AudioMixer.SetFloat(MixerGroup.name, level);
     }
 
-    private PlayingClip? GetPlayingClip(Audio clip)
+    private PlayingClip GetPlayingClip(Audio clip)
     {
         if (clip == null) return null;
         foreach (var pClip in PlayingClips)
