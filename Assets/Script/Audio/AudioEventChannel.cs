@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Event Channels/Audio")]
+[CreateAssetMenu(menuName = "Event Channels/AudioEventChannel")]
 [Serializable]
 public class AudioEventChannel : ScriptableObject
 {
