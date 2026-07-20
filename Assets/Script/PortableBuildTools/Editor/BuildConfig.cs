@@ -4,14 +4,13 @@ using UnityEngine;
 namespace BuildTools
 {
     /// <summary>
-    /// Project-agnostic build settings asset. Create via
-    /// Assets > Create > Build Tools > Build Config, keep it inside an Editor/ folder.
-    ///
-    /// Nothing here is hardcoded to a specific game: debug flags and progress seeds are
-    /// data-driven lists, and every filesystem path can be picked from the file explorer
-    /// (see BuildConfigEditor's Browse buttons). The itch target is set by pasting the
-    /// game's page URL — user + game slug are parsed from it.
+    /// Holds the output, define, zip, and itch.io settings one build run applies.
     /// </summary>
+    /// <remarks>
+    /// Invariant: the asset only deserializes from inside an <c>Editor/</c> folder — it is an
+    /// editor-only type.
+    /// Invariant: no game-specific key is baked in; defines and prefs come from the serialized lists.
+    /// </remarks>
     [CreateAssetMenu(fileName = "BuildConfig", menuName = "Build Tools/Build Config", order = 0)]
     public class BuildConfig : ScriptableObject
     {
@@ -60,7 +59,9 @@ namespace BuildTools
         [Tooltip("Kill the butler upload if it runs longer than this.")]
         public int itchTimeoutSeconds = 300;
 
-        /// <summary>Product name to use for exe/folder naming.</summary>
+        /// <summary>Picks the name used for the executable and the default build folder.</summary>
+        /// <returns>The trimmed <c>productNameOverride</c>, or Unity's product name when the
+        /// override is blank.</returns>
         public string ResolveProductName()
         {
             return string.IsNullOrWhiteSpace(productNameOverride)
@@ -69,7 +70,7 @@ namespace BuildTools
         }
     }
 
-    /// <summary>A scripting define, optionally mirrored to a PlayerPref, toggled per build.</summary>
+    /// <summary>One scripting define the build turns on or off, optionally mirrored to a PlayerPref.</summary>
     [System.Serializable]
     public struct ScriptingFlag
     {
@@ -82,7 +83,7 @@ namespace BuildTools
         public bool enabled;
     }
 
-    /// <summary>An int PlayerPref written before the build.</summary>
+    /// <summary>An int PlayerPref written before the build starts.</summary>
     [System.Serializable]
     public struct PrefSeed
     {

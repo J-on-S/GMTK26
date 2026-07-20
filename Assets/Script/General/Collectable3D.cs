@@ -4,16 +4,13 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Universal 3D collectable. Same design as <see cref="Collectable2D"/> but uses
-/// 3D physics (SphereCollider, Physics.Raycast) and a generic Renderer for the
-/// highlight. Game-agnostic: raises <see cref="onCollected"/> so any project can
-/// react in the Inspector or via code.
-///
-/// Collection modes:
-///  - Automatic: collects as soon as the player is in range (and no wall blocks).
-///  - Manual: call <see cref="TryCollect"/> from anywhere, or bind an optional
-///    InputAction (collectAction) that fires while the player is in range.
+/// Pickup that flies to a tagged 3D player and reports the collection through <c>onCollected</c>.
 /// </summary>
+/// <remarks>
+/// Invariant: collection happens at most once — the trigger collider is disabled the moment it starts.
+/// Invariant: nothing is collected while a <c>wallLayer</c> collider sits between pickup and player.
+/// Invariant: the highlight tint is skipped on renderers whose material has no <c>_Color</c> property.
+/// </remarks>
 [RequireComponent(typeof(SphereCollider))]
 public class Collectable3D : MonoBehaviour
 {
@@ -94,7 +91,9 @@ public class Collectable3D : MonoBehaviour
         TryCollect();
     }
 
-    /// <summary>Manual collect. Safe to call from any script; no-op if not collectable now.</summary>
+    /// <summary>Collects the pickup on demand instead of waiting for <c>collectAutomatically</c>.</summary>
+    /// <returns><c>true</c> if collection started; <c>false</c> when no player is in range, a wall
+    /// blocks the line of sight, or collection is already under way.</returns>
     public bool TryCollect()
     {
         if (playerInRange == null || isCollecting) return false;

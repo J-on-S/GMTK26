@@ -9,24 +9,25 @@ using Debug = UnityEngine.Debug;
 
 namespace BuildTools
 {
-    /// <summary>
-    /// Shared helper for post-build hooks.
-    ///
-    /// NOTE on BuildResult.Unknown: IPostprocessBuildWithReport runs *before* the build report
-    /// is finalized, so report.summary.result is Unknown even on a successful build. This is a
-    /// long-standing Unity behaviour (issuetracker: "IPostprocessBuildWithReport always return
-    /// Unknown even when the actual build has succeeded"). So we treat Unknown as OK and only
-    /// bail on an explicit Failed/Cancelled.
-    /// </summary>
+    /// <summary>Decides whether post-build steps run for a given build result.</summary>
     internal static class BuildResultGate
     {
+        /// <summary>Reports whether the build got far enough for post-build steps to make sense.</summary>
+        /// <param name="result">Post-build callbacks see <c>Unknown</c> even on success, since the
+        /// report is not final yet.</param>
+        /// <returns><c>false</c> only for <c>Failed</c> and <c>Cancelled</c>; <c>Unknown</c> counts
+        /// as success.</returns>
         public static bool ShouldProceed(BuildResult result)
         {
             return result != BuildResult.Failed && result != BuildResult.Cancelled;
         }
     }
 
-    /// <summary>Zips the build folder after a successful build, if enabled in the config.</summary>
+    /// <summary>Zips the finished build folder into a date-stamped archive.</summary>
+    /// <remarks>
+    /// Invariant: a missing build folder or a zip failure logs and leaves the build itself intact.
+    /// Invariant: an archive of the same name is replaced, so re-building the same day overwrites.
+    /// </remarks>
     public class ZipPostprocess : IPostprocessBuildWithReport
     {
         private const string DefaultZipSubfolder = "zips";
@@ -78,7 +79,7 @@ namespace BuildTools
             }
         }
 
-        // Windows hands us an .exe path; other platforms hand us the folder.
+        // Windows reports an .exe path; other platforms report the folder.
         private static string ResolveBuildFolder(string outputPath)
         {
             if (string.IsNullOrEmpty(outputPath)) return outputPath;
@@ -88,10 +89,16 @@ namespace BuildTools
         }
     }
 
-    /// <summary>Pushes the build to itch.io via butler after a successful build, if enabled.</summary>
+    /// <summary>Publishes the finished build to an itch.io page with butler.</summary>
+    /// <remarks>
+    /// Invariant: a missing butler, blank user or game, or unmapped platform logs a warning and
+    /// skips the upload rather than failing the build.
+    /// Invariant: an upload past its timeout is killed and logged as an error.
+    /// Invariant: runs after the zip step, so the archive exists by then.
+    /// </remarks>
     public class ItchUploader : IPostprocessBuildWithReport
     {
-        public int callbackOrder => 10; // after ZipPostprocess
+        public int callbackOrder => 10;
 
         public void OnPostprocessBuild(BuildReport report)
         {
@@ -104,7 +111,7 @@ namespace BuildTools
             }
 
             string butler = EditorPrefs.GetString(BuildConfigurator.ButlerPathKey, "").Trim();
-            if (string.IsNullOrEmpty(butler)) butler = "butler"; // resolve on PATH
+            if (string.IsNullOrEmpty(butler)) butler = "butler"; // resolved on PATH
             if (butler != "butler" && !File.Exists(butler))
             {
                 Debug.LogWarning($"[ItchUploader] butler not found at '{butler}'. Set the path in BuildConfig or install from https://itch.io/docs/butler/. Skipping.");
@@ -166,7 +173,7 @@ namespace BuildTools
             return outputPath;
         }
 
-        // ArgumentList (not a single Arguments string) so .NET handles Windows quoting/escaping.
+        // ArgumentList keeps paths with spaces intact without hand-written quoting.
         private static void RunButlerPush(string butler, string folder, string target, int timeoutMs)
         {
             ProcessStartInfo psi = new ProcessStartInfo

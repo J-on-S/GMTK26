@@ -6,23 +6,20 @@ using UnityEngine;
 namespace BuildTools
 {
     /// <summary>
-    /// Intercepts the default Build button (File > Build Profiles/Settings > Build) via
-    /// BuildPlayerWindow.RegisterBuildPlayerHandler. Pops BuildConfigWindow, applies the
-    /// chosen BuildConfig's side effects, then hands modified options to Unity's own
-    /// DefaultBuildMethods.BuildPlayer.
-    ///
-    /// Target comes from whatever Unity has active (respects Build Profiles) — not a config field.
-    /// Scripting defines go through BuildPlayerOptions.extraScriptingDefines (per-build, no
-    /// PlayerSettings mutation, avoids Unity 6's Standalone-subtarget recompile bug).
-    ///
-    /// Deployment settings are stashed in EditorPrefs (keyed per product) so the post-build
-    /// hooks in BuildPostprocess can read them — postprocess callbacks can't see the config asset.
+    /// Turns Unity's own Build button into a config-driven build.
     /// </summary>
+    /// <remarks>
+    /// Invariant: the platform built is whatever Unity has active, so Build Profiles still decide
+    /// the target.
+    /// Invariant: scripting defines apply to this build only — <c>PlayerSettings</c> is left
+    /// untouched, so no project-wide recompile follows.
+    /// Invariant: cancelling the window aborts the build instead of falling through to a default one.
+    /// </remarks>
     [InitializeOnLoad]
     public static class BuildConfigurator
     {
-        // EditorPrefs are machine-global; namespace them per product so two projects on the
-        // same machine don't clobber each other's settings.
+        // EditorPrefs are machine-global; the product name keeps two projects on one machine
+        // from clobbering each other's settings.
         private static string Prefix => "BuildTools." + Application.productName + ".";
         public static string ZipEnabledKey    => Prefix + "ZipEnabled";
         public static string ZipPathKey       => Prefix + "ZipPath";
@@ -75,12 +72,14 @@ namespace BuildTools
         }
 
         /// <summary>
-        /// Apply the config's non-build-time side effects: PlayerPrefs seeds + flag prefs, and
-        /// stash deployment settings into EditorPrefs for the post-build hooks.
+        /// Writes the config's PlayerPrefs and hands its deployment settings to the post-build hooks.
         /// </summary>
+        /// <remarks>
+        /// Invariant: an unparseable itch URL clears the stored user and game, so a misconfigured
+        /// upload never pushes to the wrong page; it logs a warning when <c>uploadToItch</c> is on.
+        /// </remarks>
         public static void Apply(BuildConfig cfg)
         {
-            // Data-driven PlayerPrefs — no hardcoded game keys.
             foreach (ScriptingFlag flag in cfg.scriptingFlags)
             {
                 if (!string.IsNullOrWhiteSpace(flag.playerPrefKey))
@@ -93,7 +92,6 @@ namespace BuildTools
             }
             PlayerPrefs.Save();
 
-            // Deployment settings → EditorPrefs (read by BuildPostprocess).
             EditorPrefs.SetBool(ZipEnabledKey, cfg.zipAfterBuild);
             EditorPrefs.SetString(ZipPathKey, cfg.zipOutputPath ?? "");
 
@@ -102,7 +100,6 @@ namespace BuildTools
             EditorPrefs.SetInt(ItchTimeoutKey, Mathf.Max(1, cfg.itchTimeoutSeconds));
             EditorPrefs.SetString(ProductNameKey, cfg.ResolveProductName());
 
-            // Parse itch user/game from the pasted page URL.
             if (ItchUrl.TryParse(cfg.itchGameUrl, out string user, out string game))
             {
                 EditorPrefs.SetString(ItchUserKey, user);

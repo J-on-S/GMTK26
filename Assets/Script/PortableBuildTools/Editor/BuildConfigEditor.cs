@@ -5,11 +5,14 @@ using UnityEngine;
 namespace BuildTools
 {
     /// <summary>
-    /// Custom inspector for <see cref="BuildConfig"/>. Adds file-explorer Browse buttons to the
-    /// path fields (build output, zip output, butler) and shows a live parse preview of the
-    /// pasted itch URL. Folder paths under the project root are stored relative (portable across
-    /// machines); the butler path stays absolute. Supports multi-object editing.
+    /// Draws <c>BuildConfig</c> with file-explorer pickers for its path fields and a preview of the
+    /// parsed itch URL.
     /// </summary>
+    /// <remarks>
+    /// Invariant: a picked folder inside the project root is stored as a project-relative path, so
+    /// the asset works on another machine.
+    /// Invariant: the butler path is always stored absolute.
+    /// </remarks>
     [CustomEditor(typeof(BuildConfig)), CanEditMultipleObjects]
     public class BuildConfigEditor : Editor
     {
@@ -84,12 +87,12 @@ namespace BuildTools
                     if (!string.IsNullOrEmpty(prop.stringValue) && File.Exists(prop.stringValue))
                         dir = Path.GetDirectoryName(prop.stringValue);
 
-                    // Windows filters to .exe; other OSes have no extension on butler.
+                    // butler has no extension outside Windows.
                     string ext = Application.platform == RuntimePlatform.WindowsEditor ? "exe" : "";
                     string picked = EditorUtility.OpenFilePanel(title, dir, ext);
                     if (!string.IsNullOrEmpty(picked))
                     {
-                        prop.stringValue = picked; // absolute — butler lives outside the project
+                        prop.stringValue = picked;
                         GUI.FocusControl(null);
                     }
                 }

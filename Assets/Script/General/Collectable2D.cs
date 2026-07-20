@@ -4,16 +4,12 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Universal 2D collectable. Drop onto any GameObject with a Rigidbody2D-driven
-/// player in the scene. Game-agnostic: instead of hardcoding what "collecting"
-/// does, it raises <see cref="onCollected"/> (a UnityEvent carrying the player)
-/// so any script in any project can react in the Inspector or via code.
-///
-/// Collection modes:
-///  - Automatic: collects as soon as the player is in range (and no wall blocks).
-///  - Manual: call <see cref="TryCollect"/> from anywhere, or bind an optional
-///    InputAction (collectAction) that fires while the player is in range.
+/// Pickup that flies to a tagged 2D player and reports the collection through <c>onCollected</c>.
 /// </summary>
+/// <remarks>
+/// Invariant: collection happens at most once — the trigger collider is disabled the moment it starts.
+/// Invariant: nothing is collected while a <c>wallLayer</c> collider sits between pickup and player.
+/// </remarks>
 [RequireComponent(typeof(CircleCollider2D))]
 public class Collectable2D : MonoBehaviour
 {
@@ -89,7 +85,9 @@ public class Collectable2D : MonoBehaviour
         TryCollect();
     }
 
-    /// <summary>Manual collect. Safe to call from any script; no-op if not collectable now.</summary>
+    /// <summary>Collects the pickup on demand instead of waiting for <c>collectAutomatically</c>.</summary>
+    /// <returns><c>true</c> if collection started; <c>false</c> when no player is in range, a wall
+    /// blocks the line of sight, or collection is already under way.</returns>
     public bool TryCollect()
     {
         if (playerInRange == null || isCollecting) return false;

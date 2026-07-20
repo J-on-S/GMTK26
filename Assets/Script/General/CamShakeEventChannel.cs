@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-[CreateAssetMenu(fileName = "CamShakeEventChannel", menuName = "Scriptable Objects/CamShakeEventChannel")]
+[CreateAssetMenu(fileName = "CamShakeEventChannel", menuName = "CamShakeEventChannel")]
 public class CamShakeEventChannel : ScriptableObject
 {
     public event Action<float,float,float> OnCamShake;

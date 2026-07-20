@@ -6,14 +6,14 @@ using UnityEngine.SceneManagement;
 namespace SceneTools
 {
     /// <summary>
-    /// Auto-injects the prefabs listed in <see cref="SceneBootstrapConfig"/> into any scene
-    /// that is opened or newly created, but only if an instance is not already present.
-    /// Editor-only; never compiled into a build.
-    ///
-    /// Presence is detected by prefab source: an object counts as "already there" if it is an
-    /// instance of the configured prefab (or a variant). New instances are placed at the scene
-    /// root and the scene is marked dirty so the change saves with the scene.
+    /// Adds every prefab listed in <c>SceneBootstrapConfig</c> to each scene the user opens or creates.
     /// </summary>
+    /// <remarks>
+    /// Invariant: a prefab already in the scene is never duplicated, and a variant of it counts as
+    /// present.
+    /// Invariant: an injected scene is left dirty, so the addition persists only once the user saves.
+    /// Invariant: each addition is undoable in one step.
+    /// </remarks>
     [InitializeOnLoad]
     public static class SceneBootstrapInjector
     {
@@ -89,6 +89,7 @@ namespace SceneTools
         }
 
         // Resolve to the outermost prefab asset so variants and nested references compare equal.
+        // Objects with no asset path (plain scene objects) are returned unchanged.
         private static GameObject GetPrefabSourceRoot(GameObject prefabOrInstance)
         {
             string path = AssetDatabase.GetAssetPath(prefabOrInstance);

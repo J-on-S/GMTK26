@@ -7,13 +7,13 @@ using UnityEngine;
 namespace BuildTools
 {
     /// <summary>
-    /// Menu command: build the active target into parent/build_dd-MM-yyyy/. Independent of
-    /// BuildConfig — a quick one-click dated build. Zipping is handled by ZipPostprocess
-    /// (this command enables it and disables itch upload for the duration, so a dated build
-    /// never deploys by accident).
-    ///
-    /// Uses whatever build target is active in Build Settings/Profiles, not a hardcoded platform.
+    /// One-click build of the active target into a date-stamped folder under a folder the user picks.
     /// </summary>
+    /// <remarks>
+    /// Invariant: a dated build never uploads anywhere, whatever the last config left enabled.
+    /// Invariant: the result is always zipped.
+    /// Invariant: an existing folder for today is deleted only after the user confirms.
+    /// </remarks>
     public static class DatedBuild
     {
         private static string LastParentDirKey => "BuildTools." + Application.productName + ".DatedBuild.LastParentDir";
@@ -64,7 +64,6 @@ namespace BuildTools
             BuildTargetGroup group = BuildPipeline.GetBuildTargetGroup(target);
             string location = LocationFor(target, buildFolder, buildName);
 
-            // Route zipping through ZipPostprocess; make sure a dated build never uploads.
             EditorPrefs.SetBool(BuildConfigurator.ZipEnabledKey, true);
             EditorPrefs.SetString(BuildConfigurator.ZipPathKey, ""); // → parent/zips
             EditorPrefs.SetBool(BuildConfigurator.UploadToItchKey, false);
@@ -82,7 +81,7 @@ namespace BuildTools
             BuildPipeline.BuildPlayer(options);
         }
 
-        // Windows needs an exe path inside the folder; other platforms build into the folder.
+        // Windows needs an exe path inside the folder; other platforms build into the folder itself.
         private static string LocationFor(BuildTarget target, string buildFolder, string buildName)
         {
             if (target == BuildTarget.StandaloneWindows64 || target == BuildTarget.StandaloneWindows)

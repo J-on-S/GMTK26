@@ -6,16 +6,19 @@ using UnityEngine;
 namespace BuildTools
 {
     /// <summary>
-    /// Modal window opened by BuildConfigurator when the user clicks the default Build button.
-    /// Renders the chosen BuildConfig inline via BuildConfigEditor, so new fields show up
-    /// automatically. The config picker is a Popup (not an ObjectField) because ObjectField's
-    /// asset picker hides assets stored inside Editor/ folders, where BuildConfig must live.
+    /// Modal that lets the user pick and edit a <c>BuildConfig</c> before the build starts.
     /// </summary>
+    /// <remarks>
+    /// Invariant: configs stored in <c>Editor/</c> folders are still selectable, unlike in Unity's
+    /// object picker.
+    /// Invariant: the last chosen config is preselected on the next open.
+    /// </remarks>
     public class BuildConfigWindow : EditorWindow
     {
         private static string LastConfigPathKey => "BuildTools." + Application.productName + ".LastConfigPath";
 
         public BuildConfig Config;
+        /// <summary><c>true</c> when the user pressed Build; <c>false</c> on Cancel or window close.</summary>
         public bool WasConfirmed { get; private set; }
 
         private Editor _cachedEditor;
@@ -24,6 +27,8 @@ namespace BuildTools
         private BuildConfig[] _allConfigs = System.Array.Empty<BuildConfig>();
         private string[] _allConfigLabels = System.Array.Empty<string>();
 
+        /// <summary>Opens the picker and blocks until the user confirms or cancels.</summary>
+        /// <returns>The closed window; read <c>WasConfirmed</c> and <c>Config</c> from it.</returns>
         public static BuildConfigWindow ShowModal()
         {
             BuildConfigWindow window = CreateInstance<BuildConfigWindow>();
@@ -67,7 +72,7 @@ namespace BuildTools
 
         private void CreateNewConfigAsset()
         {
-            // BuildConfig is an editor-only type; its asset must sit in an Editor/ folder.
+            // The asset only deserializes from an Editor/ folder.
             const string editorDir = "Assets/Editor";
             if (!AssetDatabase.IsValidFolder(editorDir))
                 AssetDatabase.CreateFolder("Assets", "Editor");

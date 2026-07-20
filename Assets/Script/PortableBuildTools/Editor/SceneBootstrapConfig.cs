@@ -4,13 +4,13 @@ using UnityEngine;
 namespace SceneTools
 {
     /// <summary>
-    /// Editor-only settings asset listing prefabs that must exist in every scene.
-    /// Create via Assets > Create > Scene Tools > Scene Bootstrap Config, keep it in an
-    /// Editor/ folder, then drag the prefabs into the list. SceneBootstrapInjector reads it
-    /// whenever a scene is opened or created and adds any missing prefab instance.
-    ///
-    /// Discovered by type (first asset found), so keep exactly one.
+    /// Lists the prefabs that must exist in every scene, plus the scenes exempt from that rule.
     /// </summary>
+    /// <remarks>
+    /// Invariant: the asset only deserializes from inside an <c>Editor/</c> folder — it is an
+    /// editor-only type.
+    /// Invariant: only the first asset of this type in the project takes effect, so keep exactly one.
+    /// </remarks>
     [CreateAssetMenu(fileName = "SceneBootstrapConfig", menuName = "Scene Tools/Scene Bootstrap Config", order = 0)]
     public class SceneBootstrapConfig : ScriptableObject
     {
