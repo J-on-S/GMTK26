@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!241 &24100000
+AudioMixerController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: AudioMixer
+  m_OutputGroup: {fileID: 0}
+  m_MasterGroup: {fileID: 24300002}
+  m_Snapshots:
+  - {fileID: 24500006}
+  m_StartSnapshot: {fileID: 24500006}
+  m_SuspendThreshold: -80
+  m_EnableSuspend: 1
+  m_UpdateMode: 0
+  m_ExposedParameters:
+  - guid: 1c809cab277138341a5ad921ddc03165
+    name: Master
+  m_AudioMixerGroupViews:
+  - guids:
+    - 746efa52bc506724f9e4ede4b2bb484b
+    name: View
+  m_CurrentViewIndex: 0
+  m_TargetSnapshot: {fileID: 24500006}
+--- !u!243 &24300002
+AudioMixerGroupController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Master
+  m_AudioMixer: {fileID: 24100000}
+  m_GroupID: 746efa52bc506724f9e4ede4b2bb484b
+  m_Children: []
+  m_Volume: 1c809cab277138341a5ad921ddc03165
+  m_Pitch: dc50a33adfa77cf448cbe05eee5f6b58
+  m_Send: 00000000000000000000000000000000
+  m_Effects:
+  - {fileID: 24400004}
+  m_UserColorIndex: 0
+  m_Mute: 0
+  m_Solo: 0
+  m_BypassEffects: 0
+--- !u!244 &24400004
+AudioMixerEffectController:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_EffectID: e8f349b689be56a49afb4abd290a5635
+  m_EffectName: Attenuation
+  m_MixLevel: a565c09f50303a144be9641d4b94f78b
+  m_Parameters: []
+  m_SendTarget: {fileID: 0}
+  m_EnableWetMix: 0
+  m_Bypass: 0
+--- !u!245 &24500006
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Snapshot
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 2d5de2ba2b05b7045831b617b4a463fc
+  m_FloatValues:
+    580d9f40390f3974a9187f6821df6259: 0.233
+    55dd6ff34aeaa4447a6e3dedb700ddf7: 0.115
+    c87a80355557c6d4a87bb26f1357ffe9: 1.53
+    79c42c755e70d2a49a13e536ca366561: 1.5
+    033b2266898dcae4894f8d837bec9d21: 0
+    37f01917851ca894f9142f998a6b9bc2: 2000
+    32cbde6730f898641934a7c59d4af5ab: 1053
+    1c809cab277138341a5ad921ddc03165: 0
+    fb61abae2ff1f554a95cff2f02066482: -2913
+    e79b2e3f6b5bf7149b066e7472caf484: -7973
+  m_TransitionOverrides: {}
