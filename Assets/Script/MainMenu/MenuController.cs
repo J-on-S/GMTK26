@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using TMPro;
-using System.Collections.Generic;
 using UnityEngine.Audio;
 
 public class MenuController : MonoBehaviour
@@ -31,27 +30,27 @@ public class MenuController : MonoBehaviour
     [Header("Toggle Settings")]
     [SerializeField] private Toggle invertYToggle = null;
     */
-    [Space(10)]
+    // [Space(10)]
 
-    [Header("Quality Settings")]
+    // [Header("Quality Settings")]
     // [SerializeField] private Slider brightnessSlider = null;
     // [SerializeField] private TMP_Text brightTextValue = null;
     // [SerializeField] private float defaultBrightness = 1;
-    [SerializeField] private TMP_Dropdown qualityDropdown;
-    [Header("FullScreen Settings")]
-    [SerializeField] private Toggle fullScreenToggle;
-    [Space(10)]
-    private int qualityLevel;
-    private bool isFullScreen;
+    // [SerializeField] private TMP_Dropdown qualityDropdown;
+    // [Header("FullScreen Settings")]
+    // [SerializeField] private Toggle fullScreenToggle;
+    // [Space(10)]
+    // private int qualityLevel;
+    // private bool isFullScreen;
     //private float brightnessLevel;
     /*
     [Header("Confirmation")]
     [SerializeField] private GameObject confirmPrompt = null;
     */
 
-    [Header ("Resolution Dropdown")]
-    public TMP_Dropdown resolutionDropdown;
-    private Resolution[] resolutions;
+    // [Header ("Resolution Dropdown")]
+    // public TMP_Dropdown resolutionDropdown;
+    // private Resolution[] resolutions;
 
     void Awake()
     {
@@ -81,26 +80,26 @@ public class MenuController : MonoBehaviour
                 ResetButton("Audio");
             }
 
-            if (PlayerPrefs.HasKey("masterQuality"))
-            {
-                int localQuality = PlayerPrefs.GetInt("masterQuality");
-
-                qualityDropdown.value = localQuality;
-                QualitySettings.SetQualityLevel(localQuality);
-            }
-            if (PlayerPrefs.HasKey("masterFullScreen"))
-            {
-                int localFullScreen = PlayerPrefs.GetInt("masterFullScreen");
-                if (localFullScreen == 1)
-                {
-                    Screen.fullScreen = true;
-                    fullScreenToggle.isOn = true;
-                } else
-                {
-                    Screen.fullScreen = false;
-                    fullScreenToggle.isOn = false;
-                }
-            }
+            // if (PlayerPrefs.HasKey("masterQuality"))
+            // {
+            //     int localQuality = PlayerPrefs.GetInt("masterQuality");
+            //
+            //     qualityDropdown.value = localQuality;
+            //     QualitySettings.SetQualityLevel(localQuality);
+            // }
+            // if (PlayerPrefs.HasKey("masterFullScreen"))
+            // {
+            //     int localFullScreen = PlayerPrefs.GetInt("masterFullScreen");
+            //     if (localFullScreen == 1)
+            //     {
+            //         Screen.fullScreen = true;
+            //         fullScreenToggle.isOn = true;
+            //     } else
+            //     {
+            //         Screen.fullScreen = false;
+            //         fullScreenToggle.isOn = false;
+            //     }
+            // }
             /*
             if (PlayerPrefs.HasKey("masterBrightness"))
             {
@@ -209,27 +208,27 @@ public class MenuController : MonoBehaviour
         brightTextValue.text = brightness.ToString("0.0");
     }
     */
-    public void SetFullScreen(bool isFullScreen)
-    {
-        this.isFullScreen = isFullScreen;
-    }
-    public void SetQuality(int qualityIndex)
-    {
-        qualityLevel = qualityIndex;
-    }
-    public void GraphicsApply()
-    {
-        //PlayerPrefs.SetFloat("masterBrightness",brightnessLevel);
-        // change your brightness with ur post processing or whatever it is
-
-        PlayerPrefs.SetInt("masterQuality", qualityLevel);
-        QualitySettings.SetQualityLevel(qualityLevel);
-
-        PlayerPrefs.SetInt("masterFullScreen", (isFullScreen ? 1 : 0));
-        Screen.fullScreen = isFullScreen;
-
-        // StartCoroutine(ConfirmationBox());
-    }
+    // public void SetFullScreen(bool isFullScreen)
+    // {
+    //     this.isFullScreen = isFullScreen;
+    // }
+    // public void SetQuality(int qualityIndex)
+    // {
+    //     qualityLevel = qualityIndex;
+    // }
+    // public void GraphicsApply()
+    // {
+    //     //PlayerPrefs.SetFloat("masterBrightness",brightnessLevel);
+    //     // change your brightness with ur post processing or whatever it is
+    //
+    //     PlayerPrefs.SetInt("masterQuality", qualityLevel);
+    //     QualitySettings.SetQualityLevel(qualityLevel);
+    //
+    //     PlayerPrefs.SetInt("masterFullScreen", (isFullScreen ? 1 : 0));
+    //     Screen.fullScreen = isFullScreen;
+    //
+    //     // StartCoroutine(ConfirmationBox());
+    // }
 
     public void ResetButton(String MenuType)
     {

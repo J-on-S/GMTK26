@@ -566,18 +566,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: PauseMenuCanvas
       objectReference: {fileID: 0}
-    - target: {fileID: 7828482737452857827, guid: e0a153dda5ab97ce5901642bf4c47852, type: 3}
-      propertyPath: qualityDropdown
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 7828482737452857827, guid: e0a153dda5ab97ce5901642bf4c47852, type: 3}
-      propertyPath: fullScreenToggle
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 7828482737452857827, guid: e0a153dda5ab97ce5901642bf4c47852, type: 3}
-      propertyPath: resolutionDropdown
-      value: 
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
