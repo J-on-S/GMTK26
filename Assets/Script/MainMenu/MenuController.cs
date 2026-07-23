@@ -3,11 +3,13 @@ using UnityEngine.UI;
 using System;
 using TMPro;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
 
 public class MenuController : MonoBehaviour
 {
     [Header ("General Setting")]
     [SerializeField] private bool useSavedValues = false; // should we load prefs or not
+    [SerializeField] private string mainScene = "MainScene";
     [Header ("Overall Volume settings")]
     [SerializeField] private AudioMixer mixer = null;
     [SerializeField] private TMP_Text volumeTextValue = null;
@@ -143,6 +145,11 @@ public class MenuController : MonoBehaviour
     //     Resolution resolution = resolutions[ResolutionIndex];
     //     Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
     // }
+
+    public void PlayButton()
+    {
+        SceneManager.LoadScene(mainScene);
+    }
 
     public void ExitButton()
     {
