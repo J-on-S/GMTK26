@@ -4,13 +4,13 @@ using System.Collections.Generic;
 public class ToolRequestManager : MonoBehaviour
 {
 
-    //public enum ItemType {Tool, BodyPart}
+    public enum ItemType {Tool, BodyPart}
 
     [System.Serializable]
     public struct ToolRequest
     {
-        public string toolName;
-        //public ItemType itemType;
+        public string itemName;
+        public ItemType itemType;
         public float timeLimit;
     }
 
@@ -19,11 +19,11 @@ public class ToolRequestManager : MonoBehaviour
     public float timeBetweenRequests = 5f; // oooldown before next order from doctor
 
     // states
-    private enum State { Idle, ActiveRequest, Cooldown}
+    private enum State{Idle, ActiveRequest, Cooldown}
     private State currentState = State.Idle;
 
     private ToolRequest currentRequest;
-    private string currentRequiredTool;
+    //private string currentRequiredTool;
     private float remainingTime;
     private float remainingCooldown;
 
@@ -81,20 +81,22 @@ public class ToolRequestManager : MonoBehaviour
 
         // get a random item from the list
         int index = Random.Range(0, availableRequests.Count);
-        currentRequiredTool = availableRequests[index].toolName;
+        currentRequest = availableRequests[index];
         remainingTime = availableRequests[index].timeLimit;
         currentState = State.ActiveRequest;
 
-        Debug.Log($"Hey, hand me a: {currentRequiredTool} within {remainingTime:F1} seconds!");
+        string itemCategory = currentRequest.itemType.ToString();
+        Debug.Log($"Hey, hand me a {itemCategory}: [{currentRequest.itemName}] within {remainingTime:F1} seconds!");
+        //Debug.Log($"Hey, hand me a: {currentRequiredTool} within {remainingTime:F1} seconds!");
 
     }
 
     // check if player submitted the tool correctly
-    public void PlayerSubmittedTool(string toolName)
+    public void PlayerSubmittedTool(string submittedName, ItemType submittedType)
     {
         if (currentState != State.ActiveRequest) return;
 
-        if (toolName == currentRequiredTool)
+        if (submittedName == currentRequest.itemName && submittedType == currentRequest.itemType)
         {
             Debug.Log("Dude thanks for giving me that.");
             StartCooldown();
@@ -104,7 +106,7 @@ public class ToolRequestManager : MonoBehaviour
         else
         {
             // maybe add penalty here for not fulfilling request?
-            Debug.Log($"Nah man wrong tool. I needed {currentRequiredTool}, but you gave me {toolName}.");
+            Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
         }
     }
 
