@@ -120,30 +120,30 @@ public class MenuController : MonoBehaviour
         SetMusicVolume();
         SetVolume();
         
-        resolutions = Screen.resolutions;
-        resolutionDropdown.ClearOptions();
-
-        List<string> options = new List<string>();
-        int currentResolutionIndex = 0;
-        
-        for (int i = 0; i < resolutions.Length; i++)
-        {
-            string option = resolutions[i].width + " x " + resolutions[i].height;
-            options.Add(option);
-            if (resolutions[i].width == Screen.width && resolutions[i].height == Screen.height)
-            {
-                currentResolutionIndex = i;
-            }
-        }
-        resolutionDropdown.AddOptions(options);
-        resolutionDropdown.value = currentResolutionIndex;
-        resolutionDropdown.RefreshShownValue();
+        // resolutions = Screen.resolutions;
+        // resolutionDropdown.ClearOptions();
+        //
+        // List<string> options = new List<string>();
+        // int currentResolutionIndex = 0;
+        //
+        // for (int i = 0; i < resolutions.Length; i++)
+        // {
+        //     string option = resolutions[i].width + " x " + resolutions[i].height;
+        //     options.Add(option);
+        //     if (resolutions[i].width == Screen.width && resolutions[i].height == Screen.height)
+        //     {
+        //         currentResolutionIndex = i;
+        //     }
+        // }
+        // resolutionDropdown.AddOptions(options);
+        // resolutionDropdown.value = currentResolutionIndex;
+        // resolutionDropdown.RefreshShownValue();
     }
-    public void SetResolution(int ResolutionIndex)
-    {
-        Resolution resolution = resolutions[ResolutionIndex];
-        Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
-    }
+    // public void SetResolution(int ResolutionIndex)
+    // {
+    //     Resolution resolution = resolutions[ResolutionIndex];
+    //     Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
+    // }
 
     public void ExitButton()
     {
@@ -258,23 +258,23 @@ public class MenuController : MonoBehaviour
             GameplayApply();
         }
         */
-        if (MenuType == "Graphics")
-        {
-            // Reset brightness value
-            // brightnessSlider.value = defaultBrightness;
-            // brightTextValue.text = defaultBrightness.ToString("0.0");
-
-            qualityDropdown.value = 1;
-            QualitySettings.SetQualityLevel(1);
-
-            fullScreenToggle.isOn = false;
-            Screen.fullScreen = false;
-
-            Resolution currentResolution = Screen.currentResolution;
-            Screen.SetResolution(currentResolution.width, currentResolution.height,Screen.fullScreen);
-            resolutionDropdown.value = resolutions.Length; // last is max, like the screen
-            GraphicsApply();
-        }
+        // if (MenuType == "Graphics")
+        // {
+        //     // Reset brightness value
+        //     // brightnessSlider.value = defaultBrightness;
+        //     // brightTextValue.text = defaultBrightness.ToString("0.0");
+        //
+        //     qualityDropdown.value = 1;
+        //     QualitySettings.SetQualityLevel(1);
+        //
+        //     fullScreenToggle.isOn = false;
+        //     Screen.fullScreen = false;
+        //
+        //     Resolution currentResolution = Screen.currentResolution;
+        //     Screen.SetResolution(currentResolution.width, currentResolution.height,Screen.fullScreen);
+        //     resolutionDropdown.value = resolutions.Length; // last is max, like the screen
+        //     GraphicsApply();
+        // }
     }
 
     /*

@@ -3,8 +3,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.Audio;
 using System;
-using NUnit.Framework;
-using System.Linq.Expressions;
 
 public class PauseMenu : MonoBehaviour
 {
