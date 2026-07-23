@@ -1,6 +1,9 @@
 using UnityEngine;
 using System.Collections;
 
+
+// currently request is fulfilled just by clicking on item need to change so you are handing the item to the doctor to fulfill the order 
+
 public class ToolPickup : MonoBehaviour
 {
 
@@ -25,8 +28,7 @@ public class ToolPickup : MonoBehaviour
         PickupTool();
     }
 
-    // Update is called once per frame
-    void PickupTool()
+    void PickupTool()  // this should be changed to pickup and hand to doctor
     {
         ToolRequestManager manager = FindFirstObjectByType<ToolRequestManager>();
         if (manager != null)
