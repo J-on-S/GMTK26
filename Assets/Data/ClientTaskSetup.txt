@@ -1,0 +1,69 @@
+CLIENT TASK SYSTEM - UNITY SETUP
+
+1. DATABASE
+
+The shared database is located at:
+Assets/Data/ClientTaskDatabase.asset
+
+Select the GameObject containing ClientTaskList.
+Drag ClientTaskDatabase.asset into the Database field.
+
+
+2. CLIENT PREFABS
+
+Add the ClientTaskHolder component to every client prefab.
+Each spawned client will store its own task and delivery progress.
+
+
+3. SPAWN A CLIENT AND ASSIGN A TASK
+
+GameObject client = randomizedClientList.SpawnNextClient(chair, taskList);
+
+This will:
+- Spawn a randomized client prefab.
+- Find its ClientTaskHolder.
+- Generate or select a task.
+- Assign that task to the spawned client.
+
+
+4. READ THE CLIENT'S TASK
+
+ClientTaskHolder holder = client.GetComponent<ClientTaskHolder>();
+ClientTask task = holder.AssignedTask;
+
+string dialogue = task.GetDialogue();
+
+Example:
+Oh, I want 2 eyes and 3 legs.
+
+
+5. GIVE A BODY PART TO THE CLIENT
+
+bool accepted = holder.GiveBodyPart(BodyPartType.Eye);
+
+The method returns true when the client needs the part.
+It returns false when the part is not requested or is already fulfilled.
+
+
+6. CHECK PROGRESS
+
+int remainingEyes = holder.AssignedTask.GetRemainingAmount(BodyPartType.Eye);
+bool finished = holder.AssignedTask.IsComplete;
+
+
+7. LISTEN FOR TASK COMPLETION
+
+holder.TaskCompleted += OnClientTaskCompleted;
+
+private void OnClientTaskCompleted(ClientTask completedTask)
+{
+    Debug.Log("The client can leave.");
+}
+
+
+IMPORTANT
+
+Use holder.AssignedTask for a client's task.
+Do not use taskList.CurrentTask to identify a specific client's task when
+there are two occupied operation chairs. CurrentTask only represents the
+most recently generated task.
