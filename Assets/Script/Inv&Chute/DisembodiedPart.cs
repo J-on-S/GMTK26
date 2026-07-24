@@ -1,17 +1,19 @@
 using System;
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class DisembodiedPart : MonoBehaviour
 {
     [SerializeField] public float maxHealth = 100.0f;
     [SerializeField] public float health = 100.0f;
-    [SerializeField] private BodyPartDescriptionHUD bodyPartDescriptionHUD;
-
+    
+    private BodyPartDescriptionHUD _bodyPartDescriptionHUD;
     private Material _material;
-
-    private void OnEnable()
+    
+    private void Start()
     {
         _material =  GetComponent<MeshRenderer>().material;
+        _bodyPartDescriptionHUD = BodyPartDescriptionHUD.LastActiveInstance;
     }
 
     private void Update()
@@ -27,11 +29,25 @@ public class DisembodiedPart : MonoBehaviour
 
     private void OnMouseEnter()
     {
-        bodyPartDescriptionHUD.ShowBodyPartDescription(this);
+        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
     }
     
     private void OnMouseExit()
     {
-        bodyPartDescriptionHUD.HideBodyPartDescription();
+        _bodyPartDescriptionHUD.HideBodyPartDescription();
+    }
+
+    public static DisembodiedPart AttachDisembodiedPartScript(float startingHealth, float maxHealth, GameObject gameObject)
+    {
+        var bodyPart = gameObject.GetComponent<DisembodiedPart>();
+        
+        if (bodyPart == null)
+        {
+            bodyPart = gameObject.AddComponent<DisembodiedPart>();
+        }
+        
+        bodyPart.health = startingHealth;
+        bodyPart.maxHealth = maxHealth;
+        return bodyPart;
     }
 }

@@ -46,11 +46,19 @@ public class DemoPlayerController : MonoBehaviour
         
         var mouseDelta = Mouse.current.delta.ReadValue() * 0.3f;
         var rotationDelta = mouseDelta.x * Vector3.up - mouseDelta.y * Vector3.right;
-        _camera.localRotation = Quaternion.Euler(_camera.localEulerAngles + rotationDelta);
+        _camera.localRotation = Quaternion.Euler(
+            Math.Clamp(_camera.localEulerAngles.x + rotationDelta.x, -90, 90),
+            _camera.localEulerAngles.y + rotationDelta.y,
+            _camera.localEulerAngles.z);
     }
 
     private void LateUpdate()
     {
         _camera.position = transform.position + _offsetPosition;
+    }
+
+    private void OnMouseEnter()
+    {
+        DisembodiedPart.AttachDisembodiedPartScript(10, 30, gameObject);
     }
 }

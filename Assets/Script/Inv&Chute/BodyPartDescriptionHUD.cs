@@ -11,6 +11,11 @@ public class BodyPartDescriptionHUD : MonoBehaviour
     /// </summary>
     private static readonly int Visible = Animator.StringToHash("Visible");
     
+    /// <summary>
+    /// Instance of HUD active in the current scene.
+    /// </summary>
+    public static BodyPartDescriptionHUD LastActiveInstance;
+    
     [SerializeField] private TextMeshProUGUI bodyPartDescriptionText;
     [SerializeField] private Slider bodyPartHealthSlider;
     private Animator _animator;
@@ -19,6 +24,7 @@ public class BodyPartDescriptionHUD : MonoBehaviour
 
     private void OnEnable()
     {
+        LastActiveInstance = this;
         _animator = GetComponent<Animator>();
     }
 
