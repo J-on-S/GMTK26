@@ -321,8 +321,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4103cbf403dc6f258a3b6e31327cd57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DisembodiedPart
-  maxHealth: 60
-  health: 100
+  maxHealth: 20
+  health: 15
   bodyPartDescriptionHUD: {fileID: 113288614}
 --- !u!1 &113288609
 GameObject:
@@ -1367,8 +1367,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4103cbf403dc6f258a3b6e31327cd57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  maxHealth: 60
-  health: 100
+  maxHealth: 20
+  health: 20
   bodyPartDescriptionHUD: {fileID: 113288614}
 --- !u!1 &1384376168
 GameObject:
@@ -2088,8 +2088,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4103cbf403dc6f258a3b6e31327cd57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DisembodiedPart
-  maxHealth: 60
-  health: 20
+  maxHealth: 20
+  health: 10
   bodyPartDescriptionHUD: {fileID: 113288614}
 --- !u!1 &1940648656
 GameObject:

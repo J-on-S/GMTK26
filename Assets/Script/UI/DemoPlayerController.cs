@@ -44,7 +44,7 @@ public class DemoPlayerController : MonoBehaviour
         var moveDelta = _moveAction.ReadValue<Vector2>() * (5.0f * Time.deltaTime);
         transform.position += moveDelta.x * _camera.right + moveDelta.y * _camera.forward;
         
-        var mouseDelta = Mouse.current.delta.ReadValue();
+        var mouseDelta = Mouse.current.delta.ReadValue() * 0.3f;
         var rotationDelta = mouseDelta.x * Vector3.up - mouseDelta.y * Vector3.right;
         _camera.localRotation = Quaternion.Euler(_camera.localEulerAngles + rotationDelta);
     }
