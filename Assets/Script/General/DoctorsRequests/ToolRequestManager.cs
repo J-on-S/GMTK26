@@ -91,15 +91,16 @@ public class ToolRequestManager : MonoBehaviour
 
     }
 
-    // check if player submitted the tool correctly
-    public void PlayerSubmittedTool(string submittedName, ItemType submittedType)
+    // check if player submitted the tool correctly, returns true if correctly submitted
+    public bool PlayerSubmittedTool(string submittedName, ItemType submittedType)
     {
-        if (currentState != State.ActiveRequest) return;
+        if (currentState != State.ActiveRequest) return false;
 
         if (submittedName == currentRequest.itemName && submittedType == currentRequest.itemType)
         {
             Debug.Log("Dude thanks for giving me that.");
             StartCooldown();
+            return true;    // success
 
             // some sort of score stuff
         }
@@ -107,6 +108,7 @@ public class ToolRequestManager : MonoBehaviour
         {
             // maybe add penalty here for not fulfilling request?
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
+            return false; // not success
         }
     }
 

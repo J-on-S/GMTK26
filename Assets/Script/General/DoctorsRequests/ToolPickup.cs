@@ -10,7 +10,7 @@ public class ToolPickup : MonoBehaviour
 
     //tool stuff
     public string itemName;
-    public float respawnTime = 5f;
+    public float respawnTime = 4f;   // should be same or less than the cooldown time
     public ToolRequestManager.ItemType itemType;
 
 
@@ -24,30 +24,18 @@ public class ToolPickup : MonoBehaviour
         rend = GetComponent<Renderer>();
     }
 
-
-    //// this should be elsewhere probably with the rest of the controls
-    //private void OnMouseDown()
-    //{
-    //    PickupTool();
-    //}
+    // this is called when the player picks up the object
     public void OnItemCollected()
     {
-        SetToolVisible(false);
-        StartCoroutine(RespawnRoutine());
+        SetToolVisible(false);  // hide the tool when it is picked up
+       // StartCoroutine(RespawnRoutine());
     }
 
-    //void PickupTool()  // this should be changed to pickup and hand to doctor
-    //{
-    //    ToolRequestManager manager = FindFirstObjectByType<ToolRequestManager>();
-    //    if (manager != null)
-    //    {
-    //        manager.PlayerSubmittedTool(toolName);
-    //    }
-
-    //    // dont destroy tool -- want infinite supply
-    //    SetToolVisible(false);
-    //    StartCoroutine(RespawnRoutine());
-    //}
+    // this is called when the doctor gets the right item delivered
+    public void StartRespawnTimer()
+    {
+        StartCoroutine(RespawnRoutine());
+    }
 
     IEnumerator RespawnRoutine()
     {

@@ -69,6 +69,7 @@ public class PlayerInventoryandInteraction : MonoBehaviour
         pickup.OnItemCollected();
     }
 
+    // only remove item from inventory if it is the correct item
     private void TryDeliverItem(RequestDeliveryTarget target)
     {
         if (!isHoldingItem)
@@ -76,11 +77,21 @@ public class PlayerInventoryandInteraction : MonoBehaviour
             Debug.Log("You're not holding anything.");
             return;
         }
-        // give item 
-        target.ReceiveItem(heldItemName, heldItemType);
+        // try give item 
+        bool deliveryAccepted = target.ReceiveItem(heldItemName, heldItemType);
 
-        // remove from inventory
-        isHoldingItem = false;
-        heldItemName = "";
+        if (deliveryAccepted)
+        {
+            // remove from inventory if item is accepted
+            isHoldingItem = false;
+            heldItemName = "";
+            Debug.Log("Item accepted. Inventory cleared.");
+        }
+        else
+        {
+            // just keep the item otherwise -- would need to drop it
+            Debug.Log($"The doctor rejected the {heldItemName}. It's still in the player's hand.");
+
+        }
     }
 }
