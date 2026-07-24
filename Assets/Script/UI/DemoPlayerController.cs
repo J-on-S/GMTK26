@@ -59,6 +59,6 @@ public class DemoPlayerController : MonoBehaviour
 
     private void OnMouseEnter()
     {
-        DisembodiedPart.AttachDisembodiedPartScript(10, 30, gameObject);
+        BodyPartHealth.AttachBodyPartHealth(10, 30, gameObject);
     }
 }

@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class DisembodiedPart : MonoBehaviour
+public class BodyPartHealth : MonoBehaviour
 {
     [SerializeField] public float maxHealth = 100.0f;
     [SerializeField] public float health = 100.0f;
@@ -37,13 +37,13 @@ public class DisembodiedPart : MonoBehaviour
         _bodyPartDescriptionHUD.HideBodyPartDescription();
     }
 
-    public static DisembodiedPart AttachDisembodiedPartScript(float startingHealth, float maxHealth, GameObject gameObject)
+    public static BodyPartHealth AttachBodyPartHealth(float startingHealth, float maxHealth, GameObject gameObject)
     {
-        var bodyPart = gameObject.GetComponent<DisembodiedPart>();
+        var bodyPart = gameObject.GetComponent<BodyPartHealth>();
         
         if (bodyPart == null)
         {
-            bodyPart = gameObject.AddComponent<DisembodiedPart>();
+            bodyPart = gameObject.AddComponent<BodyPartHealth>();
         }
         
         bodyPart.health = startingHealth;
