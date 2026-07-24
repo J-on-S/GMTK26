@@ -19,6 +19,7 @@ public class RequestDeliveryTarget : MonoBehaviour
         if (manager != null)
         {
             manager.PlayerSubmittedTool(itemName, itemType);
+            // only respawn once the item is given to the doctor
         }
     }
 }

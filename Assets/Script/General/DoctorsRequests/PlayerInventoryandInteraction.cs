@@ -8,7 +8,7 @@ public class PlayerInventoryandInteraction : MonoBehaviour
     public ToolRequestManager.ItemType heldItemType;
 
     public LayerMask interactionLayers;
-    public float interactionDistance = 100f;
+    public float interactionDistance = 100f;  // idk what number to set here probably this is too high
 
     // Update is called once per frame
     void Update()
@@ -47,15 +47,15 @@ public class PlayerInventoryandInteraction : MonoBehaviour
         }
     }
 
-    // maybe just if you pickup another item you automatically take that instead of needing to drop it
+   
     private void TryPickupItem(ToolPickup pickup)
     {
-        // removed this part cause i think we should be able to grab stuff and not need to drop it
-        //if (isHoldingItem)
-        //{
-        //    Debug.Log("You're already holding an item!");
-        //    return;
-        //}
+        // need to give or drop item before picking up another
+        if (isHoldingItem)
+        {
+            Debug.Log("You're already holding an item!");
+            return;
+        }
 
         // get the item data goodness
         heldItemName = pickup.itemName;
