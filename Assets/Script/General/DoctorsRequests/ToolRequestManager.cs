@@ -55,6 +55,7 @@ public class ToolRequestManager : MonoBehaviour
 
     }
 
+    // countdown and then failure of request if not fulfilled within time
     private void HandleActiveRequest()
     {
         remainingTime -= Time.deltaTime;
@@ -65,6 +66,7 @@ public class ToolRequestManager : MonoBehaviour
         
     }
 
+    // cooldown between requests
     private void HandleCooldown()
     {
         remainingCooldown -= Time.deltaTime;
@@ -106,18 +108,20 @@ public class ToolRequestManager : MonoBehaviour
         }
         else
         {
-            // maybe add penalty here for not fulfilling request?
+            // maybe add penalty to score here for not fulfilling request?
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
             return false; // not success
         }
     }
 
+    // fail message and restart cooldown
     private void FailRequest()
     {
         Debug.Log("Time is up! You failed the request.");
         StartCooldown();
     }
 
+    // deals with cooldown state and timer
     private void StartCooldown()
     {
         remainingCooldown = timeBetweenRequests;

@@ -1,9 +1,6 @@
 using UnityEngine;
 using System.Collections;
-using System.ComponentModel;
-
-
-// currently request is fulfilled just by clicking on item need to change so you are handing the item to the doctor to fulfill the order 
+using System.ComponentModel; 
 
 public class ToolPickup : MonoBehaviour
 {
@@ -37,6 +34,7 @@ public class ToolPickup : MonoBehaviour
         StartCoroutine(RespawnRoutine());
     }
 
+    // respawn items after a certain amount of time
     IEnumerator RespawnRoutine()
     {
         yield return new WaitForSeconds(respawnTime);
@@ -44,6 +42,7 @@ public class ToolPickup : MonoBehaviour
 
     }
 
+    // make the item visible again (respawn it essentially)
     void SetToolVisible(bool isVisible)
     {
         if (col != null) col.enabled = isVisible;
