@@ -174,9 +174,39 @@ public class ClientTaskList : MonoBehaviour
             return null;
         }
 
-        ClientTask task = useHandMadeTasks ? GetRandomTaskFromList() : GenerateRandomTask();
+        ClientTask task = CreateTask(useHandMadeTasks);
+        if (task == null)
+            return null;
+
+        SetCurrentTask(task);
         client.AssignTask(task);
         return task;
+    }
+
+    /// <summary>
+    /// Creates task data without assigning it to a client or spawning anything.
+    /// This is used when preparing the client/task queue ahead of time.
+    /// </summary>
+    public ClientTask CreateTask(bool useHandMadeTasks = true)
+    {
+        if (!HasDatabase())
+            return null;
+
+        if (!useHandMadeTasks || database.TaskTemplates.Count == 0)
+            return CreateGeneratedTask();
+
+        ClientTask template =
+            database.TaskTemplates[UnityEngine.Random.Range(0, database.TaskTemplates.Count)];
+
+        if (template == null)
+        {
+            Debug.LogWarning(
+                "The selected task template is empty; generating a random task instead.",
+                database);
+            return CreateGeneratedTask();
+        }
+
+        return ClampAndCopy(template);
     }
 
     public bool DeliverBodyPart(BodyPartType bodyPart)
@@ -193,36 +223,26 @@ public class ClientTaskList : MonoBehaviour
     /// <summary>Chooses and copies a hand-made task, clamped to six total parts.</summary>
     public ClientTask GetRandomTaskFromList()
     {
-        if (!HasDatabase())
-            return null;
-
-        if (database.TaskTemplates.Count == 0)
-            return GenerateRandomTask();
-
-        ClientTask template = database.TaskTemplates[UnityEngine.Random.Range(0, database.TaskTemplates.Count)];
-        if (template == null)
-        {
-            Debug.LogWarning("The selected task template is empty; generating a random task instead.", database);
-            return GenerateRandomTask();
-        }
-
-        CurrentTask = ClampAndCopy(template);
-        TaskAssigned?.Invoke(CurrentTask);
-        return CurrentTask;
+        ClientTask task = CreateTask(true);
+        SetCurrentTask(task);
+        return task;
     }
 
     /// <summary>Creates a request with unique body-part types and at most six parts.</summary>
     public ClientTask GenerateRandomTask()
     {
-        if (!HasDatabase())
-            return null;
+        ClientTask task = CreateTask(false);
+        SetCurrentTask(task);
+        return task;
+    }
 
+    private ClientTask CreateGeneratedTask()
+    {
         List<BodyPartType> choices = GetUniqueAvailableParts();
         if (choices.Count == 0)
         {
             Debug.LogWarning("ClientTaskList has no available body parts.", this);
-            CurrentTask = new ClientTask(Array.Empty<BodyPartRequest>());
-            return CurrentTask;
+            return new ClientTask(Array.Empty<BodyPartRequest>());
         }
 
         Shuffle(choices);
@@ -241,9 +261,14 @@ public class ClientTaskList : MonoBehaviour
             remaining -= amount;
         }
 
-        CurrentTask = new ClientTask(requests);
-        TaskAssigned?.Invoke(CurrentTask);
-        return CurrentTask;
+        return new ClientTask(requests);
+    }
+
+    private void SetCurrentTask(ClientTask task)
+    {
+        CurrentTask = task;
+        if (task != null)
+            TaskAssigned?.Invoke(task);
     }
 
     private ClientTask ClampAndCopy(ClientTask source)
