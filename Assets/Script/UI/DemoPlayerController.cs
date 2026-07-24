@@ -16,10 +16,10 @@ public class DemoPlayerController : MonoBehaviour
 
     private void OnEnable()
     {
-        var camera = Camera.main;
-        if (camera != null)
+        var mainCamera = Camera.main;
+        if (mainCamera != null)
         {
-            _camera = camera.transform;
+            _camera = mainCamera.transform;
         }
         else
         {
