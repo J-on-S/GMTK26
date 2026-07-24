@@ -5,12 +5,12 @@ using UnityEngine;
 public class StateWeight
 {
     [SerializeField] private State state;
-    [SerializeField] private float weight = 1;
+    [SerializeField] private int weight = 1;
     public State GetState()
     {
         return state;
     }
-    public float GetWeight()
+    public int GetWeight()
     {
         return weight;
     }

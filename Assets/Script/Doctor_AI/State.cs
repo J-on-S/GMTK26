@@ -2,7 +2,14 @@ using UnityEngine;
 public abstract class State : MonoBehaviour
 {
     protected StateManager stateManager;
-
+    [SerializeField] protected string animName = "";
+    protected private GameObject bot;
+    protected private Animator anim;
+    protected virtual void Awake()
+    {
+        bot = transform.parent.parent.gameObject;
+        anim = bot.GetComponent<Animator>();
+    }
     public virtual void Initialize(StateManager manager)
     {
         stateManager = manager;

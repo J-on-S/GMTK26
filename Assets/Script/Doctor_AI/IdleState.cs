@@ -6,13 +6,15 @@ public class IdleState : State
     [SerializeField] private WalkState walkState;
     [SerializeField] private float minIdleTime;
     [SerializeField] private float maxIdleTime;
-    private float idleTime;
+    [ReadOnly] [SerializeField] private float idleTime;
     private float waitIdleTime;
+
     public override void EnterState()
     {
         idleTime = 0f;
         waitIdleTime = Random.Range(minIdleTime, maxIdleTime);
         Debug.Log("Doctor starts idle.");
+        anim.Play(animName);
     }
 
     public override State UpdateState()
@@ -23,7 +25,6 @@ public class IdleState : State
         {
             return stateManager.RandomState(states);
         }
-
         return this;
     }
 

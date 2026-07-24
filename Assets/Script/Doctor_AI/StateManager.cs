@@ -44,9 +44,29 @@ public class StateManager : MonoBehaviour
     }
 
     public State RandomState(List<StateWeight> states)
+{
+    // Calculate total weight
+    int totalWeight = 0;
+    foreach (StateWeight state in states)
     {
-        int stateIndex = Random.Range(0, states.Count);
-        State randomState = states[stateIndex].GetState();
-        return randomState;
+        totalWeight += state.GetWeight();
     }
+
+    // Pick a random value
+    int random = Random.Range(0, totalWeight);
+
+    // Find the selected state
+    foreach (StateWeight state in states)
+    {
+        if (random < state.GetWeight())
+        {
+            return state.GetState();
+        }
+
+        random -= state.GetWeight();
+    }
+
+    // Should never happen
+    return states[0].GetState();
+}
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class WalkState : State
 {
@@ -11,15 +12,11 @@ public class WalkState : State
     private List<Transform> surgeryTableATransforms;
     private List<Transform> surgeryTableBTransforms;
     [SerializeField] private bool testIsATable = false;
-    private Transform goal;
-    private Transform doctor;
-    private void Start()
+    [SerializeField] private float rotationSpeed = 5f;
+    private NavMeshAgent agent;
+    protected override void Awake()
     {
-        doctor = transform.parent.parent;
-        if (!doctor)
-        {
-            Debug.LogError("Doctor is null");
-        }
+        base.Awake();
         surgeryTableATransforms = new List<Transform>();
 
         foreach (Transform child in surgeryTableATransform)
@@ -33,36 +30,55 @@ public class WalkState : State
         {
             surgeryTableBTransforms.Add(child);
         }
+        agent = bot.GetComponent<NavMeshAgent>();
     }
     public override void EnterState()
     {
         if (testIsATable)
         {
             int goalIndex = Random.Range(0, surgeryTableATransforms.Count);
-            goal = surgeryTableATransforms[goalIndex];
+            agent.destination = surgeryTableATransforms[goalIndex].position;
         }
         else
         {
             int goalIndex = Random.Range(0, surgeryTableBTransforms.Count);
-            goal = surgeryTableBTransforms[goalIndex];
+            agent.destination = surgeryTableBTransforms[goalIndex].position;
         }
         Debug.Log("Doctor starts walk.");
+        anim.Play(animName);
     }
 
     public override State UpdateState()
     {
-        Vector3 targetPosition = new Vector3(
-        goal.position.x,
-        doctor.transform.position.y, // Keep current height
-        goal.position.z
-        );
+        //agent.speed = (anim.deltaPosition / Time.deltaTime).magnitude;
+        //Debug.Log("agent speed: "+agent.speed); 
+        // Vector3 targetPosition = new Vector3(
+        // agent.destination.x,
+        // bot.transform.position.y, // Keep current height
+        // agent.destination.z
+        // );
 
-        doctor.transform.position = Vector3.MoveTowards(
-            doctor.transform.position,
-            targetPosition,
-            moveSpeed * Time.deltaTime);
+        // Calculate direction
+        // Vector3 direction = targetPosition - bot.transform.position;
+        // direction.y = 0f;
 
-        if (Vector3.Distance(doctor.transform.position, targetPosition) <= stoppingDistance)
+        // // Rotate if we're actually moving
+        // if (direction.sqrMagnitude > 0.001f)
+        // {
+        //     Quaternion targetRotation = Quaternion.LookRotation(direction);
+        //     bot.transform.rotation = Quaternion.Slerp(
+        //         bot.transform.rotation,
+        //         targetRotation,
+        //         rotationSpeed * Time.deltaTime);
+        // }
+
+        // Move
+        // bot.transform.position = Vector3.MoveTowards(
+        //     bot.transform.position,
+        //     targetPosition,
+        //     moveSpeed * Time.deltaTime);
+
+        if (Vector3.Distance(bot.transform.position, agent.destination) <= stoppingDistance)
         {
             return stateManager.RandomState(states);
         }
