@@ -16,7 +16,8 @@ public class CountdownUI : MonoBehaviour
     // flashing lights section
     public Image flashLight;
     public float flashThreshold = 10f;          // this is how much remaining time will be when the screen starts flashing
-    [Range(01, 1f)] public float maxOpacity = 0.4f;     // max opacity of the light
+    //[Range(01, 1f)] public float maxOpacity = 0.1f;     // max opacity of the light
+    public float maxOpacity = 0.4f;     // max opacity of the light
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
