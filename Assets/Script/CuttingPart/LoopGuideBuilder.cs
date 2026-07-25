@@ -438,3 +438,15 @@ public class LoopGuideBuilder : MonoBehaviour {
         builtAmp = preset.curveAmplitude;
     }
 }
+
+
+// for lineRenderer material: 
+/*
+use unlit material : SurfaceType transparent
+TextureMode: Tile
+// 
+all texture must have Alpha is transparency
+
+
+
+*/

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 // runs before CameraFollow so the scalpel angle it sets is consumed the same frame.
@@ -24,6 +26,25 @@ public enum CuttingState
         PROGRESSING,
         COMPLETED
     }
+
+    /// <summary>Where the camera rig is, which is a separate axis from <see cref="CuttingState"/> (how far the cut got). Entering and Exiting are the travel phases: input is dead and the camera is being flown by this manager, not by <see cref="CameraFollow"/> or <see cref="MoveCamera"/>.</summary>
+    public enum RigPhase
+    {
+        /// <summary>Free-look. The only phase a cut can be entered from.</summary>
+        Free,
+        /// <summary>Flying from free-look to the orbit position.</summary>
+        Entering,
+        /// <summary>Orbiting; the player is cutting.</summary>
+        Cutting,
+        /// <summary>Flying back to the pose free-look was left in.</summary>
+        Exiting,
+    }
+
+    public bool useUpperHull = false;
+
+    [Tooltip("the name of the tool you need to operate on this")]
+    public string toolNeeded= "";
+    public string bodyPartName= "";
     public float startAngle;
 
     public float endAngle= 360; 
@@ -32,7 +53,10 @@ public enum CuttingState
 
     [ReadOnly] public float currentProgress =>(scalpelFollow.Angle  - startAngle) / (endAngle - startAngle); // normalized 0-1
 
-    [ReadOnly] bool isPlaying = false;
+    [ReadOnly] public RigPhase phase = RigPhase.Free;
+
+    /// <summary>True only while the player actually has the cut; the travel phases don't count.</summary>
+    bool isPlaying => phase == RigPhase.Cutting;
 
     public CuttableObject GameObjectBeingCut;
 
@@ -44,6 +68,32 @@ public enum CuttingState
 
     [Tooltip("Camera field of view while cutting, in degrees. The free-look FOV is snapshotted on enter and put back on quit.")]
     public float cameraFOV = 40f;
+
+    [Header("Camera travel")]
+    [Tooltip("Seconds the camera takes to fly from free-look to the orbit position. 0 = snap.")]
+    public float enterTravelTime = 0.6f;
+
+    [Tooltip("Seconds the camera takes to fly back to the free-look pose. 0 = snap.")]
+    public float exitTravelTime = 0.45f;
+
+    [Tooltip("Shapes the travel over its duration. Position, aim and FOV all ride this one curve, so they arrive together.")]
+    public AnimationCurve travelEase = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+    // Pose the current travel started from, captured on the frame it began. Lerping from a
+    // stored start (rather than from the live transform) keeps the arrival exact.
+    private Vector3 travelFromPos;
+    private Quaternion travelFromRot;
+    private float travelFromFOV;
+
+    // Pose the fly-in is heading to. Resolved once (see TryResolveEnterTarget) rather than
+    // recomputed per frame: a moving destination makes the ease meaningless, and reading the
+    // aim back off the camera being written would freeze the rotation at its start value.
+    private Vector3 travelToPos;
+    private Quaternion travelToRot;
+    private bool travelToResolved;
+
+    /// <summary>Travel progress, 0..1, raw (before <see cref="travelEase"/>).</summary>
+    private float travelT;
 
     public Camera sceneCamera;
 
@@ -109,8 +159,9 @@ public enum CuttingState
             }
 
         // park the rig in free-look; not QuitMinigame, which would report quitting a game
-        // that never started and fire OnMinigameQuit at every listener on load.
-        RestoreRig();
+        // that never started and fire OnMinigameQuit at every listener on load. Instant, not
+        // a travel: there is no pose to fly back from on load.
+        ParkRigInstant();
     }
     /// <summary>Holds the scalpel's orbit start-angle a fixed lead ahead of the camera's, live in edit mode so the follower previews before play.</summary>
     void DriveScalpelStartAngle()
@@ -126,20 +177,112 @@ public enum CuttingState
         // edit-mode + live preview of the scalpel's start-angle lead.
 
 
-        if (isPlaying)
+        if (!Application.isPlaying) return;
+
+        switch (phase)
         {
-            DriveScalpelStartAngle();
-            SyncScalpel();
+            case RigPhase.Entering:
+                TickEnter();
+                break;
 
-            // the camera's orbit angle IS the cut progress; mirror it so currentProgress reads it.
-            if (cameraFollow != null) currentAngle = cameraFollow.Angle;
+            case RigPhase.Exiting:
+                TickExit();
+                break;
 
-            if(currentProgress >=1 ) HandleCompletion();
-            // edge, not held: a held Q would quit again the instant the player re-entered.
-            else if (Keyboard.current.qKey.wasPressedThisFrame){
-                QuitMinigame();
-            }
+            case RigPhase.Cutting:
+                DriveScalpelStartAngle();
+                SyncScalpel();
+
+                // the camera's orbit angle IS the cut progress; mirror it so currentProgress reads it.
+                if (cameraFollow != null) currentAngle = cameraFollow.Angle;
+
+                if (currentProgress >= 1) HandleCompletion();
+                // edge, not held: a held Q would quit again the instant the player re-entered.
+                else if (Keyboard.current.qKey.wasPressedThisFrame)
+                {
+                    QuitMinigame();
+                }
+                break;
         }
+    }
+
+    /// <summary>Flies the camera from the free-look pose to the orbit position, easing position, aim and FOV together. The orbit is parked at the kept progress while this runs, so the destination doesn't drift out from under the lerp.</summary>
+    void TickEnter()
+    {
+        // hold the orbit at the kept progress so it hands over at exactly the angle the
+        // travel aimed for. It owns neither position nor rotation yet, and the speed driver
+        // is still off, so nothing else moves.
+        if (cameraFollow != null) cameraFollow.Angle = currentAngle;
+
+        // normally already resolved in SetupRig; this retries on the rare frame the guide had
+        // no loop to give (the plane momentarily missing the mesh).
+        if (!travelToResolved && !TryResolveEnterTarget())
+        {
+            if (cameraFollow == null || cameraFollow.loopGuide == null)
+            {
+                // nothing to orbit: the cut itself can't work either, so land immediately
+                // rather than stranding the player in a travel that will never arrive.
+                Debug.LogError("CuttingManager: no cameraFollow/loopGuide, skipping the fly-in.", this);
+                CompleteEnter();
+            }
+
+            // hold: lerping toward an unresolved target would fly the camera at the origin.
+            return;
+        }
+
+        float e = Advance(enterTravelTime);
+        ApplyTravel(travelToPos, travelToRot, cameraFOV, e);
+
+        if (travelT >= 1f) CompleteEnter();
+    }
+
+    /// <summary>Flies the camera back to the pose free-look was left in, easing position, aim and FOV together.</summary>
+    void TickExit()
+    {
+        float e = Advance(exitTravelTime);
+
+        ApplyTravel(initialCameraPos, initialCameraRot, initialcameraFOV, e);
+
+        if (travelT >= 1f) CompleteExit();
+    }
+
+    /// <summary>Steps <see cref="travelT"/> by one frame over <paramref name="duration"/> and returns the eased value. A duration of 0 arrives immediately.</summary>
+    float Advance(float duration)
+    {
+        travelT = duration > 0f
+            ? Mathf.Min(1f, travelT + Time.deltaTime / duration)
+            : 1f;
+
+        return travelEase != null && travelEase.length > 0
+            ? travelEase.Evaluate(travelT)
+            : travelT;
+    }
+
+    /// <summary>Writes the camera one step along the current travel: position, aim and FOV all off the same eased <paramref name="e"/>, all measured from the pose the travel started at.</summary>
+    void ApplyTravel(Vector3 toPos, Quaternion toRot, float toFOV, float e)
+    {
+        sceneCamera.transform.SetPositionAndRotation(
+            Vector3.Lerp(travelFromPos, toPos, e),
+            Quaternion.Slerp(travelFromRot, toRot, e));
+
+        sceneCamera.fieldOfView = Mathf.Lerp(travelFromFOV, toFOV, e);
+    }
+
+    /// <summary>Locks in where the fly-in is heading: the orbit position <see cref="CameraFollow"/> would hold at the kept progress, aimed at the cut's centre and rolled level with the cutting plane. Resolved once and reused, so the destination can't drift mid-travel and the aim can't be read back off the camera it is writing to.</summary>
+    /// <returns><c>false</c> while the guide has no loop yet; nothing is written and the caller should hold.</returns>
+    bool TryResolveEnterTarget()
+    {
+        if (cameraFollow == null) return false;
+
+        // ask the orbit itself rather than reading its published BasePosition: that is only
+        // written by its Update, which has not run since SetupRig enabled it (it sits at
+        // execution order 0, this manager at -10), so it would still hold a stale pose. This
+        // also hands back the orbit's real aim -- roll, loopTowardTop, lookMode and pivot
+        // included -- so the handover at the end of the travel is seamless.
+        if (!cameraFollow.TryGetPose(currentAngle, out travelToPos, out travelToRot)) return false;
+
+        travelToResolved = true;
+        return true;
     }
 
    
@@ -149,11 +292,11 @@ public enum CuttingState
     [ContextMenu("StartMinigame")]
     public void EnterMinigame()
     {
-        if( state == CuttingState.COMPLETED || isPlaying) return;
+        // Free, not just "not Cutting": entering mid-travel would fight the lerp.
+        if( state == CuttingState.COMPLETED || phase != RigPhase.Free) return;
         OnMinigameEntered?.Invoke();
         Debug.LogWarning("entering minigame");
 
-        isPlaying = true;
         state = CuttingState.PROGRESSING;
 
         SetupRig();
@@ -166,23 +309,27 @@ public enum CuttingState
             Debug.LogError("trying to Quit minigame but not in it");
             return;
         }
-        isPlaying = false;
 
         RestoreRig();
 
+        // fired when the player loses the cut, not when the camera lands: the run is already over.
         OnMinigameQuit?.Invoke();
     }
 
-    /// <summary>Switches the scene over to cutting: stores what <see cref="RestoreRig"/> puts back, hands the camera to the loop, and wakes the scalpel + speed driver. Mirror of <see cref="RestoreRig"/>; keep the two in step.</summary>
+    /// <summary>Starts the flight into the cut: stores what <see cref="RestoreRig"/> puts back, takes the camera off free-look, and lets <see cref="CameraFollow"/> compute the destination without yet driving anything. Control is handed over in <see cref="CompleteEnter"/>. Mirror of <see cref="RestoreRig"/>; keep the two in step.</summary>
     void SetupRig()
     {
         // remember the free-look camera state so quitting can put it back.
         CaptureCameraState();
 
-        // camera: free-look off, orbit on, cutting FOV.
+        // free-look off for the whole travel; its look would fight the lerp.
         moveCamera.enabled = false;
+
+        // orbit on, but driving nothing: the travel owns the transform until it lands. The
+        // destination is asked for directly (TryGetPose), so this does not need to have run.
         cameraFollow.enabled = true;
-        sceneCamera.fieldOfView = cameraFOV;
+        cameraFollow.controlPosition = false;
+        cameraFollow.controlRotation = false;
 
         // CameraFollow.OnEnable re-seeds its angle from startAngle, and the enable above fires it,
         // so re-entering would rewind the cut. currentAngle is the kept progress: put it back.
@@ -192,11 +339,30 @@ public enum CuttingState
         // scalpel angle is driven by SyncScalpel; stop its CameraFollow from self-advancing.
         if (scalpelFollow != null) scalpelFollow.rotationSpeed = 0f;
 
+        // the speed driver and the trail stay parked until the camera lands, so the player
+        // can't scroll the cut forward (or paint a trail) during the fly-in.
+        BeginTravel(RigPhase.Entering);
+
+        // lock the destination now: TryGetPose computes it outright, so there is nothing to
+        // wait for and the first travelled frame already moves.
+        TryResolveEnterTarget();
+    }
+
+    /// <summary>Hands the rig over at the end of the fly-in: <see cref="CameraFollow"/> takes the camera back and the player gets the cut.</summary>
+    void CompleteEnter()
+    {
+        cameraFollow.controlPosition = true;
+        cameraFollow.controlRotation = true;
+        cameraFollow.Angle = currentAngle;
+
+        // zero it first: the driver keeps its speed across a disable, so a quit mid-cut would
+        // otherwise hand the next entry the speed it was carrying.
+        speedDriver.SetSignedSpeed(0);
         speedDriver.Enable();
 
         SetScalpelTrace(true);
 
-       
+        phase = RigPhase.Cutting;
     }
 
 
@@ -220,21 +386,58 @@ public enum CuttingState
         }
     }
 
-    /// <summary>Undoes <see cref="SetupRig"/>: camera back where it was found, free-look on, speed driver parked. Mirror of <see cref="SetupRig"/>; keep the two in step.</summary>
+    /// <summary>Starts the flight back out: takes the camera off the orbit and parks the cut inputs. Free-look is not handed back until the camera lands, in <see cref="CompleteExit"/>. Mirror of <see cref="SetupRig"/>; keep the two in step.</summary>
     void RestoreRig()
     {
-        // put the camera where it was found
-        sceneCamera.transform.SetPositionAndRotation(initialCameraPos, initialCameraRot);
-        sceneCamera.fieldOfView = initialcameraFOV;
-
-        moveCamera.enabled = true; // reEnable playerMovement
+        // the travel owns the camera from here; the orbit must not keep writing to it.
         cameraFollow.enabled = false;
-
 
         speedDriver.SetSignedSpeed(0);
         speedDriver.Disable();
 
         SetScalpelTrace(false);
+
+        // moveCamera stays off for the whole travel -- see CompleteExit.
+        BeginTravel(RigPhase.Exiting);
+    }
+
+    /// <summary>Hands the camera back to free-look at the end of the fly-out, snapping to the captured pose so rounding in the lerp can't leave it a hair off.</summary>
+    void CompleteExit()
+    {
+        sceneCamera.transform.SetPositionAndRotation(initialCameraPos, initialCameraRot);
+        sceneCamera.fieldOfView = initialcameraFOV;
+
+        // only now: MoveCamera writes the camera's rotation every frame from its own kept
+        // yaw/pitch, so enabling it any earlier would snap the aim and cancel the travel.
+        moveCamera.enabled = true;
+
+        phase = RigPhase.Free;
+    }
+
+    /// <summary>Opens a travel: captures the pose it starts from and rewinds the timer.</summary>
+    void BeginTravel(RigPhase travelPhase)
+    {
+        travelFromPos = sceneCamera.transform.position;
+        travelFromRot = sceneCamera.transform.rotation;
+        travelFromFOV = sceneCamera.fieldOfView;
+        travelT = 0f;
+
+        // the fly-in resolves its own destination on a later frame; the fly-out already knows
+        // its one (the captured free-look pose), so this only matters to Entering.
+        travelToResolved = false;
+
+        phase = travelPhase;
+    }
+
+    /// <summary>Puts the rig in free-look with no travel, for load time -- there is no pose to fly back from before the first cut.</summary>
+    void ParkRigInstant()
+    {
+        cameraFollow.enabled = false;
+        speedDriver.SetSignedSpeed(0);
+        speedDriver.Disable();
+        SetScalpelTrace(false);
+
+        CompleteExit();
     }
 
     /// <summary>Snapshots the camera's current pose and FOV, the state <see cref="RestoreRig"/> returns it to.</summary>
@@ -272,10 +475,34 @@ public enum CuttingState
     {
         Debug.LogError("minigameCompleted");
         state = CuttingState.COMPLETED;
-        GameObjectBeingCut.SpliceWindowed();
+        // null, not empty, is what SpliceWindowed returns when the slice or the weld fails.
+        List<GameObject> cutted = GameObjectBeingCut.SpliceWindowed();
+        int pieceCount = cutted != null ? cutted.Count : 0;
+
+        if (pieceCount != 1) Debug.LogError("invalid num cutObjects: " + pieceCount);
+
+        if (useUpperHull)
+        {
+            // the upper hull stays on the cuttable itself -- this manager's own GameObject is
+            // the rig, not the mesh.
+            InstantiateBodyPart(GameObjectBeingCut.gameObject);
+        }
+        else
+        {
+            // still quit the rig on a failed cut; returning here would strand the player in it.
+            if (pieceCount > 0) InstantiateBodyPart(cutted[0]);
+        }
+
+
         QuitMinigame();
         // instantiate the BodyPart
         OnMinigameCompleted?.Invoke();
+    }
+
+
+    void InstantiateBodyPart(GameObject bodyPart)
+    {
+        // should call a method that someone will provide me
     }
 
 /// <summary>This manager owns the tuning; it pushes its presets + wiring down into the loop guide, both CameraFollows and the cutting speed driver so they can't drift apart. Live in edit mode too.</summary>
@@ -372,8 +599,9 @@ public enum CuttingState
         return state;
     }
 
-    public bool canEnterMinigame()
+    public bool canEnterMinigame(string toolName)
     {
-        return state != CuttingState.COMPLETED && !isPlaying;
+        // Free, not !isPlaying: during a travel the camera is mid-lerp and can't be handed over.
+        return state != CuttingState.COMPLETED && phase == RigPhase.Free && toolNeeded.Equals(toolName);
     }
 }

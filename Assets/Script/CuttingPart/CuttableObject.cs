@@ -48,7 +48,7 @@ public class CuttableObject : MonoBehaviour
 
     /// <summary>Slices and welds in one step: this object becomes the reattached body and the removed chunk is spawned as its own GameObject. Editor calls are a single undoable step.</summary>
     [ContextMenu("Slice Windowed")]
-    public void SpliceWindowed()
+    public List<GameObject> SpliceWindowed()
     {
 #if UNITY_EDITOR
         UnityEditor.Undo.IncrementCurrentGroup();
@@ -57,11 +57,13 @@ public class CuttableObject : MonoBehaviour
 #endif
 
         Splice();
-        Weld();
+        List<GameObject> created = Weld();
+
 
 #if UNITY_EDITOR
         UnityEditor.Undo.CollapseUndoOperations(undoGroup);
 #endif
+    return created;
     }
 
     /// <summary>Slices the mesh with the plane and holds the result, ready for <see cref="Weld"/>. Errors and does nothing when the cut isn't complete.</summary>
@@ -90,22 +92,22 @@ public class CuttableObject : MonoBehaviour
     }
 
     /// <summary>Splits the pending slice: this object becomes the body and the removed chunk is spawned. Records the mutated components and the created object for editor undo.</summary>
-    private void Weld()
+    private  List<GameObject> Weld()
     {
         if (pendingHull == null) {
             Debug.LogError("CuttableObject: no pending slice — call Splice first.", this);
-            return;
+            return null;
         }
         if (!TryGetComponent<MeshFilter>(out var filter)) {
             Debug.LogError("CuttableObject: no MeshFilter.", this);
-            return;
+            return null;
         }
 
         var pieces = new List<Mesh>();
         pendingHull.SliceWindowedSplit(gameObject, MeshLocalPlane(), BuildBounds(), weld, out Mesh body, pieces);
         if (body == null) {
             Debug.LogError("CuttableObject: weld produced no body geometry.", this);
-            return;
+            return null;
         }
 
         MeshRenderer mr = GetComponent<MeshRenderer>();
@@ -127,12 +129,14 @@ public class CuttableObject : MonoBehaviour
         ApplyMaterials(mr, body, skinMats);
 
         // each removed chunk becomes its own GameObject next to this one
+        List<GameObject> gameObjects = new List<GameObject>();
         for (int i = 0; i < pieces.Count; i++) {
             string pieceName = pieces.Count == 1 ? "Lower_Hull" : $"Lower_Hull_{i}";
-            SpawnPiece(pieceName, pieces[i], skinMats);
+            gameObjects.Add(SpawnPiece(pieceName, pieces[i], skinMats));
         }
 
         pendingHull = null;
+        return gameObjects;
     }
 
     /// <summary>Assigns a mesh to the filter (and collider), using sharedMesh in the editor so the change is undoable and no mesh instance leaks.</summary>
@@ -154,7 +158,7 @@ public class CuttableObject : MonoBehaviour
     }
 
     /// <summary>Creates a sibling GameObject carrying the cut piece: same transform, mesh, materials and a mesh collider. Registered for editor undo.</summary>
-    private void SpawnPiece(string pieceName, Mesh mesh, Material[] skinMats)
+    private GameObject SpawnPiece(string pieceName, Mesh mesh, Material[] skinMats)
     {
         GameObject go = new GameObject(pieceName);
 #if UNITY_EDITOR
@@ -169,6 +173,7 @@ public class CuttableObject : MonoBehaviour
         go.AddComponent<MeshFilter>().sharedMesh = mesh;
         ApplyMaterials(go.AddComponent<MeshRenderer>(), mesh, skinMats);
         go.AddComponent<MeshCollider>().sharedMesh = mesh;
+        return go;
     }
 
     /// <summary>Assigns the skin materials in order, appending the cross-section material last when the mesh carries a cap submesh.</summary>
