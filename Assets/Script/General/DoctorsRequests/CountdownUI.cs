@@ -1,6 +1,5 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
 
 
 // gotta connect this to the other timer stuff maybe call this from elsewhere
@@ -14,11 +13,12 @@ public class CountdownUI : MonoBehaviour
     private ToolRequestManager manager;
 
     // flashing lights section
-    public Image flashLight;
     public float flashThreshold = 10f;          // this is how much remaining time will be when the screen starts flashing
-    //[Range(01, 1f)] public float maxOpacity = 0.1f;     // max opacity of the light
-    public float maxOpacity = 0.4f;     // max opacity of the light
+    private float maxIntensity = 15f;     // max intensity of the light
 
+
+    // change to light instead of UI
+    public Light flashLight;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -67,7 +67,7 @@ public class CountdownUI : MonoBehaviour
         {
             if (timeToDisplay % 1f > 0.5f)
             {
-                SetFlashOpacity(maxOpacity);
+                SetFlashOpacity(maxIntensity);
             }
             else
             {
@@ -83,13 +83,12 @@ public class CountdownUI : MonoBehaviour
     }
 
     // sets the opacity of the red image
-    void SetFlashOpacity(float opacity)
+    void SetFlashOpacity(float intensity)
     {
+
         if (flashLight != null)
         {
-            Color c = flashLight.color;
-            c.a = opacity;
-            flashLight.color = c;
+            flashLight.intensity = intensity;
         }
     }
 }
