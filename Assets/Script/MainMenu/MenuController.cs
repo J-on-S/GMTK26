@@ -4,24 +4,24 @@ using System;
 using TMPro;
 using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 public class MenuController : MonoBehaviour
 {
     [Header ("General Setting")]
     [SerializeField] private bool useSavedValues = false; // should we load prefs or not
     [SerializeField] private string mainScene = "MainScene";
-    [Header ("Overall Volume settings")]
-    [SerializeField] private AudioMixer mixer = null;
-    [SerializeField] private TMP_Text volumeTextValue = null;
+    [Header ("Volume settings")]
+    [SerializeField] private TMP_Text volumeValueText = null;
     [SerializeField] private Slider volumeSlider = null;
     [SerializeField] private float defaultVolume = 1.0f;
-    [Header ("Music settings")]
-    [SerializeField] private Slider musicSlider = null;
-    [SerializeField] private TMP_Text musicTextValue = null;
-    [Header ("SFX settings")]
-    [SerializeField] private Slider SFXslider = null;
-    [SerializeField] private TMP_Text SFXTextValue = null;
+    
+    [Header ("Background Music references")]
+    [SerializeField] private AudioEventChannel audioEventChannel;
+    [SerializeField] private Audio backgroundMusic;
 
+    private AudioMaster.PlayingClip _backgroundMusicInstance;
+    
     /*
     [Header ("GamePlay Settings")]
     [SerializeField] private TMP_Text SensTextValue = null;
@@ -62,20 +62,10 @@ public class MenuController : MonoBehaviour
             {
                 float localVolume = PlayerPrefs.GetFloat("masterVolume");
                 volumeSlider.value = localVolume;
-                
-                float localMusic = PlayerPrefs.GetFloat("masterMusic");
-                musicSlider.value = localMusic;
-
-                float localSFX = PlayerPrefs.GetFloat("masterSFX");
-                SFXslider.value = localSFX;
 
                 SetVolume();
-                SetMusicVolume();
-                SetSFXVolume();
 
-                volumeTextValue.text = localVolume.ToString("0.0");
-                musicTextValue.text = localMusic.ToString("0.0");
-                SFXTextValue.text = localSFX.ToString("0.0");
+                volumeValueText.text = localVolume.ToString("0.0");
             }
             else
             {
@@ -117,8 +107,6 @@ public class MenuController : MonoBehaviour
 
     void Start()
     {
-        SetSFXVolume();
-        SetMusicVolume();
         SetVolume();
         
         // resolutions = Screen.resolutions;
@@ -146,6 +134,22 @@ public class MenuController : MonoBehaviour
     //     Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
     // }
 
+    private void OnEnable()
+    {
+        _backgroundMusicInstance = audioEventChannel.Play(backgroundMusic);
+    }
+
+    private void OnDisable()
+    {
+        audioEventChannel.Stop(_backgroundMusicInstance);
+    }
+
+    private void Update()
+    {
+        SetVolume();
+        VolumeApply();
+    }
+
     public void PlayButton()
     {
         SceneManager.LoadScene(mainScene);
@@ -159,32 +163,14 @@ public class MenuController : MonoBehaviour
     public void SetVolume()
     {
         float volume = volumeSlider.value;
-        mixer.SetFloat("MasterVolume", Mathf.Log10(volume) * 20);
-        volumeTextValue.text = volume.ToString("0.0");
-    }
-    public void SetMusicVolume()
-    {
-        float volume = musicSlider.value;
-        mixer.SetFloat("MusicVolume", Mathf.Log10(volume) * 20);
-        mixer.SetFloat("MenuMusicVolume",Mathf.Log10(volume) * 20);
-        musicTextValue.text = volume.ToString("0.0");
-    }
-
-    public void SetSFXVolume()
-    {
-        float volume = SFXslider.value;
-        mixer.SetFloat("SFXVolume", Mathf.Log10(volume) * 20);
-        mixer.SetFloat("SubmarineVolume", Mathf.Log10(volume) * 20);
-        mixer.SetFloat("DayTransitionVolume", Mathf.Log10(volume) * 20);
-        SFXTextValue.text = volume.ToString("0.0");
+        audioEventChannel.SetLevel(Mathf.Log10(Mathf.Clamp(volume, 0.001f, 1.0f)) * 20);
+        volumeValueText.text = volume.ToString("0.0");
     }
 
     public void VolumeApply()
     {
         // Save value of Volume in variable masterVolume
         PlayerPrefs.SetFloat("masterVolume", volumeSlider.value);
-        PlayerPrefs.SetFloat("masterMusic", musicSlider.value);
-        PlayerPrefs.SetFloat("masterSFX", SFXslider.value);
         // StartCoroutine(ConfirmationBox());
     }
 
@@ -242,16 +228,8 @@ public class MenuController : MonoBehaviour
         if (MenuType == "Audio")
         {
             volumeSlider.value = defaultVolume;
-            volumeTextValue.text = defaultVolume.ToString("0.0");
-
-            musicSlider.value = defaultVolume;
-            musicTextValue.text = defaultVolume.ToString("0.0");
-
-            SFXslider.value = defaultVolume;
-            SFXTextValue.text = defaultVolume.ToString("0.0");
+            volumeValueText.text = defaultVolume.ToString("0.0");
             SetVolume();
-            SetMusicVolume();
-            SetSFXVolume();
             VolumeApply(); //save value
         }
         /*

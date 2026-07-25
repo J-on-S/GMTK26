@@ -3,13 +3,25 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.Audio;
 using System;
+using UnityEngine.Events;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 public class PauseMenu : MonoBehaviour
 {
     [SerializeField] private GameObject pauseMenuUI = null;
-
-    [SerializeField] private AudioMixer mixer;
-    [SerializeField] private AudioSource pauseMenuMusic;
+    
+    [Header ("Background Music references")]
+    [SerializeField] private AudioEventChannel audioEventChannel;
+    [SerializeField] private Audio backgroundMusic;
+    
+    [Serializable]
+    public class GamePausedEvent : UnityEvent {}
+    [SerializeField] private GamePausedEvent onGamePause = new GamePausedEvent();
+    
+    [Serializable]
+    public class GameResumedEvent : UnityEvent {}
+    [SerializeField] private GameResumedEvent onGameResume = new GameResumedEvent();
 
     public static PauseMenu instance {get; private set; }
     public static bool isPaused = false;
@@ -18,6 +30,8 @@ public class PauseMenu : MonoBehaviour
     private float savedSFX, savedSubmarine, savedPrintNoise, savedMusic, savedRadio, savedDayTransition; 
 
     private Boolean isSubMenuOpen = false;
+    
+    private AudioMaster.PlayingClip _playingBackgroundMusic;
 
     void Awake()
     {
@@ -60,8 +74,8 @@ public class PauseMenu : MonoBehaviour
         pauseMenuUI.SetActive(false);
         Time.timeScale = 1f;
         isPaused = false;
-        pauseMenuMusic.Stop();
-        RestoreVolume();
+        audioEventChannel.Stop(_playingBackgroundMusic);
+        onGameResume.Invoke();
     }
 
     public void Pause()
@@ -69,14 +83,16 @@ public class PauseMenu : MonoBehaviour
         pauseMenuUI.SetActive(true);
         Time.timeScale = 0f;
         isPaused = true;
-        pauseMenuMusic.Play();
-        MuteVolume();
+        _playingBackgroundMusic = audioEventChannel.Play(backgroundMusic);
+        onGamePause.Invoke();
+        audioEventChannel.Stop(_playingBackgroundMusic);
     }
 
     public void LoadMenu()
     {
         Time.timeScale = 1f;
-        RestoreVolume();
+        onGameResume.Invoke();
+        audioEventChannel.Stop(_playingBackgroundMusic);
         SceneManager.LoadScene(mainMenuScene);
     }
 
@@ -88,35 +104,6 @@ public class PauseMenu : MonoBehaviour
     public void SubMenuClose()
     {
         isSubMenuOpen = false;
-    }
-
-
-    void MuteVolume()
-    {
-        mixer.GetFloat("SFXVolume", out savedSFX);
-        mixer.GetFloat("DayTransitionVolume", out savedDayTransition);
-        mixer.GetFloat("MusicVolume", out savedMusic);
-        mixer.GetFloat("PrintNoiseVolume", out savedPrintNoise);
-        mixer.GetFloat("RadioVolume", out savedRadio);
-        mixer.GetFloat("SubmarineVolume", out savedSubmarine);
-
-        float muted = Mathf.Log10(0.0001f) * 20; // -80db
-
-        mixer.SetFloat("SFXVolume", muted);
-        mixer.SetFloat("DayTransitionVolume", muted);
-        mixer.SetFloat("MusicVolume", muted);
-        mixer.SetFloat("PrintNoiseVolume", muted);
-        mixer.SetFloat("RadioVolume", muted);
-        mixer.SetFloat("SubmarineVolume", muted);
-    }
-    void RestoreVolume()
-    {
-        mixer.SetFloat("SFXVolume", savedSFX);
-        mixer.SetFloat("DayTransitionVolume", savedDayTransition);
-        mixer.SetFloat("MusicVolume", savedMusic);
-        mixer.SetFloat("PrintNoiseVolume", savedPrintNoise);
-        mixer.SetFloat("RadioVolume", savedRadio);
-        mixer.SetFloat("SubmarineVolume", savedSubmarine);
     }
 
     void OnDestroy()
