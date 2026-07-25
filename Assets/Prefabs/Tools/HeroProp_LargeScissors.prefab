@@ -101,6 +101,8 @@ GameObject:
   - component: {fileID: 8770700719820247991}
   - component: {fileID: 6104922261862732235}
   - component: {fileID: 7497750699135095188}
+  - component: {fileID: 278141424829363044}
+  - component: {fileID: 5358819509412729866}
   m_Layer: 0
   m_Name: HeroProp_LargeScissors
   m_TagString: Untagged
@@ -116,14 +118,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8608906574157924511}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0.6980057, y: 0.242716, z: 0.3748575}
   m_LocalScale: {x: 0.3274576, y: 0.3274576, z: 0.3274576}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1437599391928249372}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!33 &6104922261862732235
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -181,3 +183,40 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &278141424829363044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8608906574157924511}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f4dc077de8d04df8ad5c617cc18a517, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
+  itemName: Knife
+  itemType: 0
+  timeLimit: 30
+  respawnTime: 3
+--- !u!65 &5358819509412729866
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8608906574157924511}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.15171286, y: 0.057585485, z: 0.30537146}
+  m_Center: {x: -0.032684717, y: 0, z: 0.00000095184714}

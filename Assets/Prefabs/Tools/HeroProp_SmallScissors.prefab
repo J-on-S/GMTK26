@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 6140140620434651309}
   - component: {fileID: 7438183560029020013}
   - component: {fileID: 123486485518337926}
+  - component: {fileID: 3999663407534106999}
+  - component: {fileID: 4768550854811242480}
   m_Layer: 0
   m_Name: HeroProp_SmallScissors
   m_TagString: Untagged
@@ -26,14 +28,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2422982414503797289}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0.6953856, y: 0.2355966, z: 0.27040753}
   m_LocalScale: {x: 0.3274576, y: 0.3274576, z: 0.3274576}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7846986023192117211}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!33 &7438183560029020013
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -91,6 +93,43 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3999663407534106999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2422982414503797289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f4dc077de8d04df8ad5c617cc18a517, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
+  itemName: Knife
+  itemType: 0
+  timeLimit: 30
+  respawnTime: 3
+--- !u!65 &4768550854811242480
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2422982414503797289}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.119328335, y: 0.013849828, z: 0.2339922}
+  m_Center: {x: -0.023675585, y: -0.000000059490446, z: 0.00000095184714}
 --- !u!1 &5554893303777249727
 GameObject:
   m_ObjectHideFlags: 0
