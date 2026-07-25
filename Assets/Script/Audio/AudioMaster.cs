@@ -42,6 +42,9 @@ public class AudioMaster : MonoBehaviour
         public bool IsPaused;
         public Audio Clip;
         public AudioSource Source;
+
+        /// <summary>Playhead position at the last frame, in samples. A drop means the loop wrapped.</summary>
+        public int LastSamples;
     }
 
     private void OnEnable()
@@ -87,8 +90,32 @@ public class AudioMaster : MonoBehaviour
             if (!PlayingClips[i].Source.isPlaying && !PlayingClips[i].IsPaused && Application.isFocused)
             {
                 Stop(PlayingClips[i]);
+                continue;
             }
+
+            RerollPitchOnLoop(PlayingClips[i]);
         }
+    }
+
+    /// <summary>Gives a looping clip a fresh random pitch each time it wraps, so a short loop stops reading as the same sample repeating.</summary>
+    /// <remarks>
+    /// A looping AudioSource never reports a stop, so the wrap has to be spotted from the playhead:
+    /// <c>timeSamples</c> climbs to the clip length then drops back near zero. A frame long enough to
+    /// span more than one wrap re-rolls once, which is inaudible at any sane clip length.
+    /// </remarks>
+    private void RerollPitchOnLoop(PlayingClip clip)
+    {
+        if (clip.IsPaused || clip.Clip == null || !clip.Clip.WantsPerLoopPitch)
+        {
+            return;
+        }
+
+        int samples = clip.Source.timeSamples;
+        if (samples < clip.LastSamples)
+        {
+            clip.Source.pitch = clip.Clip.GetRandomizedPitch();
+        }
+        clip.LastSamples = samples;
     }
     private AudioSource AcquireSource()
     {
