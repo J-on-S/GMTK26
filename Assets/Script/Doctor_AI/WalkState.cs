@@ -13,7 +13,9 @@ public class WalkState : State
     private List<Transform> surgeryTableBTransforms;
     [SerializeField] private bool testIsATable = false;
     [SerializeField] private float rotationSpeed = 5f;
-    [SerializeField] private Transform bed;
+    private Transform currentBed;
+    [SerializeField] private Transform bedA;
+    [SerializeField] private Transform bedB;
     private NavMeshAgent agent;
     protected override void Awake()
     {
@@ -39,11 +41,13 @@ public class WalkState : State
         {
             int goalIndex = Random.Range(0, surgeryTableATransforms.Count);
             agent.destination = surgeryTableATransforms[goalIndex].position;
+            currentBed = bedA;
         }
         else
         {
             int goalIndex = Random.Range(0, surgeryTableBTransforms.Count);
             agent.destination = surgeryTableBTransforms[goalIndex].position;
+            currentBed = bedB;
         }
         Debug.Log("Doctor starts walk.");
         agent.updateRotation = true;
@@ -61,7 +65,7 @@ public class WalkState : State
     // Stop NavMeshAgent from rotating
     agent.updateRotation = false;
 
-    Vector3 direction = bed.position - bot.transform.position;
+    Vector3 direction = currentBed.position - bot.transform.position;
     direction.y = 0f;
 
     Quaternion targetRotation = Quaternion.LookRotation(direction);
@@ -80,23 +84,6 @@ public class WalkState : State
     }
 
     return this;
-        /*if (Vector3.Distance(bot.transform.position, agent.destination) <= stoppingDistance)
-        {
-            agent.updateRotation = false;
-
-            Vector3 direction = bed.position - bot.transform.position;
-            direction.y = 0f;
-
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-
-            bot.transform.rotation = Quaternion.RotateTowards(
-                bot.transform.rotation,
-                targetRotation,
-                rotationSpeed * Time.deltaTime);
-            
-            return stateManager.RandomState(states);
-        }
-        return this;*/
     }
 
     public override void ExitState()
