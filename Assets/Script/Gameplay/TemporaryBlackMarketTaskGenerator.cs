@@ -29,7 +29,6 @@ public class TemporaryBlackMarketTaskGenerator :
         BodyPartType.Nose
     };
     [SerializeField] private BlackMarketTask currentBlackMarketTask;
-    [SerializeField] private List<BodyPartContain> bodyPartsContain = new List<BodyPartContain>();
     [SerializeField] private Transform bodyPartsPosParent;
     [ReadOnly] [SerializeField] private List<Transform> bodyPartsPos = new List<Transform>();
     private Dictionary<BodyPartType, List<BodyPartContain>> bodyPartsContainByType = new Dictionary<BodyPartType, List<BodyPartContain>>();
@@ -116,7 +115,6 @@ public class TemporaryBlackMarketTaskGenerator :
     }
     public void GenerateBodyPartContains()
     {
-        bodyPartsContain = new List<BodyPartContain>();
         int pos_index = 0;
         foreach (BodyPartRequest bodyPartRequest in currentBlackMarketTask.RequestedParts)
         {
@@ -139,7 +137,6 @@ public class TemporaryBlackMarketTaskGenerator :
                 }
                 pos_index++;
                 BodyPartContain newBodyPartContain = new BodyPartContain(bodyPart, newBodyPartObj, originalMat);
-                bodyPartsContain.Add(newBodyPartContain);
                 currentBodyPartTypeContains.Add(newBodyPartContain);
             }
             bodyPartsContainByType.Add(bodyPartType, currentBodyPartTypeContains);

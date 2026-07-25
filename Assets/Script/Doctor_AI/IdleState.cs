@@ -3,7 +3,6 @@ using UnityEngine;
 public class IdleState : State
 {
     [SerializeField] private List<StateWeight> states = new List<StateWeight>();
-    [SerializeField] private WalkState walkState;
     [SerializeField] private float minIdleTime;
     [SerializeField] private float maxIdleTime;
     [ReadOnly] [SerializeField] private float idleTime;
