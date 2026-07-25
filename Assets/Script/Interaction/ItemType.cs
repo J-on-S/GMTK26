@@ -1,3 +1,3 @@
 using UnityEngine;
 
-public enum ItemType {Tool, BodyPart}
+public enum ItemType {Tool, BodyPart, OurTool}

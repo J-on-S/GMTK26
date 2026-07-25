@@ -4,9 +4,6 @@ using System.Collections.Generic;
 
 public class ToolRequestManager : MonoBehaviour
 {
-
-    public enum ItemType {Tool, BodyPart, OurTool}
-
     [System.Serializable]
     public struct ToolRequest
     {
