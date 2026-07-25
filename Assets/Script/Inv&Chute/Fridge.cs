@@ -1,17 +1,16 @@
-using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
-public class Shelving : MonoBehaviour
+public class Fridge : MonoBehaviour
 {
     [SerializeField] private Transform[] slots;
     
-    private GameObject[] _itemsBySlotIndex;
+    private DetachedBodyPart[] _itemsBySlotIndex;
+    public DetachedBodyPart[] StoredBodyParts => _itemsBySlotIndex;
 
     private void OnEnable()
     {
-        _itemsBySlotIndex = new GameObject[slots.Length];
+        _itemsBySlotIndex = new DetachedBodyPart[slots.Length];
     }
 
     private bool TryGetNextFreeSlot(out int slotIndex)
@@ -27,7 +26,7 @@ public class Shelving : MonoBehaviour
         return false;
     }
 
-    public bool TryAddItemToFreeSlot(GameObject item)
+    public bool TryAddItemToFreeSlot(DetachedBodyPart item)
     {
         if (!TryGetNextFreeSlot(out var index)) return false;
         _itemsBySlotIndex[index] = item;
@@ -40,7 +39,7 @@ public class Shelving : MonoBehaviour
         return true;
     }
 
-    public bool TryEvictItemFromSlot(GameObject item)
+    public bool TryEvictItemFromFridge(DetachedBodyPart item)
     {
         for (var i = 0; i < slots.Length; i++)
         {
@@ -55,11 +54,5 @@ public class Shelving : MonoBehaviour
         }
 
         return false;
-    }
-
-    private void OnMouseDown()
-    {
-        var item = _itemsBySlotIndex[Random.Range(0, _itemsBySlotIndex.Length)];
-        TryEvictItemFromSlot(item);
     }
 }
