@@ -39,6 +39,15 @@ public class LoopGuideBuilder : MonoBehaviour {
     [Tooltip("Optional LineRenderer for the flat cut loop (raw cross-section).")]
     public LineRenderer flatLine;
 
+    [Tooltip("Rub the curved guide out behind the scalpel as it passes, so the drawn line is what is left to cut. Off, the whole ring stays drawn for the run.")]
+    public bool eraseTraced = true;
+
+    /// <summary>How much of the ring has been traced, 0..1. Negative means nothing is driving the cut and the whole ring draws.</summary>
+    private float tracedFraction = -1f;
+
+    /// <summary>Ring angle the trace started at, in degrees -- the cut's startAngle. Where the erasing begins from.</summary>
+    private float traceStartAngle;
+
     /// <summary>Cached middle cut loop, in mesh-local space; re-extracted only when the plane or mesh moves.</summary>
     private List<Vector3> cachedLocal;
 
@@ -347,15 +356,16 @@ public class LoopGuideBuilder : MonoBehaviour {
     private void DrawLoopGuide(bool drawFlat, bool drawCurved, List<Vector3> flat) {
         if (drawFlat && flat != null) {
             flatLine.enabled = true;
-            DrawInto(flatLine, flat);
+            DrawInto(flatLine, flat, closed: true);
         }
         else if(flat != null)
         {
             flatLine.enabled = false;
         }
         if (drawCurved && curvedGuide != null) {
-            loopLine.enabled = true;
-            DrawInto(loopLine, curvedDraw ?? curvedGuide);
+            // the flat line is left whole: it is the raw cross-section, an authoring aid rather than
+            // the line the player traces
+            DrawGuideLine(curvedDraw ?? curvedGuide);
         }
         else if(curvedGuide != null)
         {
@@ -363,9 +373,126 @@ public class LoopGuideBuilder : MonoBehaviour {
         }
     }
 
-    /// <summary>Pushes a closed loop of points into a LineRenderer at the guide width.</summary>
-    private void DrawInto(LineRenderer lr, List<Vector3> points) {
-        lr.loop = true;
+    /// <summary>Draws the target loop, minus whatever the scalpel has already gone over.</summary>
+    private void DrawGuideLine(List<Vector3> points) {
+        if (!eraseTraced || tracedFraction < 0f) {
+            loopLine.enabled = true;
+            DrawInto(loopLine, points, closed: true);
+            return;
+        }
+
+        if (tracedFraction >= 1f) {
+            // the whole ring is behind the scalpel
+            loopLine.enabled = false;
+            return;
+        }
+
+        List<Vector3> remaining = Remaining(points, tracedFraction);
+        if (remaining == null || remaining.Count < 2) {
+            loopLine.enabled = false;
+            return;
+        }
+
+        loopLine.enabled = true;
+
+        // open: closing it would draw a chord across the body between the scalpel and the start
+        DrawInto(loopLine, remaining, closed: false);
+    }
+
+    /// <summary>The stretch of the loop still ahead of the scalpel, in draw order.</summary>
+    /// <returns><c>null</c> when fewer than two points are left, which is too few to draw.</returns>
+    private List<Vector3> Remaining(List<Vector3> points, float fraction) {
+        int n = points.Count;
+        if (n < 2) {
+            return null;
+        }
+
+        int startIndex = IndexAtAngle(points, traceStartAngle);
+        int step = IndexStep(points);
+
+        int consumed = Mathf.Clamp(Mathf.RoundToInt(fraction * n), 0, n);
+        int keep = n - consumed;
+        if (keep < 2) {
+            return null;
+        }
+
+        var result = new List<Vector3>(keep);
+        for (int i = 0; i < keep; i++) {
+            // Repeat, not %, so a negative step still wraps into range
+            int index = (int)Mathf.Repeat(startIndex + step * (consumed + i), n);
+            result.Add(points[index]);
+        }
+        return result;
+    }
+
+    /// <summary>Index of the loop point lying closest to a given ring angle.</summary>
+    /// <param name="degrees">Measured in the cutting plane's own basis, the one the orbit angle is measured in.</param>
+    private int IndexAtAngle(List<Vector3> points, float degrees) {
+        float rad = degrees * Mathf.Deg2Rad;
+        Vector3 dir = PlaneRight * Mathf.Cos(rad) + PlaneForward * Mathf.Sin(rad);
+        Vector3 center = cachedCenter;
+
+        int best = 0;
+        float bestDot = float.NegativeInfinity;
+        for (int i = 0; i < points.Count; i++) {
+            Vector3 radial = points[i] - center;
+            radial -= PlaneNormal * Vector3.Dot(radial, PlaneNormal);
+            if (radial.sqrMagnitude < 1e-10f) {
+                continue;
+            }
+
+            float dot = Vector3.Dot(radial.normalized, dir);
+            if (dot > bestDot) {
+                bestDot = dot;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>Whether walking the point list forwards goes the same way round the ring as the cut does.</summary>
+    /// <returns><c>+1</c> when it does, <c>-1</c> when it runs against it.</returns>
+    private int IndexStep(List<Vector3> points) {
+        // signed area over the whole loop, not two neighbouring points, which sit close enough
+        // together for one noisy vertex to flip the sign
+        Vector3 center = cachedCenter;
+        float area = 0f;
+        for (int i = 0; i < points.Count; i++) {
+            Vector3 a = points[i] - center;
+            Vector3 b = points[(i + 1) % points.Count] - center;
+
+            float ax = Vector3.Dot(a, PlaneRight), ay = Vector3.Dot(a, PlaneForward);
+            float bx = Vector3.Dot(b, PlaneRight), by = Vector3.Dot(b, PlaneForward);
+            area += ax * by - ay * bx;
+        }
+
+        int winding = area >= 0f ? 1 : -1;
+
+        // the cut itself can run either way round
+        int sweep = tracedSweepSign >= 0 ? 1 : -1;
+        return winding * sweep;
+    }
+
+    /// <summary>Which way round the ring the cut travels: <c>+1</c> for increasing angle, <c>-1</c> for decreasing.</summary>
+    private int tracedSweepSign = 1;
+
+    /// <summary>Tells the guide how far the scalpel has got, so the traced stretch stops being drawn.</summary>
+    /// <param name="endDegrees">Only its side of <paramref name="startDegrees"/> is read, to tell which way round the cut runs.</param>
+    /// <param name="fraction">How much of the ring is behind the scalpel, <c>0</c>..<c>1</c>.</param>
+    public void SetTraceProgress(float startDegrees, float endDegrees, float fraction) {
+        traceStartAngle = startDegrees;
+        tracedSweepSign = endDegrees >= startDegrees ? 1 : -1;
+        tracedFraction = Mathf.Clamp01(fraction);
+    }
+
+    /// <summary>Puts the whole ring back, for when no cut is running.</summary>
+    public void ClearTrace() {
+        tracedFraction = -1f;
+    }
+
+    /// <summary>Pushes a loop of points into a LineRenderer at the guide width.</summary>
+    private void DrawInto(LineRenderer lr, List<Vector3> points, bool closed) {
+        lr.loop = closed;
         lr.widthCurve = AnimationCurve.Constant(0f, 1f, curveWidth);
         lr.positionCount = points.Count;
         lr.SetPositions(points.ToArray());
