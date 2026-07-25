@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 [DisallowMultipleComponent]
 public class DetachedBodyPart : MonoBehaviour
@@ -10,6 +11,11 @@ public class DetachedBodyPart : MonoBehaviour
     
     private BodyPartDescriptionHUD _bodyPartDescriptionHUD;
     private Material _material;
+    
+    [Serializable] public class PartPickupEvent : UnityEvent {}
+    [Header("Events")]
+    [SerializeField] private PartPickupEvent onPartPickup = new PartPickupEvent();
+    public PartPickupEvent OnPartPickup => onPartPickup;
     
     private void Start()
     {
