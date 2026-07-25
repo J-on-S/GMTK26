@@ -29,6 +29,7 @@ public class ToolRequestManager : MonoBehaviour
     //private string currentRequiredTool;
     private float remainingTime;
     private float remainingCooldown;
+    private SpawnBodyPartCustomer spawnBodyPartCustomer;
 
     private void Start()
     {
@@ -133,7 +134,11 @@ public class ToolRequestManager : MonoBehaviour
         {
             Debug.Log("Dude thanks for giving me that.");
             StartCooldown();
-
+            //For now: Add the body on it
+            if (submittedType == ItemType.BodyPart)
+            {
+                spawnBodyPartCustomer?.AddBodyPart(submittedName);
+            }
             return true;    // success
 
             // some sort of score stuff

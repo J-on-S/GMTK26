@@ -5,5 +5,5 @@ using UnityEngine;
 public class BodyPartPos
 {
     public Transform bodyPartPos;
-    public bool hasBodyPart = false;
+    [ReadOnly] public bool hasBodyPart = false;
 }
