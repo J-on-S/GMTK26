@@ -13,6 +13,7 @@ public class WalkState : State
     private List<Transform> surgeryTableBTransforms;
     [SerializeField] private bool testIsATable = false;
     [SerializeField] private float rotationSpeed = 5f;
+    [SerializeField] private Transform bed;
     private NavMeshAgent agent;
     protected override void Awake()
     {
@@ -45,44 +46,57 @@ public class WalkState : State
             agent.destination = surgeryTableBTransforms[goalIndex].position;
         }
         Debug.Log("Doctor starts walk.");
+        agent.updateRotation = true;
         anim.Play(animName);
     }
 
     public override State UpdateState()
     {
-        //agent.speed = (anim.deltaPosition / Time.deltaTime).magnitude;
-        //Debug.Log("agent speed: "+agent.speed); 
-        // Vector3 targetPosition = new Vector3(
-        // agent.destination.x,
-        // bot.transform.position.y, // Keep current height
-        // agent.destination.z
-        // );
+        // Still walking
+    if (agent.remainingDistance > stoppingDistance)
+    {
+        return this;
+    }
 
-        // Calculate direction
-        // Vector3 direction = targetPosition - bot.transform.position;
-        // direction.y = 0f;
+    // Stop NavMeshAgent from rotating
+    agent.updateRotation = false;
 
-        // // Rotate if we're actually moving
-        // if (direction.sqrMagnitude > 0.001f)
-        // {
-        //     Quaternion targetRotation = Quaternion.LookRotation(direction);
-        //     bot.transform.rotation = Quaternion.Slerp(
-        //         bot.transform.rotation,
-        //         targetRotation,
-        //         rotationSpeed * Time.deltaTime);
-        // }
+    Vector3 direction = bed.position - bot.transform.position;
+    direction.y = 0f;
 
-        // Move
-        // bot.transform.position = Vector3.MoveTowards(
-        //     bot.transform.position,
-        //     targetPosition,
-        //     moveSpeed * Time.deltaTime);
+    Quaternion targetRotation = Quaternion.LookRotation(direction);
 
-        if (Vector3.Distance(bot.transform.position, agent.destination) <= stoppingDistance)
+    bot.transform.rotation = Quaternion.RotateTowards(
+        bot.transform.rotation,
+        targetRotation,
+        rotationSpeed * Time.deltaTime);
+
+    // Check if we're facing the bed
+    float angle = Quaternion.Angle(bot.transform.rotation, targetRotation);
+
+    if (angle < 1f) // 1 degree tolerance
+    {
+        return stateManager.RandomState(states);
+    }
+
+    return this;
+        /*if (Vector3.Distance(bot.transform.position, agent.destination) <= stoppingDistance)
         {
+            agent.updateRotation = false;
+
+            Vector3 direction = bed.position - bot.transform.position;
+            direction.y = 0f;
+
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+
+            bot.transform.rotation = Quaternion.RotateTowards(
+                bot.transform.rotation,
+                targetRotation,
+                rotationSpeed * Time.deltaTime);
+            
             return stateManager.RandomState(states);
         }
-        return this;
+        return this;*/
     }
 
     public override void ExitState()

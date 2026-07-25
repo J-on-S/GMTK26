@@ -31,7 +31,7 @@ public class StateManager : MonoBehaviour
             SwitchState(nextState);
         }
     }
-
+    
     public void SwitchState(State nextState)
     {
         currentState.ExitState();
@@ -44,7 +44,7 @@ public class StateManager : MonoBehaviour
     }
 
     public State RandomState(List<StateWeight> states)
-{
+    {
     // Calculate total weight
     int totalWeight = 0;
     foreach (StateWeight state in states)
