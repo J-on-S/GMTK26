@@ -20,7 +20,7 @@ public class BodyPartDescriptionHUD : MonoBehaviour
     [SerializeField] private Slider bodyPartHealthSlider;
     private Animator _animator;
     private bool _visible;
-    private BodyPartHealth _selectedBodyPart;
+    private DetachedBodyPart _selectedBodyPart;
 
     private void OnEnable()
     {
@@ -38,7 +38,7 @@ public class BodyPartDescriptionHUD : MonoBehaviour
         _animator.SetBool(Visible, _visible);
     }
 
-    public void ShowBodyPartDescription(BodyPartHealth bodyPart)
+    public void ShowBodyPartDescription(DetachedBodyPart bodyPart)
     {
         _selectedBodyPart = bodyPart;
         _visible = true;

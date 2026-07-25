@@ -4,7 +4,6 @@ using System.Collections;
 public class GrabbableObject : MonoBehaviour, IInteractable{
   public string itemName;
   public ItemType itemType;
-  public float timeLimit; 
   public float respawnTime = 3f;
 
   private Vector3 initialPosition;
