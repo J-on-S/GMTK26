@@ -1,0 +1,49 @@
+CLIENT DIALOGUE - UNITY SETUP
+
+FLOW
+
+ClientTaskHolder assigns a generated task.
+ClientDialogueEmitter receives TaskAssigned.
+ClientDialogueEmitter raises a ClientDialogueRequest.
+ClientDialogueUIReceiver displays the request.
+
+GameplayManager is not involved.
+
+
+CLIENT PREFAB
+
+1. Add ClientDialogueEmitter beside ClientTaskHolder.
+2. Assign Assets/Data/ClientDialogueEventChannel.asset to Dialogue Channel.
+3. Optionally set Display Name. If empty, the prefab name is used.
+
+
+UI
+
+1. Create a Canvas or use an existing Canvas.
+2. Create a dialogue panel with:
+   - Speaker-name TMP text.
+   - Dialogue TMP text.
+3. Add ClientDialogueUIReceiver to a UI manager GameObject.
+4. Assign the same ClientDialogueEventChannel asset.
+5. Assign Dialogue Root, Speaker Name Text, and Dialogue Text.
+6. Set Display Duration.
+
+
+SIMULTANEOUS CLIENTS
+
+If both operation chairs spawn clients together, both requests enter a queue.
+The UI displays the first request, waits for Display Duration, then displays
+the second request. One request does not overwrite the other.
+
+
+API
+
+Other systems can use the same channel:
+
+dialogueChannel.Raise(
+    new ClientDialogueRequest(
+        speakerGameObject,
+        "Doctor",
+        "Bring me the scissors."
+    )
+);

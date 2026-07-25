@@ -42,8 +42,11 @@ public class CameraFollow : MonoBehaviour {
         Curved,
     }
 
+    [Tooltip("All the framing below in one asset. Assigned, it overwrites those fields on enable and on validate -- and a CuttingManager swaps it in on entry, which is what lets one CameraFollow serve every cut.")]
+    [HideInInspector] public CameraFollowPreset preset;
+
     [Tooltip("Supplies the cut loop and cutting-plane axes the camera orbits around.")]
-    public LoopGuideBuilder loopGuide;
+    [HideInInspector] public LoopGuideBuilder loopGuide;
 
     [Tooltip("Orbit the raw flat cut, or the curved (surface-snapped) guide loop.")]
     public LoopSource loopSource = LoopSource.Flat;
@@ -101,7 +104,7 @@ public class CameraFollow : MonoBehaviour {
     [Tooltip("Optional. When set, rotationSpeed is pulled from this each frame (its SignedSpeed) instead of being a fixed value -- lets the speed source own the travel speed while this only orbits. Must implement ISpeedSource. Leave null for a fixed-speed orbit (e.g. the scalpel).")]
     // Serialized as MonoBehaviour, not ISpeedSource: Unity does not serialize bare interface
     // fields, so an ISpeedSource slot silently stays null at runtime however it's dragged.
-    [SerializeField] private MonoBehaviour speedSourceBehaviour;
+    [HideInInspector] [SerializeField] private MonoBehaviour speedSourceBehaviour;
 
     /// <summary>The wired speed source, or null when the slot is empty. Resolved off <c>speedSourceBehaviour</c>.</summary>
     public ISpeedSource speedSource => speedSourceBehaviour as ISpeedSource;
@@ -126,6 +129,9 @@ public class CameraFollow : MonoBehaviour {
     [Tooltip("How fast the camera eases toward the target rotation (higher = snappier).")]
     public float lookSpeed = 5f;
 
+    [Tooltip("How fast the camera eases toward the target POSITION (higher = snappier). Separate from lookSpeed so aim snappiness and travel smoothing can be tuned apart.")]
+    public float moveSpeed = 5f;
+
     [Tooltip("Roll the camera so the loop's travel direction points to the top of the screen.")]
     public bool loopTowardTop = false;
 
@@ -133,7 +139,7 @@ public class CameraFollow : MonoBehaviour {
     public float angleOffset = 0f;
 
     [Tooltip("Where the orbit begins around the ring, in degrees. Applied on enable and previewed live in edit mode so you can place the follower before pressing play.")]
-    public float startAngle = 0f;
+    [HideInInspector] public float startAngle = 0f;
 
     [Tooltip("Fixed extra position offset in world space, added on top of the orbit.")]
     public Vector3 positionOffset = Vector3.zero;
@@ -146,9 +152,20 @@ public class CameraFollow : MonoBehaviour {
 
     private void OnEnable() {
         angle = startAngle;
+        ApplyPreset();
+    }
+
+    /// <summary>Copies the assigned preset's framing onto this component. No-op when no preset is set, so a hand-tuned follow is left alone.</summary>
+    /// <remarks>Called on enable, on validate, and by <see cref="CuttingManager"/> when a cut claims the shared follow.</remarks>
+    public void ApplyPreset() {
+        if (preset != null) {
+            preset.ApplyTo(this);
+        }
     }
 
     private void OnValidate() {
+        ApplyPreset();
+
         // reject a behaviour that doesn't implement ISpeedSource, so a wrong drag fails loud
         // instead of silently leaving the orbit on its fixed speed. The field takes any
         // MonoBehaviour (that's what makes it serialize), so this is the only gate.
@@ -165,111 +182,153 @@ public class CameraFollow : MonoBehaviour {
     public Vector3 BasePosition { get; private set; }
 
     private void Update() {
+        Advance(Time.deltaTime);
+        ApplyPose(Time.time, Application.isPlaying);
+    }
+
+    /// <summary>Walks the orbit angle forward by one step, at the speed source's speed when one is wired.</summary>
+    public void Advance(float deltaTime) {
+        // pull the live travel speed from the speed source when wired; otherwise keep the fixed value.
+        if (speedSource != null) {
+            rotationSpeed = speedSource.GetSignedSpeed();
+        }
+        angle += rotationSpeed * deltaTime;
+    }
+
+    /// <summary>Places the follower at <paramref name="degrees"/> without advancing it, for an editor-driven preview.</summary>
+    /// <param name="degrees">Orbit angle to sit at.</param>
+    /// <param name="clock">Seconds, for the roll oscillation and the pivot wander. Edit mode has no running <c>Time.time</c>, so the driver supplies its own.</param>
+    /// <remarks>Never eased: the preview lands exactly on the target pose, so what you see is the framing rather than the chase toward it.</remarks>
+    public void PreviewAt(float degrees, float clock) {
+        angle = degrees;
+        ApplyPose(clock, animated: false);
+    }
+
+    /// <summary>The orbit pose at a given angle: where this follower would sit, and how it would aim from there.</summary>
+    /// <remarks>Pure -- no side effects, no dependence on when <see cref="Update"/> last ran -- so anything that wants to fly to the orbit (the camera travel in <see cref="CuttingManager"/>) can ask for the destination up front and land on it exactly.</remarks>
+    /// <param name="atAngle">Angle around the ring, in degrees, before <c>angleOffset</c>.</param>
+    /// <param name="position">The orbit position, <c>positionOffset</c> already applied.</param>
+    /// <param name="rotation">The aim, measured from <paramref name="viewFrom"/>.</param>
+    /// <param name="viewFrom">Where the aim is measured from. Defaults to <paramref name="position"/> itself; the live orbit passes its own current position so the look stays correct while it eases in.</param>
+    /// <param name="clock">Seconds driving the roll oscillation and the pivot wander. Defaults to <c>Time.time</c>; the editor preview passes its own, since edit mode has no running clock.</param>
+    /// <returns><c>false</c> when there is no guide or the plane misses the mesh; the outputs are then left at the current transform.</returns>
+    public bool TryGetPose(float atAngle, out Vector3 position, out Quaternion rotation, Vector3? viewFrom = null, float? clock = null) {
+        position = transform.position;
+        rotation = transform.rotation;
+
         if (loopGuide == null) {
-            return;
+            return false;
         }
 
         bool got = loopSource == LoopSource.Curved
             ? loopGuide.TryGetCurvedLoop(out Vector3 center, out List<Vector3> loopPoints)
             : loopGuide.TryGetFlatLoop(out center, out loopPoints);
         if (!got) {
-            return;
+            return false;
         }
 
-        bool playing = Application.isPlaying;
+        float t = clock ?? Time.time;
 
         // route the pivot independently into position and/or look; each falls back to the
         // raw loop centre when its toggle is off.
-        Vector3 pivot = GetPivot(center);
+        Vector3 pivot = GetPivot(center, t);
         Vector3 movePivot = pivotAffectsPosition ? pivot : center;
         Vector3 lookPivot = pivotAffectsLook ? pivot : center;
 
-        // pull the live travel speed from the speed source when wired; otherwise keep the fixed value.
-        if (playing && speedSource != null) {
-            rotationSpeed = speedSource.GetSignedSpeed();
-        }
-
-        if (playing) {
-            angle += rotationSpeed * Time.deltaTime;
-        } else {
-            angle = startAngle;
-        }
-        float rad = (angle + angleOffset) * Mathf.Deg2Rad;
+        float rad = (atAngle + angleOffset) * Mathf.Deg2Rad;
         Vector3 orbitDir = loopGuide.PlaneRight * Mathf.Cos(rad) + loopGuide.PlaneForward * Mathf.Sin(rad);
 
         // POSITION: orbit the move pivot. Circle: fixed radius around it. ScaleLoop: follow
         // the loop's own shape, pushed 'scale' outward from it.
         Vector3 moveLoopPoint = PointOnLoopInDirection(movePivot, orbitDir, loopPoints);
-        Vector3 targetPos = moveMode == MoveMode.Circle
+        position = moveMode == MoveMode.Circle
             ? movePivot + orbitDir * scale
             : moveLoopPoint + (moveLoopPoint - movePivot).normalized * scale;
 
         // lift off the cutting plane along its normal so the camera views the cut at an
         // angle, not edge-on: stops the near plane clipping the skin and gives the loop depth.
-        targetPos += loopGuide.PlaneNormal * height;
+        position += loopGuide.PlaneNormal * height;
+
+        // fixed extra offset in world space.
+        position += positionOffset;
+
+        // LOOK: aim at the look pivot's centre, or the loop point in the orbit direction.
+        Vector3 lookTarget = lookMode == LookMode.Center
+            ? lookPivot
+            : PointOnLoopInDirection(lookPivot, orbitDir, loopPoints);
+
+        // default up is the plane normal; loopTowardTop uses the orbit tangent (travel
+        // direction) so the loop appears to move toward the top of the screen.
+        Vector3 up = loopTowardTop
+            ? -loopGuide.PlaneRight * Mathf.Sin(rad) + loopGuide.PlaneForward * Mathf.Cos(rad)
+            : loopGuide.PlaneNormal;
+
+        Vector3 toTarget = lookTarget - (viewFrom ?? position);
+        if (toTarget.sqrMagnitude > 1e-8f) {
+            // bank the up vector about the view axis so the horizon rolls; constant
+            // rollDegrees plus a slow readable oscillation.
+            float roll = rollDegrees + rollAmplitude * Mathf.Sin(t * rollSpeed);
+            if (roll != 0f) {
+                up = Quaternion.AngleAxis(roll, toTarget.normalized) * up;
+            }
+
+            rotation = Quaternion.LookRotation(toTarget, up);
+        }
+
+        return true;
+    }
+
+    /// <summary>Puts the follower where its current <c>angle</c> says it should be.</summary>
+    /// <param name="clock">Seconds driving the roll oscillation and the pivot wander.</param>
+    /// <param name="animated">Ease toward the pose and apply the random drift, rather than snapping exactly onto it.</param>
+    public void ApplyPose(float clock, bool animated) {
+        // aim measured from where this actually is, not from the orbit target, so the look
+        // stays correct while the position is still easing toward it.
+        if (!TryGetPose(angle, out Vector3 targetPos, out Quaternion targetRot, transform.position, clock)) {
+            return;
+        }
 
         // orbit target before the world offset, exposed for anything that needs the raw
         // on-loop position (not the shifted camera position).
-        BasePosition = targetPos;
+        BasePosition = targetPos - positionOffset;
 
-        // fixed extra offset in world space.
-        targetPos += positionOffset;
+        // random sideways drift, play-only jitter. Folded into the TARGET, not added to the
+        // eased result: adding it afterwards made each frame's drift the starting point for the
+        // next ease, so it accumulated into a runaway offset of currentDerive / (moveSpeed * dt)
+        // -- about 12x at 60fps and 29x at 144fps, i.e. framerate-dependent too.
+        if (animated && controlPosition) {
+            // transform.right is last frame's, since rotation is set below. One frame of lag on
+            // a drift that already eases over seconds is not visible.
+            targetPos += transform.right * UpdateDerive();
+        }
 
-        // ease toward the target while playing; snap straight to it in edit mode so the
-        // preview tracks startAngle without a running deltaTime. Skipped when controlPosition
+        // ease toward the target while animated; snap straight onto it otherwise, so the editor
+        // preview shows the framing rather than the chase toward it. Skipped when controlPosition
         // is off: BasePosition is still published above, but transform.position is left for
         // another script (e.g. a surface-snapping follower) to own.
         if (controlPosition) {
-            transform.position = playing
-                ? Vector3.Lerp(transform.position, targetPos, lookSpeed * Time.deltaTime)
+            transform.position = animated
+                ? Vector3.Lerp(transform.position, targetPos, moveSpeed * Time.deltaTime)
                 : targetPos;
         }
 
         // ROTATION is optional: when off, the object just orbits (position only), keeping
         // whatever rotation it already has. Useful for followers that aren't cameras.
         if (controlRotation) {
-            // LOOK: aim at the look pivot's centre, or the loop point in the orbit direction.
-            Vector3 lookTarget = lookMode == LookMode.Center
-                ? lookPivot
-                : PointOnLoopInDirection(lookPivot, orbitDir, loopPoints);
-
-            // default up is the plane normal; loopTowardTop uses the orbit tangent (travel
-            // direction) so the loop appears to move toward the top of the screen.
-            Vector3 up = loopTowardTop
-                ? -loopGuide.PlaneRight * Mathf.Sin(rad) + loopGuide.PlaneForward * Mathf.Cos(rad)
-                : loopGuide.PlaneNormal;
-
-            Vector3 toTarget = lookTarget - transform.position;
-            if (toTarget.sqrMagnitude > 1e-8f) {
-                // bank the up vector about the view axis so the horizon rolls; constant
-                // rollDegrees plus a slow readable oscillation.
-                float roll = rollDegrees + rollAmplitude * Mathf.Sin(Time.time * rollSpeed);
-                if (roll != 0f) {
-                    up = Quaternion.AngleAxis(roll, toTarget.normalized) * up;
-                }
-
-                Quaternion targetRot = Quaternion.LookRotation(toTarget, up);
-                transform.rotation = playing
-                    ? Quaternion.Slerp(transform.rotation, targetRot, lookSpeed * Time.deltaTime)
-                    : targetRot;
-            }
-        }
-
-        // random drift is play-only jitter; keep the edit-mode preview steady. Skipped when
-        // this object doesn't own its position.
-        if (playing && controlPosition) {
-            ApplyRandomPerpendicularPosition();
+            transform.rotation = animated
+                ? Quaternion.Slerp(transform.rotation, targetRot, lookSpeed * Time.deltaTime)
+                : targetRot;
         }
     }
 
     /// <summary>The point the camera orbits: loop centre plus the (optionally wandering) pivot offset, laid out in the cutting plane.</summary>
     /// <remarks>Invariant: the wander is a slow two-frequency Lissajous, so the target motion is learnable rather than jittery.</remarks>
-    private Vector3 GetPivot(Vector3 center) {
+    private Vector3 GetPivot(Vector3 center, float clock) {
         float ox = pivotOffset.x;
         float oz = pivotOffset.y;
 
         if (pivotMoves) {
-            float t = Time.time * pivotMoveSpeed;
+            float t = clock * pivotMoveSpeed;
             // different frequencies on each axis trace a readable figure, not a circle
             ox += Mathf.Sin(t) * pivotMoveRadius;
             oz += Mathf.Cos(t * 0.7f) * pivotMoveRadius;
@@ -299,8 +358,13 @@ public class CameraFollow : MonoBehaviour {
     /// <summary>Seconds since the last drift target was rolled.</summary>
     private float deriveTimer;
 
-    /// <summary>Nudges the camera sideways toward a periodically re-rolled random offset.</summary>
-    private void ApplyRandomPerpendicularPosition() {
+    /// <summary>Advances the random sideways drift and returns how far off the orbit it currently sits, in world units.</summary>
+    /// <remarks>
+    /// Returns the offset rather than writing it: the caller folds it into the orbit target so it
+    /// stays an offset. Applied to <c>transform.position</c> after the ease instead, it would feed
+    /// back into the next frame's ease and grow without bound.
+    /// </remarks>
+    private float UpdateDerive() {
         deriveTimer += Time.deltaTime;
 
         float interval = DerivePerSecondEvaluate > 0f ? 1f / DerivePerSecondEvaluate : float.MaxValue;
@@ -315,7 +379,7 @@ public class CameraFollow : MonoBehaviour {
         }
 
         currentDerive = Mathf.Lerp(currentDerive, targetDerive, DeriveSpeed * Time.deltaTime);
-        transform.position += transform.right * currentDerive;
+        return currentDerive;
     }
 
     /// <summary>Shoots a ray from <paramref name="center"/> along <paramref name="direction"/> and returns where it meets the loop, interpolated along the crossed edge. Angle in (as a direction), loop point out.</summary>

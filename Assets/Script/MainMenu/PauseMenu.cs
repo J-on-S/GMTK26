@@ -1,26 +1,21 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
-using UnityEngine.Audio;
 using System;
 using UnityEngine.Events;
-using UnityEngine.Serialization;
-using UnityEngine.UI;
 
 public class PauseMenu : MonoBehaviour
 {
     [SerializeField] private GameObject pauseMenuUI = null;
     
-    [Header ("Background Music references")]
+    [Header("Background Music references")]
     [SerializeField] private AudioEventChannel audioEventChannel;
     [SerializeField] private Audio backgroundMusic;
     
-    [Serializable]
-    public class GamePausedEvent : UnityEvent {}
+    [Serializable] public class GamePausedEvent : UnityEvent {}
+    [Serializable] public class GameResumedEvent : UnityEvent {}
+    [Header("Events")]
     [SerializeField] private GamePausedEvent onGamePause = new GamePausedEvent();
-    
-    [Serializable]
-    public class GameResumedEvent : UnityEvent {}
     [SerializeField] private GameResumedEvent onGameResume = new GameResumedEvent();
 
     public static PauseMenu instance {get; private set; }
@@ -29,7 +24,7 @@ public class PauseMenu : MonoBehaviour
 
     private float savedSFX, savedSubmarine, savedPrintNoise, savedMusic, savedRadio, savedDayTransition; 
 
-    private Boolean isSubMenuOpen = false;
+    private bool isSubMenuOpen = false;
     
     private AudioMaster.PlayingClip _playingBackgroundMusic;
 
@@ -62,10 +57,24 @@ public class PauseMenu : MonoBehaviour
 
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            if (isPaused && !isSubMenuOpen) // ignore escape if submenu is open
-                Resume();
-            else
+            if (!isPaused)
+            {
                 Pause();
+            }
+            else if (isSubMenuOpen)
+            {
+                for (var index = 0; index < pauseMenuUI.transform.parent.childCount; index++)
+                {
+                    var submenu = pauseMenuUI.transform.parent.GetChild(index).gameObject;
+                    if (submenu != pauseMenuUI) submenu.SetActive(false);
+                }
+                isSubMenuOpen = false;
+                pauseMenuUI.SetActive(true);
+            }
+            else
+            {
+                Resume();
+            }
         }
     }
 
@@ -74,7 +83,7 @@ public class PauseMenu : MonoBehaviour
         pauseMenuUI.SetActive(false);
         Time.timeScale = 1f;
         isPaused = false;
-        audioEventChannel.Stop(_playingBackgroundMusic);
+        audioEventChannel.FadePause(_playingBackgroundMusic, 2.0f);
         onGameResume.Invoke();
     }
 
@@ -83,16 +92,22 @@ public class PauseMenu : MonoBehaviour
         pauseMenuUI.SetActive(true);
         Time.timeScale = 0f;
         isPaused = true;
-        _playingBackgroundMusic = audioEventChannel.Play(backgroundMusic);
+        if (_playingBackgroundMusic != null)
+        {
+            audioEventChannel.FadeResume(_playingBackgroundMusic);
+        }
+        else
+        {
+            _playingBackgroundMusic = audioEventChannel.FadeStart(backgroundMusic);
+        }
         onGamePause.Invoke();
-        audioEventChannel.Stop(_playingBackgroundMusic);
     }
 
     public void LoadMenu()
     {
         Time.timeScale = 1f;
         onGameResume.Invoke();
-        audioEventChannel.Stop(_playingBackgroundMusic);
+        audioEventChannel.FadeStop(_playingBackgroundMusic);
         SceneManager.LoadScene(mainMenuScene);
     }
 

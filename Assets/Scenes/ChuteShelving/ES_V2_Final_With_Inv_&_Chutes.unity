@@ -2546,7 +2546,6 @@ MonoBehaviour:
   - {fileID: 621138875}
   - {fileID: 1630485148}
   - {fileID: 1265819626}
-  items: []
 --- !u!114 &1874383430
 MonoBehaviour:
   m_ObjectHideFlags: 0

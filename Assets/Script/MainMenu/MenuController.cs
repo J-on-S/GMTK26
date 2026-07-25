@@ -2,9 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using TMPro;
-using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
-using UnityEngine.Serialization;
 
 public class MenuController : MonoBehaviour
 {
@@ -15,12 +13,7 @@ public class MenuController : MonoBehaviour
     [SerializeField] private TMP_Text volumeValueText = null;
     [SerializeField] private Slider volumeSlider = null;
     [SerializeField] private float defaultVolume = 1.0f;
-    
-    [Header ("Background Music references")]
     [SerializeField] private AudioEventChannel audioEventChannel;
-    [SerializeField] private Audio backgroundMusic;
-
-    private AudioMaster.PlayingClip _backgroundMusicInstance;
     
     /*
     [Header ("GamePlay Settings")]
@@ -134,15 +127,7 @@ public class MenuController : MonoBehaviour
     //     Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
     // }
 
-    private void OnEnable()
-    {
-        _backgroundMusicInstance = audioEventChannel.Play(backgroundMusic);
-    }
-
-    private void OnDisable()
-    {
-        audioEventChannel.Stop(_backgroundMusicInstance);
-    }
+    
 
     private void Update()
     {

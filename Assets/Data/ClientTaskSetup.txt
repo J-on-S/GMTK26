@@ -126,3 +126,46 @@ Despawn a spawned person and remove its generated-list entry:
 clientList.DespawnPerson(spawnedPerson);
 
 Tasks completed through ClientTaskHolder do this automatically.
+
+
+9. DOCTOR ACCEPTED BODY-PART API
+
+The accepted doctor-order event must include:
+- The exact target client GameObject.
+- The accepted BodyPartType.
+
+Then decrement exactly one requirement:
+
+bool changed = clientList.RemoveOneFromTask(
+    targetClient,
+    BodyPartType.Eye
+);
+
+The current string-based doctor API can use:
+
+bool changed = clientList.RemoveOneFromTask(
+    targetClient,
+    submittedName
+);
+
+Use singular enum names such as Eye, Leg, Heart, Arm, Ear, Hand, or Nose.
+
+Read the new remaining quantity:
+
+int remaining = clientList.GetRemainingAmount(
+    entry,
+    BodyPartType.Eye
+);
+
+Read updated display text:
+
+string text = clientList.GetRemainingTaskString(entry);
+
+Listen for UI updates:
+
+clientList.TaskRequirementChanged +=
+    HandleTaskRequirementChanged;
+
+Do not decrement using only a body-part name. With two active beds, both
+clients may request the same body part, so the accepted event must identify
+the target client or its ClientTaskQueueEntry.

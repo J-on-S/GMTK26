@@ -142,6 +142,40 @@ public class ClientTask
             : clientLine.Replace("{request}", requestText);
     }
 
+    public string GetRemainingDialogue()
+    {
+        EnsureProgressExists();
+        List<string> remainingRequests = new();
+
+        for (int i = 0; i < requests.Count; i++)
+        {
+            int remaining = Mathf.Max(
+                0,
+                requests[i].Amount - deliveredAmounts[i]);
+
+            if (remaining == 0)
+                continue;
+
+            remainingRequests.Add(
+                $"{remaining} {GetPartName(requests[i].BodyPart, remaining)}");
+        }
+
+        if (remainingRequests.Count == 0)
+            return "Request complete.";
+
+        string requestText = remainingRequests.Count == 1
+            ? remainingRequests[0]
+            : string.Join(
+                ", ",
+                remainingRequests.GetRange(0, remainingRequests.Count - 1)) +
+              " and " +
+              remainingRequests[remainingRequests.Count - 1];
+
+        return string.IsNullOrWhiteSpace(clientLine)
+            ? requestText
+            : clientLine.Replace("{request}", requestText);
+    }
+
     private string BuildRequestText()
     {
         StringBuilder text = new();

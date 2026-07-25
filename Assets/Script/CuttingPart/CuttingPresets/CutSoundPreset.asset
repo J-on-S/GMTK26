@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48b85cda8902c254398f1224a6b21144, type: 3}
+  m_Name: CutSoundPreset
+  m_EditorClassIdentifier: Assembly-CSharp::CutSoundPreset
+  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  cutSound: {fileID: 11400000, guid: 5e749ac49c61e1b449bb726909acced2, type: 2}
+  tearSound: {fileID: 11400000, guid: 968d4e00044910e1b8b0671d0c5bdc86, type: 2}
+  cutSoundSpeedThreshold: 0.01

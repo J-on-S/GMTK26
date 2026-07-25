@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 public class LoopFollowingObject : MonoBehaviour
 {
     /// <summary>Supplies the cut loop, its centre, and surface projection.</summary>
-    public LoopGuideBuilder builder;
+    [HideInInspector] public LoopGuideBuilder builder;
 
     /// <summary>Which way mouse-x slides the object across the loop.</summary>
     public enum SlideAxis {
@@ -34,7 +34,7 @@ public class LoopFollowingObject : MonoBehaviour
     }
 
     /// <summary>Serialized tuning bundle: input mode, slide axis, speeds, and smoothing.</summary>
-    public FollowLoopPresets preset;
+    [HideInInspector] public FollowLoopPresets preset;
 
     /// <summary>Left/right arrow-and-A/D axis driving along-limb travel.</summary>
 
