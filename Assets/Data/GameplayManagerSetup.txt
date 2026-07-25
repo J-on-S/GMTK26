@@ -94,6 +94,27 @@ These events can later update the world-space task board, countdown,
 doctor logic, storage, scoring, and end-of-day systems.
 
 
+TEMPORARY AUTOMATIC END CONDITION
+
+RandomizedClientList raises TaskListEmptied when its last entry is removed.
+GameplayManager then ends the day only when:
+
+- Number Of Lives is greater than 3.
+- Countdown Remaining is greater than or equal to 0.
+- The current state is InProgress.
+
+If the list reaches zero without these conditions, GameplayManager logs a
+warning because that state should not normally be reachable.
+
+Until the final systems exist, tests can update the placeholder values with:
+
+gameplayManager.SetTemporaryLives(lives);
+gameplayManager.SetTemporaryCountdown(secondsRemaining);
+
+These temporary variables should be replaced by the final lives and countdown
+APIs rather than becoming permanent ownership inside GameplayManager.
+
+
 OPERATION CHAIRS / BEDS
 
 Add OperationChair to each bed.

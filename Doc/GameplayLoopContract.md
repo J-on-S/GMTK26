@@ -87,6 +87,7 @@ Current APIs:
 ```csharp
 GameObject client = clientList.SpawnNextClient(chairTransform);
 bool accepted = clientTaskHolder.GiveBodyPart(bodyPart);
+bool updated = clientList.RemoveOneFromTask(targetClient, bodyPart);
 bool removed = clientList.DespawnPerson(client);
 bool spawned = operationChair.TrySpawnNextClient();
 ```
@@ -99,6 +100,8 @@ clientTaskHolder.TaskCompleted
 clientTaskHolder.TaskCompletedWithOwner
 clientList.ClientSpawned
 clientList.ClientRemoved
+clientList.TaskListEmptied
+clientList.TaskRequirementChanged
 operationChair.ClientPlaced
 operationChair.ClientLeft
 clientDialogueEventChannel.DialogueRequested
@@ -111,6 +114,8 @@ Current implementation:
 - Automatic chair refill: implemented.
 - Client task dialogue requests through a decoupled event channel: implemented.
 - Queued client dialogue UI receiver: implemented.
+- Empty client list triggers end-of-day validation: implemented.
+- Accepted doctor body parts can decrement a targeted client task: implemented.
 - Doctor item requests: exists separately; integration not confirmed.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
@@ -150,6 +155,9 @@ Current implementation:
 
 - `Ended` state and `DayEnded` event: implemented.
 - Advancing the day number: implemented.
+- Automatic ending when the client list reaches zero, temporary lives are
+  greater than three, and temporary countdown remaining is nonnegative:
+  implemented.
 - Body-part counting: planned.
 - Black-market order resolution and scoring: planned.
 - Extra-part scoring: planned.
@@ -157,6 +165,13 @@ Current implementation:
 - Decay processing: planned.
 - Freezer capacity enforcement: planned.
 - Results UI: planned.
+
+Temporary integration:
+
+- `GameplayManager.NumberOfLives` and `CountdownRemaining` are placeholder
+  values until the final lives and countdown systems expose their APIs.
+- If the client list reaches zero without the expected lives/countdown state,
+  the manager logs a warning because that path should not normally be reachable.
 
 ## Black-market integration boundary
 
