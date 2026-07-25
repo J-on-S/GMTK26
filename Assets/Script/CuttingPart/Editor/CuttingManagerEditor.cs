@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>Inspector for <see cref="CuttingManager"/> that shows only the knobs a given cut actually still needs.</summary>
+/// <summary>Inspector for <see cref="CuttingManager"/> that shows only the knobs a given cut still needs.</summary>
 /// <remarks>
-/// With a <see cref="CutMinigamePreset"/> assigned the seven inline tuning fields are redundant, and
-/// the hardware slots are noise once they are wired. Hiding both behind foldouts is what makes the
-/// component read as "what am I cutting, and how does it feel" instead of a wall of slots. It also
-/// reports what is still unwired, which used to surface only as an NRE on entering the minigame.
+/// Invariant: inline tuning is drawn only while no preset is assigned, so the fields on screen are
+/// always the ones in effect.
+/// <para>Invariant: missing wiring is reported before entry rather than surfacing as a null
+/// reference on the first frame of the cut.</para>
 /// </remarks>
 [CustomEditor(typeof(CuttingManager))]
 public class CuttingManagerEditor : Editor
@@ -67,6 +67,15 @@ public class CuttingManagerEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("soundPreset"));
 
         EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Finisher", EditorStyles.boldLabel);
+        SerializedProperty finisher = serializedObject.FindProperty("finisher");
+        EditorGUILayout.PropertyField(finisher);
+        if (finisher.objectReferenceValue == null)
+        {
+            EditorGUILayout.HelpBox("Optional. Without one the cut splices and quits the instant progress hits 1, with no close-up.", MessageType.None);
+        }
+
+        EditorGUILayout.Space();
         EditorGUILayout.LabelField("Hardware", EditorStyles.boldLabel);
         DrawHardware();
 
@@ -83,7 +92,7 @@ public class CuttingManagerEditor : Editor
         DrawActions(manager);
     }
 
-    /// <summary>The box at the top: everything this cut still needs before it can run, and the one button that usually fixes it.</summary>
+    /// <summary>Lists everything this cut still needs before it can run, next to the button that usually fills it in.</summary>
     private void DrawWiringStatus(CuttingManager manager)
     {
         List<string> missing = manager.MissingWiring();
@@ -150,7 +159,7 @@ public class CuttingManagerEditor : Editor
         presetObject.ApplyModifiedProperties();
     }
 
-    /// <summary>The hardware slots this cut drives, folded away so they stay out of the way once wired.</summary>
+    /// <summary>Draws the hardware slots this cut drives, folded away once they are wired.</summary>
     private void DrawHardware()
     {
         int filled = 0;
@@ -176,7 +185,7 @@ public class CuttingManagerEditor : Editor
         EditorGUI.indentLevel--;
     }
 
-    /// <summary>Edit-mode preview: sweep the cut's camera from start to end angle and back, live-tunable.</summary>
+    /// <summary>Draws the edit-mode preview controls for the camera's sweep from start angle to end.</summary>
     private void DrawPreview(CuttingManager manager)
     {
         EditorGUILayout.Space();
@@ -184,7 +193,7 @@ public class CuttingManagerEditor : Editor
 
         if (Application.isPlaying)
         {
-            EditorGUILayout.HelpBox("Preview is edit-mode only; the game is driving the camera.", MessageType.None);
+            EditorGUILayout.HelpBox("Preview is edit-mode only. The game is driving the camera.", MessageType.None);
             return;
         }
 
@@ -192,10 +201,10 @@ public class CuttingManagerEditor : Editor
 
         if (!running)
         {
-            // another manager's preview would be fighting for the same camera
-            if (CutPreview.IsRunning)
+            // anything else previewing is writing the same camera transform
+            if (EditorCameraClaim.IsClaimed)
             {
-                EditorGUILayout.HelpBox($"'{CutPreview.Active.name}' is previewing. Starting this one stops it.", MessageType.None);
+                EditorGUILayout.HelpBox($"'{EditorCameraClaim.HolderName()}' has the camera. Starting this one stops it.", MessageType.None);
             }
 
             if (GUILayout.Button("Start preview"))
@@ -219,7 +228,7 @@ public class CuttingManagerEditor : Editor
         }
 
         CutPreview.Speed = EditorGUILayout.FloatField(
-            new GUIContent("Sweep speed", "Degrees per second. Constant on purpose -- a repeatable sweep, not the player's variable travel."),
+            new GUIContent("Sweep speed", "Degrees per second. Fixed rather than the player's variable travel, so two passes frame identically."),
             CutPreview.Speed);
 
         // scrubbing pauses, so a bad spot can be held still and tuned
@@ -229,7 +238,7 @@ public class CuttingManagerEditor : Editor
             CutPreview.ScrubTo(scrubbed);
         }
 
-        EditorGUILayout.HelpBox("Editing the CameraFollowPreset while this runs reshapes the orbit live. The camera is put back when you press Stop.", MessageType.None);
+        EditorGUILayout.HelpBox("Editing the CameraFollowPreset while this runs reshapes the orbit live. The camera is put back on Stop.", MessageType.None);
     }
 
     private void DrawActions(CuttingManager manager)
@@ -244,7 +253,7 @@ public class CuttingManagerEditor : Editor
         }
     }
 
-    /// <summary>Writes this manager's inline values into a new preset asset and assigns it, so an existing hand-tuned cut migrates without retyping.</summary>
+    /// <summary>Writes this manager's inline values into a new preset asset and assigns it, doing nothing when the save is cancelled.</summary>
     private static void CreatePresetFrom(CuttingManager manager)
     {
         string path = EditorUtility.SaveFilePanelInProject(

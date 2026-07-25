@@ -38,6 +38,8 @@ public enum CuttingState
         Entering,
         /// <summary>Orbiting; the player is cutting.</summary>
         Cutting,
+        /// <summary>The loop is closed and <see cref="CutFinisher"/> owns the camera and the tool, up to and past the splice. Entered from <see cref="Cutting"/>, left into <see cref="Exiting"/>.</summary>
+        Finishing,
         /// <summary>Flying back to the pose free-look was left in.</summary>
         Exiting,
     }
@@ -85,8 +87,11 @@ public enum CuttingState
 
     [ReadOnly] public RigPhase phase = RigPhase.Free;
 
-    /// <summary>True only while the player actually has the cut; the travel phases don't count.</summary>
+    /// <summary>True only while the player actually has the cut; the travel phases and the finisher don't count.</summary>
     bool isPlaying => phase == RigPhase.Cutting;
+
+    /// <summary>True from the moment the player has the cut until the finisher hands back, so re-entry is refused for the whole of it.</summary>
+    bool inMinigame => phase == RigPhase.Cutting || phase == RigPhase.Finishing;
 
     public CuttableObject GameObjectBeingCut;
 
@@ -191,6 +196,13 @@ public enum CuttingState
 
     [Tooltip("Fixed angular gap (deg) the scalpel keeps ahead of the camera.")]
     public float scalpelAngleLead;
+
+    [Header("Finisher")]
+    [Tooltip("The close-up chop that ends this cut. Left empty -- or with its own Enable Finisher off -- the cut splices and quits the instant progress hits 1.")]
+    public CutFinisher finisher;
+
+    /// <summary>The piece the last completed cut took off, or <c>null</c> when the slice produced none.</summary>
+    public GameObject LastSeveredPiece { get; private set; }
 
     [Header("Sound")]
     [Tooltip("Channel and clips this cut plays. Shared across cuts, so one asset normally serves them all.")]
@@ -309,6 +321,13 @@ public enum CuttingState
             loopGuide.plane = GetComponentInChildren<CutPlane>(true);
         }
 
+        // optional: a cut with no finisher splices directly, so this is filled if one is there and
+        // left alone if not.
+        if (finisher == null)
+        {
+            finisher = GetComponentInChildren<CutFinisher>(true);
+        }
+
         PushParameters();
     }
 
@@ -370,12 +389,23 @@ public enum CuttingState
                 // the camera's orbit angle IS the cut progress; mirror it so currentProgress reads it.
                 if (cameraFollow != null) currentAngle = cameraFollow.Angle;
 
+                // rub the guide out behind the scalpel, so the drawn line is always what is left
+                // to cut. Driven off the scalpel's progress, not the camera's: the scalpel is the
+                // thing passing over the line.
+                if (loopGuide != null) loopGuide.SetTraceProgress(StartAngle, EndAngle, currentProgress);
+
                 if (currentProgress >= 1) HandleCompletion();
                 // edge, not held: a held Q would quit again the instant the player re-entered.
                 else if (Keyboard.current.qKey.wasPressedThisFrame)
                 {
                     QuitMinigame();
                 }
+                break;
+
+            case RigPhase.Finishing:
+                // the finisher owns the camera and the tool; nothing to tick here. Q is
+                // deliberately not offered: once the loop is closed the run is won, and there is
+                // no half-spliced state to back out of.
                 break;
         }
     }
@@ -431,6 +461,9 @@ public enum CuttingState
     void CompleteExit()
     {
         ReleaseCamera();
+
+        // the tool is in shot for the whole fly-out, so it only goes once the camera has landed
+        if (finisher != null) finisher.ReleaseTool();
 
         // put the orbit's control flags back, so a follow disabled mid-travel is not left
         // permanently unable to drive anything.
@@ -537,7 +570,7 @@ public enum CuttingState
     [ContextMenu("StartMinigame")]
     public void EnterMinigame()
     {
-        if( state == CuttingState.COMPLETED || isPlaying) return;
+        if( state == CuttingState.COMPLETED || inMinigame) return;
 
         // fail loud here instead of half-entering and NREing inside SetupRig: a missing
         // piece is a scene setup mistake worth naming.
@@ -558,7 +591,9 @@ public enum CuttingState
     [ContextMenu("quit Minigame")]
     void QuitMinigame()
     {
-        if(!isPlaying)
+        // Finishing counts: the finisher's hand-back comes through here, and by then the phase has
+        // already left Cutting.
+        if(!inMinigame)
         {
             Debug.LogError("trying to Quit minigame but not in it");
             return;
@@ -604,7 +639,8 @@ public enum CuttingState
     /// progress -- stays in <see cref="SetupRig"/>, since a preview drives the angle itself.
     /// Mirror of <see cref="ReleaseCamera"/>; keep the two in step.
     /// </remarks>
-    internal void ClaimCamera()
+    /// <param name="driveOrbit">Switches <see cref="CameraFollow"/> on; pass <c>false</c> to pose the camera yourself, since an enabled orbit overwrites the pose every frame.</param>
+    internal void ClaimCamera(bool driveOrbit = true)
     {
         // remember the free-look camera state so quitting can put it back.
         CaptureCameraState();
@@ -615,7 +651,7 @@ public enum CuttingState
 
         // camera: free-look off, orbit on, cutting FOV.
         if (moveCamera != null) moveCamera.enabled = false;
-        if (cameraFollow != null) cameraFollow.enabled = true;
+        if (cameraFollow != null) cameraFollow.enabled = driveOrbit;
         RefreshLiveTuning();
 
         // scalpel angle is driven by SyncScalpel; stop its CameraFollow from self-advancing.
@@ -670,6 +706,19 @@ public enum CuttingState
         ReleaseCamera();
     }
 
+    /// <summary>Sets the scene up for the finisher's editor preview, leaving the orbit off so the preview can pose the camera itself.</summary>
+    /// <remarks>Invariant: the camera is restored by the same path that restores it in play mode.</remarks>
+    public void EnterFinisherPreview()
+    {
+        ClaimCamera(driveOrbit: false);
+    }
+
+    /// <summary>Undoes <see cref="EnterFinisherPreview"/>.</summary>
+    public void ExitFinisherPreview()
+    {
+        ReleaseCamera();
+    }
+
 
     [ContextMenu("Reset the cut")]
     /// <summary>Rewinds the cut to <c>startAngle</c>: orbit angles, progress, travel speed and the scalpel's trail. Called on every entry, so quitting always costs the run.</summary>
@@ -683,6 +732,9 @@ public enum CuttingState
         if (scalpelFollow != null) scalpelFollow.Angle = StartAngle + ScalpelAngleLead;
 
         if (speedDriver != null) speedDriver.ResetDrive();
+
+        // the guide is whole again at the start of a run; Update erases it as the scalpel goes.
+        if (loopGuide != null) loopGuide.ClearTrace();
 
         if (scalpelFollow != null
             && scalpelFollow.TryGetComponent<LoopFollowingObject>(out var scalpelLoop))
@@ -711,6 +763,10 @@ public enum CuttingState
         }
 
         SetScalpelTrace(false);
+
+        // put the whole ring back: a quit costs the run, so the guide must not still show the
+        // stretch the abandoned attempt got through.
+        if (loopGuide != null) loopGuide.ClearTrace();
 
         // free-look is NOT handed back here: CompleteExit does that when the camera lands,
         // because MoveCamera rewrites the aim every frame and would cancel the travel.
@@ -793,21 +849,62 @@ public enum CuttingState
     [ContextMenu("HandleCompletion")]
     void HandleCompletion()
     {
-        Debug.LogError("minigameCompleted");
+        // with a finisher the splice and the hand-back land on different frames: the splice goes
+        // under the blade, the hand-back waits for the follow-through
+        if (finisher != null && finisher.CanRun)
+        {
+            BeginFinisher();
+            return;
+        }
+
+        ApplySplice();
+        FinishUp();
+    }
+
+    /// <summary>Hands the beat to <see cref="CutFinisher"/>, stopping the orbit and parking the inputs.</summary>
+    /// <remarks>Invariant: the camera is left where the orbit put it, so the finisher flies out from there and the free-look pose is still the one taken on entry.</remarks>
+    void BeginFinisher()
+    {
+        phase = RigPhase.Finishing;
+
+        // the finisher poses the camera; an enabled orbit would overwrite it every frame.
+        if (cameraFollow != null) cameraFollow.enabled = false;
+
+        // the loop must not keep sounding through the close-up.
+        StopCutSound();
+
+        if (speedDriver != null)
+        {
+            speedDriver.SetSignedSpeed(0f);
+            speedDriver.Disable();
+        }
+
+        SetScalpelTrace(false);
+
+        finisher.Begin(ApplySplice, FinishUp);
+    }
+
+    /// <summary>Takes the piece off and lands the tear, on the impact frame when there is a finisher and immediately otherwise.</summary>
+    void ApplySplice()
+    {
         state = CuttingState.COMPLETED;
 
-        // the loop stops and the tear lands together, on the frame the part comes away.
+        // the loop stops and the tear lands together, on the frame the part comes away
         StopCutSound();
         if (Channel != null && TearSound != null)
         {
             Channel.Play(TearSound);
         }
 
-        GameObject severed = SliceOffPart();
+        LastSeveredPiece = SliceOffPart();
+    }
 
+    /// <summary>Hands the camera back and reports the cut done, after the follow-through when there is a finisher.</summary>
+    void FinishUp()
+    {
         QuitMinigame();
         // instantiate the BodyPart
-        OnMinigameCompleted?.Invoke(this, severed);
+        OnMinigameCompleted?.Invoke(this, LastSeveredPiece);
     }
 
     /// <summary>Runs the slice and picks out the piece that came away.</summary>
