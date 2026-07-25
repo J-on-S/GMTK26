@@ -4,7 +4,7 @@ using EzySlice;
 
 /// <summary>Builds and draws the curved target loop the player must trace.</summary>
 /// <remarks>
-/// Self-contained: it extracts the flat cut loop from <c>meshFollow</c> against <c>planeTransform</c>
+/// Self-contained: it extracts the flat cut loop from <c>meshFollow</c> against its <c>plane</c>
 /// (re-extracting only when either moves), reshapes it into a wavy, surface-snapped guide and renders
 /// it into <c>loopLine</c> every frame, including edit mode. It never moves the camera.
 /// </remarks>
@@ -12,15 +12,18 @@ using EzySlice;
 public class LoopGuideBuilder : MonoBehaviour {
 
     [Tooltip("Object being cut (its MeshFilter supplies the mesh, its Collider snaps the guide onto the surface).")]
-    public GameObject meshFollow;
+    [HideInInspector] public CuttableObject meshFollow;
 
-    [Tooltip("Transform whose position + up define the cutting plane.")]
-    public Transform planeTransform;
+    [Tooltip("Cut this guide draws. Supplies both the plane and its window, so the guide previews exactly the loop the slice will use.")]
+    public CutPlane plane;
 
-    public CurvePreset preset;
+    /// <summary>The plane's transform, or null when no plane is assigned.</summary>
+    private Transform PlaneTransform => plane != null ? plane.transform : null;
+
+    [HideInInspector] public CurvePreset preset;
     
-    public float curveWidth = 0.005f;
-    public float curveHoverLength = 0.01f;
+    [HideInInspector] public float curveWidth = 0.005f;
+    [HideInInspector] public float curveHoverLength = 0.01f;
 
 
     [Header("Loop guide")]
@@ -105,13 +108,13 @@ public class LoopGuideBuilder : MonoBehaviour {
     }
 
     /// <summary>Cutting-plane normal (world space). <c>Vector3.up</c> when no plane is assigned.</summary>
-    public Vector3 PlaneNormal => planeTransform != null ? planeTransform.up : Vector3.up;
+    public Vector3 PlaneNormal => plane != null ? plane.Normal : Vector3.up;
 
     /// <summary>Cutting-plane right axis (world space). <c>Vector3.right</c> when no plane is assigned.</summary>
-    public Vector3 PlaneRight => planeTransform != null ? planeTransform.right : Vector3.right;
+    public Vector3 PlaneRight => plane != null ? plane.transform.right : Vector3.right;
 
     /// <summary>Cutting-plane forward axis (world space). <c>Vector3.forward</c> when no plane is assigned.</summary>
-    public Vector3 PlaneForward => planeTransform != null ? planeTransform.forward : Vector3.forward;
+    public Vector3 PlaneForward => plane != null ? plane.transform.forward : Vector3.forward;
 
     void OnValidate() {
         if (loopLine != null) {
@@ -129,12 +132,12 @@ public class LoopGuideBuilder : MonoBehaviour {
         center = Vector3.zero;
         loopPoints = null;
 
-        if (meshFollow == null || planeTransform == null) {
+        if (meshFollow == null || plane == null) {
             return false;
         }
 
         Transform mt = meshFollow.transform;
-        Matrix4x4 planePose = planeTransform.localToWorldMatrix;
+        Matrix4x4 planePose = plane.transform.localToWorldMatrix;
         Matrix4x4 meshPose = mt.localToWorldMatrix;
         Mesh sharedMesh = meshFollow.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
 
@@ -145,13 +148,12 @@ public class LoopGuideBuilder : MonoBehaviour {
         if (!cacheValid || planePose != lastPlane || meshPose != lastMesh || sharedMesh != lastSharedMesh) {
             // match the slice window and weld when the target is a CuttableObject, so the
             // guide shows exactly the loop the cut will use
-            bool hasCuttable = meshFollow.TryGetComponent<CuttableObject>(out var cuttable);
-            Vector2 window = hasCuttable ? cuttable.boundsSize : Vector2.one;
-            float weld = hasCuttable ? cuttable.weld : 1e-4f;
+            Vector2 window = plane.boundsSize;
+            float weld = meshFollow != null ? meshFollow.weld : 1e-4f;
 
             // the guide must be a full ring the player can trace: take the largest CLOSED
             // loop and ignore open chains the window clipped (they come first in the list)
-            var loops = CuttableObject.GetLoops(meshFollow, planeTransform, weld, window);
+            var loops = CuttableObject.GetLoops(meshFollow.gameObject, plane.transform, weld, window);
             cachedLocal = null;
             for (int i = 0; i < loops.Count; i++) {
                 if (loops[i].closed && (cachedLocal == null || loops[i].points.Count > cachedLocal.Count)) {
@@ -215,6 +217,12 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     /// <summary>Rebuilds <c>curvedGuide</c> only when the extraction or any curve param changed since the last build.</summary>
     private void MaybeRebuildGuide(Vector3 center, List<Vector3> flatWorld) {
+        // no curve preset yet (a freshly created cut): leave curvedGuide null so the flat loop
+        // still draws, instead of throwing out of Update every frame in the editor.
+        if (preset == null) {
+            return;
+        }
+
         bool dirty = curvedGuide == null
             || guideVersion != extractVersion
             || gAmp != preset.curveAmplitude || gWaves != preset.curveWaves || gPhase != preset.curvePhase
@@ -240,9 +248,9 @@ public class LoopGuideBuilder : MonoBehaviour {
     private List<Vector3> BuildCurvedGuide(Vector3 center, List<Vector3> flatWorld) {
         var result = new List<Vector3>(flatWorld.Count);
 
-        Vector3 up = planeTransform.up;
-        Vector3 right = planeTransform.right;
-        Vector3 forward = planeTransform.forward;
+        Vector3 up = PlaneTransform.up;
+        Vector3 right = PlaneTransform.right;
+        Vector3 forward = PlaneTransform.forward;
         bool hasCollider = TargetCollider != null;
 
         for (int i = 0; i < flatWorld.Count; i++) {
@@ -283,7 +291,7 @@ public class LoopGuideBuilder : MonoBehaviour {
         if (curveHoverLength == 0f || pts == null) {
             return pts;
         }
-        Vector3 up = planeTransform.up;
+        Vector3 up = PlaneTransform.up;
         var lifted = new List<Vector3>(pts.Count);
         for (int i = 0; i < pts.Count; i++) {
             Vector3 flat = pts[i] - center;
@@ -306,7 +314,7 @@ public class LoopGuideBuilder : MonoBehaviour {
             }
             if (cachedCollider == null || cachedColliderOwner != meshFollow) {
                 cachedCollider = meshFollow.GetComponent<Collider>();
-                cachedColliderOwner = meshFollow;
+                cachedColliderOwner = meshFollow.gameObject;
             }
             return cachedCollider;
         }
@@ -438,3 +446,15 @@ public class LoopGuideBuilder : MonoBehaviour {
         builtAmp = preset.curveAmplitude;
     }
 }
+
+
+// for lineRenderer material: 
+/*
+use unlit material : SurfaceType transparent
+TextureMode: Tile
+// 
+all texture must have Alpha is transparency
+
+
+
+*/
