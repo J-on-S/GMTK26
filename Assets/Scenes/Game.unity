@@ -4994,6 +4994,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2112398837450586553, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1991736022}
+    - targetCorrespondingSourceObject: {fileID: 2112398837450586553, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1991736028}
   m_SourcePrefab: {fileID: 100100000, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
 --- !u!1 &1991736020 stripped
 GameObject:
@@ -5035,6 +5038,23 @@ CapsuleCollider:
   m_Height: 0.68
   m_Direction: 1
   m_Center: {x: 0.000000059604645, y: 0.27, z: -0.00000008940697}
+--- !u!114 &1991736028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1991736020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36badfd12514fa24ab20649a78177c84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CountdownUI
+  timerText: {fileID: 0}
+  timeRemaining: 0
+  flashLight: {fileID: 0}
+  flashThreshold: 10
+  maxOpacity: 0.4
 --- !u!64 &2004503561
 MeshCollider:
   m_ObjectHideFlags: 0

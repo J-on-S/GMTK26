@@ -153,6 +153,7 @@ public class ToolRequestManager : MonoBehaviour
     private void FailRequest()
     {
         Debug.Log("Time is up! You failed the request.");
+        //TODO: LOOSE LIFE
         StartCooldown();
     }
 
