@@ -8,106 +8,90 @@ public class CuttableObject : MonoBehaviour
 {
 
 
-        [Tooltip("Transform whose position + up axis define the cutting plane.")]
-        public Transform planeTransform;
-
-        [Tooltip("Weld distance for merging cut points (mesh-local units).")]
+        [Tooltip("Weld distance for merging cut points (mesh-local units). A property of this mesh, so it is shared by every cut on it.")]
         public float weld = 1e-4f;
-
-
-        [Tooltip("Rectangle size on the plane, in planeTransform local units (X = right, Y = forward). The rectangle rotates with the plane; contours it clips are discarded from the cut, so keep it large enough to cover every loop you want cut (use a huge value for an effectively infinite window).")]
-        public Vector2 boundsSize = Vector2.one;
 
         [Tooltip("Material for the exposed cut face. Must differ from the skin materials so the cap lands in its own submesh and can be culled outside the bounds window.")]
         public Material crossSectionMaterial;
 
-        [Tooltip("Outward offset of the orange preview loop from its centre.")]
-        public float cameraScale = 0.05f;
+        [Tooltip("Master switch for every CutPlane's scene-view loop on this body. Off stops the per-frame re-extraction, which is the expensive part of authoring; turn it off once the planes are placed.")]
+        public bool drawCutLoops = true;
 
-        [Tooltip("Auto-recompute every editor frame. Turn off once the loops are baked.")]
-        public bool liveUpdate = true;
+    // Where the plane went: a body can be cut in several places, so the plane and its window are a
+    // CutPlane component on its own object, not a single slot here. This object holds only what is
+    // true of the MESH -- weld distance and the cross-section material -- and takes the plane as an
+    // argument, so it never carries "which cut is happening" state that could be stale or raced.
 
-        [Tooltip("Extracted loops in MESH-LOCAL space. Convert with transform.TransformPoint at runtime.")]
-        public List<SavedLoop> savedLoops = new List<SavedLoop>();
-
-    
-    
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
     /// <summary>Result of the last <see cref="Splice"/>, held for <see cref="Weld"/> to consume.</summary>
     private SlicedHull pendingHull;
 
-    /// <summary>Slices and welds in one step: this object becomes the reattached body and the removed chunk is spawned as its own GameObject. Editor calls are a single undoable step.</summary>
-    [ContextMenu("Slice Windowed")]
-    public List<GameObject> SpliceWindowed()
+    /// <summary>Slices and welds in one step: this object becomes the reattached body and each removed chunk is spawned as its own GameObject. Editor calls are a single undoable step.</summary>
+    /// <param name="plane">Cut to make. Its transform gives the plane and it carries its own window.</param>
+    /// <returns>The spawned lower hulls, in spawn order. Empty when the cut failed or produced nothing; never null.</returns>
+    public List<GameObject> SpliceWindowed(CutPlane plane)
     {
+        if (plane == null) {
+            Debug.LogError("CuttableObject: no cut plane given.", this);
+            return new List<GameObject>();
+        }
+
 #if UNITY_EDITOR
         UnityEditor.Undo.IncrementCurrentGroup();
         UnityEditor.Undo.SetCurrentGroupName("Slice Windowed");
         int undoGroup = UnityEditor.Undo.GetCurrentGroup();
 #endif
 
-        Splice();
-        List<GameObject> created = Weld();
-
+        Splice(plane);
+        List<GameObject> lowerHulls = Weld(plane);
 
 #if UNITY_EDITOR
         UnityEditor.Undo.CollapseUndoOperations(undoGroup);
 #endif
-    return created;
+
+        return lowerHulls;
     }
 
     /// <summary>Slices the mesh with the plane and holds the result, ready for <see cref="Weld"/>. Errors and does nothing when the cut isn't complete.</summary>
-    private void Splice()
+    private void Splice(CutPlane plane)
     {
         pendingHull = null;
 
-        if (planeTransform == null) {
-            Debug.LogError("CuttableObject: no planeTransform assigned.", this);
-            return;
-        }
         if (!TryGetComponent<MeshFilter>(out var filter) || filter.sharedMesh == null) {
             Debug.LogError("CuttableObject: no MeshFilter with a shared mesh.", this);
             return;
         }
 
-        if (!CutIsComplete(filter.sharedMesh, out string error)) {
+        if (!CutIsComplete(filter.sharedMesh, plane, out string error)) {
             Debug.LogError($"CuttableObject: cut incomplete, not slicing — {error}", this);
             return;
         }
 
-        pendingHull = gameObject.Slice(planeTransform.position, planeTransform.up, crossSectionMaterial);
+        pendingHull = gameObject.Slice(plane.Origin, plane.Normal, crossSectionMaterial);
         if (pendingHull == null) {
             Debug.LogError("CuttableObject: slice produced no geometry.", this);
         }
     }
 
-    /// <summary>Splits the pending slice: this object becomes the body and the removed chunk is spawned. Records the mutated components and the created object for editor undo.</summary>
-    private  List<GameObject> Weld()
+    /// <summary>Splits the pending slice: this object becomes the body and each removed chunk is spawned. Records the mutated components and the created objects for editor undo.</summary>
+    /// <returns>The spawned lower hulls, in spawn order. Empty on any failure; never null.</returns>
+    private List<GameObject> Weld(CutPlane plane)
     {
+        var spawned = new List<GameObject>();
+
         if (pendingHull == null) {
             Debug.LogError("CuttableObject: no pending slice — call Splice first.", this);
-            return null;
+            return spawned;
         }
         if (!TryGetComponent<MeshFilter>(out var filter)) {
             Debug.LogError("CuttableObject: no MeshFilter.", this);
-            return null;
+            return spawned;
         }
 
         var pieces = new List<Mesh>();
-        pendingHull.SliceWindowedSplit(gameObject, MeshLocalPlane(), BuildBounds(), weld, out Mesh body, pieces);
+        pendingHull.SliceWindowedSplit(gameObject, MeshLocalPlane(plane.transform), BuildBounds(plane), weld, out Mesh body, pieces);
         if (body == null) {
             Debug.LogError("CuttableObject: weld produced no body geometry.", this);
-            return null;
+            return spawned;
         }
 
         MeshRenderer mr = GetComponent<MeshRenderer>();
@@ -132,11 +116,11 @@ public class CuttableObject : MonoBehaviour
         List<GameObject> gameObjects = new List<GameObject>();
         for (int i = 0; i < pieces.Count; i++) {
             string pieceName = pieces.Count == 1 ? "Lower_Hull" : $"Lower_Hull_{i}";
-            gameObjects.Add(SpawnPiece(pieceName, pieces[i], skinMats));
+            spawned.Add(SpawnPiece(pieceName, pieces[i], skinMats));
         }
 
         pendingHull = null;
-        return gameObjects;
+        return spawned;
     }
 
     /// <summary>Assigns a mesh to the filter (and collider), using sharedMesh in the editor so the change is undoable and no mesh instance leaks.</summary>
@@ -158,6 +142,7 @@ public class CuttableObject : MonoBehaviour
     }
 
     /// <summary>Creates a sibling GameObject carrying the cut piece: same transform, mesh, materials and a mesh collider. Registered for editor undo.</summary>
+    /// <returns>The spawned piece, so the caller can hand it on to whoever wants the severed part.</returns>
     private GameObject SpawnPiece(string pieceName, Mesh mesh, Material[] skinMats)
     {
         GameObject go = new GameObject(pieceName);
@@ -173,6 +158,7 @@ public class CuttableObject : MonoBehaviour
         go.AddComponent<MeshFilter>().sharedMesh = mesh;
         ApplyMaterials(go.AddComponent<MeshRenderer>(), mesh, skinMats);
         go.AddComponent<MeshCollider>().sharedMesh = mesh;
+
         return go;
     }
 
@@ -186,20 +172,71 @@ public class CuttableObject : MonoBehaviour
         renderer.sharedMaterials = mats.ToArray();
     }
 
-    /// <summary>The cutting plane in mesh-local space, built the same way the slicer builds it (inverse-transpose normal), so contour extraction and the slice agree exactly.</summary>
-    private EzySlice.Plane MeshLocalPlane()
+    /// <summary>A cutting plane in mesh-local space, built the same way the slicer builds it (inverse-transpose normal), so contour extraction and the slice agree exactly.</summary>
+    private EzySlice.Plane MeshLocalPlane(Transform plane)
     {
         Matrix4x4 inv = transform.worldToLocalMatrix.transpose.inverse;
         return new EzySlice.Plane(
-            transform.InverseTransformPoint(planeTransform.position),
-            inv.MultiplyVector(planeTransform.up).normalized);
+            transform.InverseTransformPoint(plane.position),
+            inv.MultiplyVector(plane.up).normalized);
+    }
+
+    /// <summary>Runs the real slice against an arbitrary plane and hands back the pieces it would sever, without touching this object.</summary>
+    /// <remarks>
+    /// The same call the actual cut makes, minus the assignment: the window and the connectivity
+    /// rules are applied identically, so what this returns is exactly what <see cref="SpliceWindowed"/>
+    /// would spawn. That matters for previewing -- a half-space test can't express either the
+    /// finite window or "connected to a closed in-window loop", so it disagrees with the real cut
+    /// wherever the plane passes through more than one limb.
+    /// <para>Meshes are freshly allocated; the caller owns them and must Destroy them.</para>
+    /// </remarks>
+    /// <param name="plane">Cut to preview. Supplies both the plane and its window, so this cannot disagree with the real slice.</param>
+    public List<Mesh> PreviewLowerHulls(CutPlane plane)
+    {
+        var pieces = new List<Mesh>();
+
+        if (plane == null
+            || !TryGetComponent<MeshFilter>(out var filter)
+            || filter.sharedMesh == null) {
+            return pieces;
+        }
+
+        SlicedHull hull = gameObject.Slice(plane.Origin, plane.Normal, crossSectionMaterial);
+        if (hull == null) {
+            return pieces;
+        }
+
+        hull.SliceWindowedSplit(
+            gameObject,
+            MeshLocalPlane(plane.transform),
+            BuildBounds(plane),
+            weld,
+            out Mesh previewBody,
+            pieces);
+
+        // everything except the pieces is scratch. None of it is an asset, so nothing else will
+        // collect it, and a preview that re-slices whenever the plane moves would leak a body and
+        // two hulls per rebuild.
+        DestroyMesh(previewBody);
+        DestroyMesh(hull.upperHull);
+        DestroyMesh(hull.lowerHull);
+
+        return pieces;
+    }
+
+    /// <summary>Destroys a runtime-generated mesh, using the call that works in the current mode.</summary>
+    private static void DestroyMesh(Mesh mesh)
+    {
+        if (mesh == null) return;
+        if (Application.isPlaying) Destroy(mesh);
+        else DestroyImmediate(mesh);
     }
 
     /// <summary>Checks at least one cut contour inside the bounds window is a closed loop, i.e. some cut fully crosses the mesh. Multiple closed loops are allowed — each becomes its own removed piece by connectivity. Open (clipped) loops are allowed too; the splice discards them and welds their cut shut.</summary>
     /// <returns><c>false</c> with a reason when the plane misses or every contour is left open (clipped) by the bounds.</returns>
-    private bool CutIsComplete(Mesh mesh, out string error)
+    private bool CutIsComplete(Mesh mesh, CutPlane plane, out string error)
     {
-        List<CutContour.Loop> loops = CutContour.ExtractLoops(mesh, MeshLocalPlane(), weld, BuildBounds());
+        List<CutContour.Loop> loops = CutContour.ExtractLoops(mesh, MeshLocalPlane(plane.transform), weld, BuildBounds(plane));
 
         if (loops.Count == 0) { error = "plane misses the mesh or nothing lies inside the bounds"; return false; }
 
@@ -227,37 +264,12 @@ public class CuttableObject : MonoBehaviour
 
 
 
-        /// <summary>Builds the finite-window bounds from the plane and this object.</summary>
-        /// <returns><c>null</c> when no plane is assigned.</returns>
-        private CutContour.PlaneBounds? BuildBounds() {
-            if (planeTransform == null) return null;
+        /// <summary>Builds the finite-window bounds from a cut plane and this object.</summary>
+        /// <returns><c>null</c> when no plane is given.</returns>
+        private CutContour.PlaneBounds? BuildBounds(CutPlane plane) {
+            if (plane == null) return null;
 
-            return CutContour.BuildBounds(planeTransform, boundsSize, gameObject);
-        }
-
-        /// <summary>Recomputes and stores every cut loop from the current plane, using the exact same plane and bounds window as the actual slice — what the preview shows is what <see cref="SpliceWindowed"/> cuts.</summary>
-        /// <returns>The number of loops in <c>savedLoops</c>.</returns>
-        public int Recompute() {
-            savedLoops.Clear();
-
-            if (planeTransform == null || !TryGetComponent<MeshFilter>(out var filter) || filter.sharedMesh == null) {
-                return 0;
-            }
-
-            ToSavedLoops(CutContour.ExtractLoops(filter.sharedMesh, MeshLocalPlane(), weld, BuildBounds()), savedLoops);
-            return savedLoops.Count;
-        }
-
-        /// <summary>Cuts the mesh with a world-space plane and appends the loops to <paramref name="dst"/>.</summary>
-        /// <param name="worldPos">Point on the cutting plane, in world space.</param>
-        /// <param name="worldNormal">EzySlice.Plane normal, in world space.</param>
-        private void ExtractAt(Mesh mesh, Vector3 worldPos, Vector3 worldNormal, List<SavedLoop> dst) {
-            EzySlice.Plane plane = new EzySlice.Plane(
-                transform.InverseTransformPoint(worldPos),
-                transform.InverseTransformDirection(worldNormal).normalized);
-
-            List<CutContour.Loop> loops = CutContour.ExtractLoops(mesh, plane, weld, BuildBounds());
-            ToSavedLoops(loops, dst);
+            return CutContour.BuildBounds(plane.transform, plane.boundsSize, gameObject);
         }
 
         /// <summary>Extracts every cut loop of an object against the finite quad the plane transform defines.</summary>
@@ -299,28 +311,6 @@ public class CuttableObject : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        private void OnDrawGizmos() {
-            if (liveUpdate) {
-                Recompute();
-            }
-
-            foreach (var loop in savedLoops) {
-                SavedLoop preview = new SavedLoop {
-                    closed = loop.closed,
-                    points = CutContour.ScaleLoop(loop.points, cameraScale),
-                };
-                GizmoUtils.DrawLoop(transform, preview, Color.orange, false);
-            }
-
-            DrawLoops(transform, savedLoops, Color.green, true);
-
-
-            if (planeTransform != null) {
-            GizmoUtils.DrawBoundsGizmo(planeTransform , boundsSize);
-            }
-
-        }
-
         /// <summary>Draws every loop in a set.</summary>
         /// <param name="withDots">Whether to mark each vertex with a sphere.</param>
         public static void DrawLoops(Transform tf, List<SavedLoop> set, Color color, bool withDots) {

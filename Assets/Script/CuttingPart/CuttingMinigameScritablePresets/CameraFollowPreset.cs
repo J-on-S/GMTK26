@@ -1,0 +1,195 @@
+using UnityEngine;
+
+/// <summary>Every tuning knob of a <see cref="CameraFollow"/>, in one asset.</summary>
+/// <remarks>
+/// This is what lets a single <see cref="CameraFollow"/> on the camera serve every
+/// <see cref="CuttingManager"/>: the framing is no longer authored on the component, so each cut
+/// pushes its own preset in on entry and the shared follow reframes itself. Without it, two cuts
+/// that want different orbit radii would each need their own camera.
+/// <para>
+/// Applied by copy, not read through: <see cref="ApplyTo"/> writes the values onto the component
+/// and the component's own fields stay the storage. That keeps the per-frame path untouched, and
+/// means a scene authored before presets existed keeps its values until a preset is assigned.
+/// </para>
+/// </remarks>
+[CreateAssetMenu(fileName = "CameraFollowPreset", menuName = "Cutting/Camera Follow Preset")]
+public class CameraFollowPreset : ScriptableObject
+{
+    [Header("Path")]
+    [Tooltip("Orbit the raw flat cut, or the curved (surface-snapped) guide loop.")]
+    public CameraFollow.LoopSource loopSource = CameraFollow.LoopSource.Flat;
+
+    [Tooltip("Orbit path: a perfect circle, or the loop's own shape offset outward.")]
+    public CameraFollow.MoveMode moveMode = CameraFollow.MoveMode.Circle;
+
+    [Tooltip("Orbit radius from the centre, in world units.")]
+    public float scale = 1f;
+
+    [Tooltip("Lift above the cutting plane along its normal, in world units. Raises the camera off the plane so it views the cut at an angle instead of edge-on.")]
+    public float height = 0.5f;
+
+    [Tooltip("Fixed head start around the ring, in degrees. Shifts where the orbit sits (and its Progress) without changing the speed.")]
+    public float angleOffset = 0f;
+
+    [Tooltip("Fixed extra position offset in world space, added on top of the orbit.")]
+    public Vector3 positionOffset = Vector3.zero;
+
+    [Tooltip("How fast the camera eases toward the target POSITION (higher = snappier). Separate from lookSpeed, which only eases the aim.")]
+    public float moveSpeed = 5f;
+
+    [Header("Aim")]
+    [Tooltip("What the camera aims at while orbiting.")]
+    public CameraFollow.LookMode lookMode = CameraFollow.LookMode.Center;
+
+    [Tooltip("How fast the camera eases toward the target rotation (higher = snappier).")]
+    public float lookSpeed = 5f;
+
+    [Tooltip("Roll the camera so the loop's travel direction points to the top of the screen.")]
+    public bool loopTowardTop = false;
+
+    [Tooltip("Also drive rotation (aim + roll). Off = orbit position only, leaving the object's rotation untouched.")]
+    public bool controlRotation = true;
+
+    [Tooltip("Also drive POSITION (orbit). Off = leave transform.position for another script to set, while this still computes BasePosition and can drive rotation.")]
+    public bool controlPosition = true;
+
+    [Header("Roll")]
+    [Tooltip("Constant bank (roll) of the camera about its view axis, in degrees.")]
+    public float rollDegrees = 0f;
+
+    [Tooltip("Peak extra roll added on top of the constant bank, in degrees.")]
+    public float rollAmplitude = 0f;
+
+    [Tooltip("Roll oscillation speed, in radians per second. Keep low so the bank is readable.")]
+    public float rollSpeed = 0.5f;
+
+    [Header("Off-centre pivot")]
+    [Tooltip("Route the pivot into the camera POSITION: the camera orbits the off-centre/wandering pivot, so the loop swings across the frame and its distance varies.")]
+    public bool pivotAffectsPosition = true;
+
+    [Tooltip("Route the pivot into the camera LOOK: the aim point shifts off the loop centre, so the loop drifts in the frame without the camera moving. Enable both to combine.")]
+    public bool pivotAffectsLook = false;
+
+    [Tooltip("Static pivot offset from the loop centre, in plane units (X = plane right, Y = plane forward).")]
+    public Vector2 pivotOffset = Vector2.zero;
+
+    [Tooltip("Slowly wander the pivot on a readable Lissajous path so the target motion is learnable, not jittery.")]
+    public bool pivotMoves = false;
+
+    [Tooltip("How far the wandering pivot strays from its base offset, in plane units.")]
+    public float pivotMoveRadius = 0.2f;
+
+    [Tooltip("Wander speed, in radians per second. Keep low so the path stays readable.")]
+    public float pivotMoveSpeed = 0.5f;
+
+    [Header("Drift")]
+    [Tooltip("Largest sideways drift offset from the orbit position, in world units.")]
+    public float maxHorizontalDerive = 1f;
+
+    [Tooltip("How many times per second a new random drift target is rolled.")]
+    public float DerivePerSecondEvaluate = 4f;
+
+    [Tooltip("How fast the drift eases toward its current target (higher = snappier).")]
+    public float DeriveSpeed = 0.1f;
+
+    [Tooltip("Bias of the random drift toward the centre. 1 = uniform; higher = more likely to stay near the middle.")]
+    public float deriveCenterBias = 3f;
+
+    /// <summary>Writes every value onto a follow. Touches tuning only -- never its loop guide, speed source, startAngle or live angle.</summary>
+    public void ApplyTo(CameraFollow follow)
+    {
+        if (follow == null) return;
+
+        follow.loopSource = loopSource;
+        follow.moveMode = moveMode;
+        follow.scale = scale;
+        follow.height = height;
+        follow.angleOffset = angleOffset;
+        follow.positionOffset = positionOffset;
+        follow.moveSpeed = moveSpeed;
+
+        follow.lookMode = lookMode;
+        follow.lookSpeed = lookSpeed;
+        follow.loopTowardTop = loopTowardTop;
+        follow.controlRotation = controlRotation;
+        follow.controlPosition = controlPosition;
+
+        follow.rollDegrees = rollDegrees;
+        follow.rollAmplitude = rollAmplitude;
+        follow.rollSpeed = rollSpeed;
+
+        follow.pivotAffectsPosition = pivotAffectsPosition;
+        follow.pivotAffectsLook = pivotAffectsLook;
+        follow.pivotOffset = pivotOffset;
+        follow.pivotMoves = pivotMoves;
+        follow.pivotMoveRadius = pivotMoveRadius;
+        follow.pivotMoveSpeed = pivotMoveSpeed;
+
+        follow.maxHorizontalDerive = maxHorizontalDerive;
+        follow.DerivePerSecondEvaluate = DerivePerSecondEvaluate;
+        follow.DeriveSpeed = DeriveSpeed;
+        follow.deriveCenterBias = deriveCenterBias;
+    }
+
+    /// <summary>Reads every value off a follow, for building a preset out of an already hand-tuned component.</summary>
+    public void CopyFrom(CameraFollow follow)
+    {
+        if (follow == null) return;
+
+        loopSource = follow.loopSource;
+        moveMode = follow.moveMode;
+        scale = follow.scale;
+        height = follow.height;
+        angleOffset = follow.angleOffset;
+        positionOffset = follow.positionOffset;
+        moveSpeed = follow.moveSpeed;
+
+        lookMode = follow.lookMode;
+        lookSpeed = follow.lookSpeed;
+        loopTowardTop = follow.loopTowardTop;
+        controlRotation = follow.controlRotation;
+        controlPosition = follow.controlPosition;
+
+        rollDegrees = follow.rollDegrees;
+        rollAmplitude = follow.rollAmplitude;
+        rollSpeed = follow.rollSpeed;
+
+        pivotAffectsPosition = follow.pivotAffectsPosition;
+        pivotAffectsLook = follow.pivotAffectsLook;
+        pivotOffset = follow.pivotOffset;
+        pivotMoves = follow.pivotMoves;
+        pivotMoveRadius = follow.pivotMoveRadius;
+        pivotMoveSpeed = follow.pivotMoveSpeed;
+
+        maxHorizontalDerive = follow.maxHorizontalDerive;
+        DerivePerSecondEvaluate = follow.DerivePerSecondEvaluate;
+        DeriveSpeed = follow.DeriveSpeed;
+        deriveCenterBias = follow.deriveCenterBias;
+    }
+}
+
+/// <summary>The tuning categories, shared by the CameraFollow and CameraFollowPreset inspectors so both group their fields the same way.</summary>
+public static class CameraFollowCategories
+{
+    /// <summary>One collapsible group: a heading and the serialized field names under it.</summary>
+    public readonly struct Group
+    {
+        public Group(string title, string[] fields)
+        {
+            Title = title;
+            Fields = fields;
+        }
+
+        public readonly string Title;
+        public readonly string[] Fields;
+    }
+
+    public static readonly Group[] All =
+    {
+        new("Path", new[] { "loopSource", "moveMode", "scale", "height", "angleOffset", "positionOffset", "moveSpeed" }),
+        new("Aim", new[] { "lookMode", "lookSpeed", "loopTowardTop", "controlRotation", "controlPosition" }),
+        new("Roll", new[] { "rollDegrees", "rollAmplitude", "rollSpeed" }),
+        new("Off-centre pivot", new[] { "pivotAffectsPosition", "pivotAffectsLook", "pivotOffset", "pivotMoves", "pivotMoveRadius", "pivotMoveSpeed" }),
+        new("Drift", new[] { "maxHorizontalDerive", "DerivePerSecondEvaluate", "DeriveSpeed", "deriveCenterBias" }),
+    };
+}
