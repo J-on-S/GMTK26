@@ -204,10 +204,18 @@ public class CameraFollow : MonoBehaviour {
         ApplyPose(clock, animated: false);
     }
 
-    /// <summary>Puts the follower where its current <c>angle</c> says it should be.</summary>
-    /// <param name="clock">Seconds driving the roll oscillation and the pivot wander.</param>
-    /// <param name="animated">Ease toward the pose and apply the random drift, rather than snapping exactly onto it.</param>
-    public void ApplyPose(float clock, bool animated) {
+    /// <summary>The orbit pose at a given angle: where this follower would sit, and how it would aim from there.</summary>
+    /// <remarks>Pure -- no side effects, no dependence on when <see cref="Update"/> last ran -- so anything that wants to fly to the orbit (the camera travel in <see cref="CuttingManager"/>) can ask for the destination up front and land on it exactly.</remarks>
+    /// <param name="atAngle">Angle around the ring, in degrees, before <c>angleOffset</c>.</param>
+    /// <param name="position">The orbit position, <c>positionOffset</c> already applied.</param>
+    /// <param name="rotation">The aim, measured from <paramref name="viewFrom"/>.</param>
+    /// <param name="viewFrom">Where the aim is measured from. Defaults to <paramref name="position"/> itself; the live orbit passes its own current position so the look stays correct while it eases in.</param>
+    /// <param name="clock">Seconds driving the roll oscillation and the pivot wander. Defaults to <c>Time.time</c>; the editor preview passes its own, since edit mode has no running clock.</param>
+    /// <returns><c>false</c> when there is no guide or the plane misses the mesh; the outputs are then left at the current transform.</returns>
+    public bool TryGetPose(float atAngle, out Vector3 position, out Quaternion rotation, Vector3? viewFrom = null, float? clock = null) {
+        position = transform.position;
+        rotation = transform.rotation;
+
         if (loopGuide == null) {
             return false;
         }
@@ -219,25 +227,64 @@ public class CameraFollow : MonoBehaviour {
             return false;
         }
 
+        float t = clock ?? Time.time;
+
         // route the pivot independently into position and/or look; each falls back to the
         // raw loop centre when its toggle is off.
-        Vector3 pivot = GetPivot(center, clock);
+        Vector3 pivot = GetPivot(center, t);
         Vector3 movePivot = pivotAffectsPosition ? pivot : center;
         Vector3 lookPivot = pivotAffectsLook ? pivot : center;
 
-        float rad = (angle + angleOffset) * Mathf.Deg2Rad;
+        float rad = (atAngle + angleOffset) * Mathf.Deg2Rad;
         Vector3 orbitDir = loopGuide.PlaneRight * Mathf.Cos(rad) + loopGuide.PlaneForward * Mathf.Sin(rad);
 
         // POSITION: orbit the move pivot. Circle: fixed radius around it. ScaleLoop: follow
         // the loop's own shape, pushed 'scale' outward from it.
         Vector3 moveLoopPoint = PointOnLoopInDirection(movePivot, orbitDir, loopPoints);
-        Vector3 targetPos = moveMode == MoveMode.Circle
+        position = moveMode == MoveMode.Circle
             ? movePivot + orbitDir * scale
             : moveLoopPoint + (moveLoopPoint - movePivot).normalized * scale;
 
+        // lift off the cutting plane along its normal so the camera views the cut at an
+        // angle, not edge-on: stops the near plane clipping the skin and gives the loop depth.
+        position += loopGuide.PlaneNormal * height;
+
+        // fixed extra offset in world space.
+        position += positionOffset;
+
+        // LOOK: aim at the look pivot's centre, or the loop point in the orbit direction.
+        Vector3 lookTarget = lookMode == LookMode.Center
+            ? lookPivot
+            : PointOnLoopInDirection(lookPivot, orbitDir, loopPoints);
+
+        // default up is the plane normal; loopTowardTop uses the orbit tangent (travel
+        // direction) so the loop appears to move toward the top of the screen.
+        Vector3 up = loopTowardTop
+            ? -loopGuide.PlaneRight * Mathf.Sin(rad) + loopGuide.PlaneForward * Mathf.Cos(rad)
+            : loopGuide.PlaneNormal;
+
+        Vector3 toTarget = lookTarget - (viewFrom ?? position);
+        if (toTarget.sqrMagnitude > 1e-8f) {
+            // bank the up vector about the view axis so the horizon rolls; constant
+            // rollDegrees plus a slow readable oscillation.
+            float roll = rollDegrees + rollAmplitude * Mathf.Sin(t * rollSpeed);
+            if (roll != 0f) {
+                up = Quaternion.AngleAxis(roll, toTarget.normalized) * up;
+            }
+
+            rotation = Quaternion.LookRotation(toTarget, up);
+        }
+
+        return true;
+    }
+
+    /// <summary>Puts the follower where its current <c>angle</c> says it should be.</summary>
+    /// <param name="clock">Seconds driving the roll oscillation and the pivot wander.</param>
+    /// <param name="animated">Ease toward the pose and apply the random drift, rather than snapping exactly onto it.</param>
+    public void ApplyPose(float clock, bool animated) {
         // aim measured from where this actually is, not from the orbit target, so the look
         // stays correct while the position is still easing toward it.
-        if (!TryGetPose(angle, out Vector3 targetPos, out Quaternion targetRot, transform.position)) {
+        if (!TryGetPose(angle, out Vector3 targetPos, out Quaternion targetRot, transform.position, clock)) {
             return;
         }
 
@@ -255,8 +302,8 @@ public class CameraFollow : MonoBehaviour {
             targetPos += transform.right * UpdateDerive();
         }
 
-        // ease toward the target while animated; snap straight to it in edit mode so the
-        // preview tracks startAngle without a running deltaTime. Skipped when controlPosition
+        // ease toward the target while animated; snap straight onto it otherwise, so the editor
+        // preview shows the framing rather than the chase toward it. Skipped when controlPosition
         // is off: BasePosition is still published above, but transform.position is left for
         // another script (e.g. a surface-snapping follower) to own.
         if (controlPosition) {
@@ -268,33 +315,10 @@ public class CameraFollow : MonoBehaviour {
         // ROTATION is optional: when off, the object just orbits (position only), keeping
         // whatever rotation it already has. Useful for followers that aren't cameras.
         if (controlRotation) {
-            // LOOK: aim at the look pivot's centre, or the loop point in the orbit direction.
-            Vector3 lookTarget = lookMode == LookMode.Center
-                ? lookPivot
-                : PointOnLoopInDirection(lookPivot, orbitDir, loopPoints);
-
-            // default up is the plane normal; loopTowardTop uses the orbit tangent (travel
-            // direction) so the loop appears to move toward the top of the screen.
-            Vector3 up = loopTowardTop
-                ? -loopGuide.PlaneRight * Mathf.Sin(rad) + loopGuide.PlaneForward * Mathf.Cos(rad)
-                : loopGuide.PlaneNormal;
-
-            Vector3 toTarget = lookTarget - transform.position;
-            if (toTarget.sqrMagnitude > 1e-8f) {
-                // bank the up vector about the view axis so the horizon rolls; constant
-                // rollDegrees plus a slow readable oscillation.
-                float roll = rollDegrees + rollAmplitude * Mathf.Sin(clock * rollSpeed);
-                if (roll != 0f) {
-                    up = Quaternion.AngleAxis(roll, toTarget.normalized) * up;
-                }
-
-                Quaternion targetRot = Quaternion.LookRotation(toTarget, up);
-                transform.rotation = animated
-                    ? Quaternion.Slerp(transform.rotation, targetRot, lookSpeed * Time.deltaTime)
-                    : targetRot;
-            }
+            transform.rotation = animated
+                ? Quaternion.Slerp(transform.rotation, targetRot, lookSpeed * Time.deltaTime)
+                : targetRot;
         }
-
     }
 
     /// <summary>The point the camera orbits: loop centre plus the (optionally wandering) pivot offset, laid out in the cutting plane.</summary>

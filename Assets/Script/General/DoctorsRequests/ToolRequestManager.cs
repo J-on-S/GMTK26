@@ -1,12 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEditor;
+// using UnityEditor;
 
 public class ToolRequestManager : MonoBehaviour
 {
-
-    public enum ItemType {Tool, BodyPart, OurTool}
-
     [System.Serializable]
     public struct ToolRequest
     {
@@ -165,5 +162,10 @@ public class ToolRequestManager : MonoBehaviour
         remainingCooldown = timeBetweenRequests;
         currentState = State.Cooldown;
         Debug.Log($"Waiting for the next request. Cooldown active for {timeBetweenRequests} seconds");
+    }
+
+    public float timeRemaining()
+    {
+        return remainingTime;
     }
 }
