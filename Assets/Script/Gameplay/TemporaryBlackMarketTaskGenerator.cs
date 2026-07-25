@@ -32,6 +32,7 @@ public class TemporaryBlackMarketTaskGenerator :
     [SerializeField] private Transform bodyPartsPosParent;
     [ReadOnly] [SerializeField] private List<Transform> bodyPartsPos = new List<Transform>();
     private Dictionary<BodyPartType, List<BodyPartContain>> bodyPartsContainByType = new Dictionary<BodyPartType, List<BodyPartContain>>();
+    
     [SerializeField] private BodyParts bodyParts;
     [Header("Test")]
     [SerializeField] private BodyPartType bodyPartTypeFound;
@@ -90,6 +91,22 @@ public class TemporaryBlackMarketTaskGenerator :
         }
 
         return new BlackMarketTask(requests);
+    }
+    public bool IsSucceedBlackMarket()
+    {
+        foreach (KeyValuePair<BodyPartType, List<BodyPartContain>> pair in bodyPartsContainByType)
+        {
+            BodyPartType type = pair.Key;
+            List<BodyPartContain> bodyPartsContain = pair.Value;
+            foreach(BodyPartContain bodyPartContain in bodyPartsContain)
+            {
+                if (!bodyPartContain.HasBodyPart)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private List<BodyPartType> GetUniqueParts()
