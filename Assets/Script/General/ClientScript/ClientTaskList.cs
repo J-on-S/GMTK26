@@ -17,25 +17,50 @@ public enum BodyPartType
 [Serializable]
 public class BodyPartRequest
 {
+    //flexible one
+    [SerializeField] private int maxAmount = 3;
     public const int MaxAmount = 3;
 
     [SerializeField] private BodyPartType bodyPart;
-    [SerializeField, Range(1, MaxAmount)] private int amount = 1;
+    [Tooltip("Be careful to not exceeded the MaxAmount")]
+    [SerializeField, Range(1, 10)] private int amount = 1;
 
+    public int GetMaxAmount => maxAmount;
     public BodyPartType BodyPart => bodyPart;
     public int Amount => amount;
+    public void AddAmount()
+    {
+        amount++;
+    }
+    public BodyPartRequest(BodyPartType bodyPart, int amount, int maxAmount)
+    {
+        this.bodyPart = bodyPart;
+        this.amount = Mathf.Clamp(amount, 1, maxAmount);
+        this.maxAmount = maxAmount;
+    }
 
     public BodyPartRequest(BodyPartType bodyPart, int amount)
     {
         this.bodyPart = bodyPart;
         this.amount = Mathf.Clamp(amount, 1, MaxAmount);
+        maxAmount = MaxAmount;
     }
 
     public void SetAmount(int value)
     {
-        amount = Mathf.Clamp(value, 1, MaxAmount);
+        amount = Mathf.Clamp(value, 1, maxAmount);
+    }
+    public bool RemoveAmount()
+    {
+        if (amount - 1 < 0)
+        {
+            return false;
+        }
+        amount--;
+        return true;
     }
 }
+
 
 [Serializable]
 public class ClientTask
