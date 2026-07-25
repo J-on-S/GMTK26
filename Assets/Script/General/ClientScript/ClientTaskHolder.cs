@@ -9,6 +9,7 @@ public class ClientTaskHolder : MonoBehaviour
 
     public event Action<ClientTask> TaskAssigned;
     public event Action<ClientTask> TaskCompleted;
+    public event Action<ClientTaskHolder, ClientTask> TaskCompletedWithOwner;
 
     public void AssignTask(ClientTask task)
     {
@@ -22,7 +23,10 @@ public class ClientTaskHolder : MonoBehaviour
             return false;
 
         if (AssignedTask.IsComplete)
+        {
             TaskCompleted?.Invoke(AssignedTask);
+            TaskCompletedWithOwner?.Invoke(this, AssignedTask);
+        }
 
         return true;
     }

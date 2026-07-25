@@ -1,69 +1,94 @@
-CLIENT TASK SYSTEM - UNITY SETUP
+CLIENT TASK QUEUE - UNITY SETUP
 
-1. DATABASE
+OVERVIEW
 
-The shared database is located at:
-Assets/Data/ClientTaskDatabase.asset
+Clients and tasks are prepared before any client GameObject is spawned.
+Each queue entry contains:
+- A client prefab reference.
+- A generated ClientTask.
+- A spawned-client reference, which stays empty until that entry is spawned.
 
-Select the GameObject containing ClientTaskList.
-Drag ClientTaskDatabase.asset into the Database field.
+When the task is completed, the entry is removed from the generated task
+list and the spawned client is destroyed automatically.
+
+
+1. CLIENT TASK DATABASE
+
+Assign Assets/Data/ClientTaskDatabase.asset to the Database field of the
+ClientTaskList component.
 
 
 2. CLIENT PREFABS
 
-Add the ClientTaskHolder component to every client prefab.
-Each spawned client will store its own task and delivery progress.
+Add ClientTaskHolder to every client prefab.
+Add those prefabs to Client Prefabs on RandomizedClientList.
 
 
-3. SPAWN A CLIENT AND ASSIGN A TASK
+3. PRE-GENERATION SETTINGS
 
-GameObject client = randomizedClientList.SpawnNextClient(chair, taskList);
+On RandomizedClientList:
+- Assign the ClientTaskList component to Task Generator.
+- Set Clients To Prepare.
+- Enable Prepare On Start to build the list automatically in Start().
+- Enable Use Hand Made Tasks to use templates when the database has them.
 
-This will:
-- Spawn a randomized client prefab.
-- Find its ClientTaskHolder.
-- Generate or select a task.
-- Assign that task to the spawned client.
+Pre-generation does not instantiate client GameObjects.
 
+Manual API:
 
-4. READ THE CLIENT'S TASK
+clientList.PregenerateClientTasks();
 
-ClientTaskHolder holder = client.GetComponent<ClientTaskHolder>();
-ClientTask task = holder.AssignedTask;
+Or:
 
-string dialogue = task.GetDialogue();
-
-Example:
-Oh, I want 2 eyes and 3 legs.
+clientList.PregenerateClientTasks(amount, taskList);
 
 
-5. GIVE A BODY PART TO THE CLIENT
+4. INSPECT THE PRE-GENERATED LIST
 
-bool accepted = holder.GiveBodyPart(BodyPartType.Eye);
-
-The method returns true when the client needs the part.
-It returns false when the part is not requested or is already fulfilled.
-
-
-6. CHECK PROGRESS
-
-int remainingEyes = holder.AssignedTask.GetRemainingAmount(BodyPartType.Eye);
-bool finished = holder.AssignedTask.IsComplete;
-
-
-7. LISTEN FOR TASK COMPLETION
-
-holder.TaskCompleted += OnClientTaskCompleted;
-
-private void OnClientTaskCompleted(ClientTask completedTask)
+foreach (ClientTaskQueueEntry entry in clientList.GeneratedTaskList)
 {
-    Debug.Log("The client can leave.");
+    Debug.Log(entry.ClientPrefab.name);
+    Debug.Log(entry.Task.GetDialogue());
+    Debug.Log(entry.IsSpawned);
 }
 
 
-IMPORTANT
+5. SPAWN THE NEXT PENDING CLIENT
 
-Use holder.AssignedTask for a client's task.
-Do not use taskList.CurrentTask to identify a specific client's task when
-there are two occupied operation chairs. CurrentTask only represents the
-most recently generated task.
+GameObject client = clientList.SpawnNextClient(operationChair);
+
+Spawning does not generate a new task. It takes the first pending queue entry,
+instantiates its prefab, and assigns its existing task to ClientTaskHolder.
+
+The client is spawned at the chair position and rotation without being
+parented to the chair, so chair scaling does not affect client size.
+
+
+6. COMPLETE A CLIENT TASK
+
+ClientTaskHolder holder = client.GetComponent<ClientTaskHolder>();
+holder.GiveBodyPart(BodyPartType.Eye);
+
+When all requested parts have been delivered:
+- ClientTaskHolder raises its completion event.
+- RandomizedClientList removes the associated queue entry.
+- The client is removed from ActiveClients.
+- The spawned GameObject is destroyed.
+
+No tag is required.
+
+
+7. DEBUG TEST
+
+Add ClientTaskDebugTester to a GameObject and assign:
+- Client List
+- Task List
+- Operation Chair
+
+Enter Play Mode and run its Context Menu functions in order:
+
+1. Pregenerate Client Task List
+2. Log Pregenerated Task List
+3. Spawn Next Pregenerated Client
+4. Log Current Client Task
+5. Complete Current Client Task
