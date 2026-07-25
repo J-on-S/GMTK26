@@ -6,6 +6,10 @@ using TMPro;
 public class CountdownUI : MonoBehaviour
 {
 
+    // audio stuff for the alarm
+    public AudioEventChannel channel;
+    public Audio alarm;
+
     public TextMeshProUGUI timerText;
 
     // will inevitably need to be changed with stefas script
@@ -68,6 +72,8 @@ public class CountdownUI : MonoBehaviour
             if (timeToDisplay % 1f > 0.5f)
             {
                 SetFlashOpacity(maxIntensity);
+                channel.Stop(alarm);
+                channel.Play(alarm);
             }
             else
             {
