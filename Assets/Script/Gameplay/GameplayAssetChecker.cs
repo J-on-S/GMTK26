@@ -95,7 +95,7 @@ public class GameplayAssetChecker : MonoBehaviour
         }
 
         return false;
-    }
+    } 
 
     private void OnValidate()
     {

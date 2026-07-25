@@ -101,6 +101,7 @@ clientList.ClientSpawned
 clientList.ClientRemoved
 operationChair.ClientPlaced
 operationChair.ClientLeft
+clientDialogueEventChannel.DialogueRequested
 ```
 
 Current implementation:
@@ -108,6 +109,8 @@ Current implementation:
 - Independent tasks and progress per client: implemented.
 - Automatic removal on client-task completion: implemented.
 - Automatic chair refill: implemented.
+- Client task dialogue requests through a decoupled event channel: implemented.
+- Queued client dialogue UI receiver: implemented.
 - Doctor item requests: exists separately; integration not confirmed.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
