@@ -4,11 +4,8 @@
 TagManager:
   serializedVersion: 3
   tags: []
-<<<<<<< Updated upstream
   tags:
   - Client
-=======
->>>>>>> Stashed changes
   layers:
   - Default
   - TransparentFX
