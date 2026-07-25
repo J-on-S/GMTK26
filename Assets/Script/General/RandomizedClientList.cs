@@ -76,6 +76,52 @@ public class RandomizedClientList : MonoBehaviour
     public event Action<ClientTaskQueueEntry> TaskListEntryCreated;
     public event Action<ClientTaskQueueEntry> TaskListEntryRemoved;
 
+    // ---------------------------------------------------------------------
+    // Simple game-facing API
+    // ---------------------------------------------------------------------
+
+    /// <summary>Returns the current pre-generated client/task list.</summary>
+    public IReadOnlyList<ClientTaskQueueEntry> GetGeneratedList()
+    {
+        return generatedTaskList;
+    }
+
+    /// <summary>Returns the prefab name stored by a generated list entry.</summary>
+    public string GetPersonName(ClientTaskQueueEntry entry)
+    {
+        return entry?.ClientPrefab != null
+            ? entry.ClientPrefab.name
+            : string.Empty;
+    }
+
+    /// <summary>Returns display-ready request text for a generated entry.</summary>
+    public string GetTaskString(ClientTaskQueueEntry entry)
+    {
+        return entry?.Task != null
+            ? entry.Task.GetDialogue()
+            : string.Empty;
+    }
+
+    /// <summary>Generates the configured list without spawning any clients.</summary>
+    public void GenerateList()
+    {
+        PregenerateClientTasks();
+    }
+
+    /// <summary>Generates a specific number of entries without spawning clients.</summary>
+    public void GenerateList(int amount, ClientTaskList generator)
+    {
+        PregenerateClientTasks(amount, generator);
+    }
+
+    /// <summary>
+    /// Removes a spawned person from the generated list and destroys its GameObject.
+    /// </summary>
+    public bool DespawnPerson(GameObject person)
+    {
+        return RemoveActiveClient(person);
+    }
+
     private void Awake()
     {
         ShuffleClients();

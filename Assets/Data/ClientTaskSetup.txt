@@ -8,6 +8,9 @@ Each queue entry contains:
 - A generated ClientTask.
 - A spawned-client reference, which stays empty until that entry is spawned.
 
+Each individual body-part request is limited to 1, 2, or 3 parts.
+The complete client task is still limited to 6 parts in total.
+
 When the task is completed, the entry is removed from the generated task
 list and the spawned client is destroyed automatically.
 
@@ -92,3 +95,34 @@ Enter Play Mode and run its Context Menu functions in order:
 3. Spawn Next Pregenerated Client
 4. Log Current Client Task
 5. Complete Current Client Task
+
+
+8. SIMPLE GAME-FACING API
+
+Generate the configured list without spawning people:
+
+clientList.GenerateList();
+
+Generate a specific number:
+
+clientList.GenerateList(6, taskList);
+
+Read the generated list:
+
+IReadOnlyList<ClientTaskQueueEntry> entries =
+    clientList.GetGeneratedList();
+
+Get each person's prefab name and display-ready task string:
+
+foreach (ClientTaskQueueEntry entry in clientList.GetGeneratedList())
+{
+    string personName = clientList.GetPersonName(entry);
+    string taskText = clientList.GetTaskString(entry);
+    Debug.Log(personName + ": " + taskText);
+}
+
+Despawn a spawned person and remove its generated-list entry:
+
+clientList.DespawnPerson(spawnedPerson);
+
+Tasks completed through ClientTaskHolder do this automatically.

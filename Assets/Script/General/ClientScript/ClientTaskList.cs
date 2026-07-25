@@ -17,8 +17,10 @@ public enum BodyPartType
 [Serializable]
 public class BodyPartRequest
 {
+    public const int MaxAmount = 3;
+
     [SerializeField] private BodyPartType bodyPart;
-    [SerializeField, Min(1)] private int amount = 1;
+    [SerializeField, Range(1, MaxAmount)] private int amount = 1;
 
     public BodyPartType BodyPart => bodyPart;
     public int Amount => amount;
@@ -26,12 +28,12 @@ public class BodyPartRequest
     public BodyPartRequest(BodyPartType bodyPart, int amount)
     {
         this.bodyPart = bodyPart;
-        this.amount = Mathf.Max(1, amount);
+        this.amount = Mathf.Clamp(amount, 1, MaxAmount);
     }
 
     public void SetAmount(int value)
     {
-        amount = Mathf.Max(1, value);
+        amount = Mathf.Clamp(value, 1, MaxAmount);
     }
 }
 
@@ -246,17 +248,36 @@ public class ClientTaskList : MonoBehaviour
         }
 
         Shuffle(choices);
-        int partTotal = UnityEngine.Random.Range(1, database.MaxPartsPerTask + 1);
-        int typeCount = UnityEngine.Random.Range(1, Mathf.Min(database.MaxDifferentPartTypes, partTotal, choices.Count) + 1);
+        int maximumPossibleTotal = Mathf.Min(
+            database.MaxPartsPerTask,
+            database.MaxDifferentPartTypes * BodyPartRequest.MaxAmount,
+            choices.Count * BodyPartRequest.MaxAmount);
+        int partTotal = UnityEngine.Random.Range(1, maximumPossibleTotal + 1);
+        int minimumTypeCount =
+            (partTotal + BodyPartRequest.MaxAmount - 1) /
+            BodyPartRequest.MaxAmount;
+        int maximumTypeCount = Mathf.Min(
+            database.MaxDifferentPartTypes,
+            partTotal,
+            choices.Count);
+        int typeCount = UnityEngine.Random.Range(
+            minimumTypeCount,
+            maximumTypeCount + 1);
         List<BodyPartRequest> requests = new();
         int remaining = partTotal;
 
         for (int i = 0; i < typeCount; i++)
         {
             int typesStillNeeded = typeCount - i - 1;
-            int amount = i == typeCount - 1
-                ? remaining
-                : UnityEngine.Random.Range(1, remaining - typesStillNeeded + 1);
+            int minimumAmount = Mathf.Max(
+                1,
+                remaining - typesStillNeeded * BodyPartRequest.MaxAmount);
+            int maximumAmount = Mathf.Min(
+                BodyPartRequest.MaxAmount,
+                remaining - typesStillNeeded);
+            int amount = UnityEngine.Random.Range(
+                minimumAmount,
+                maximumAmount + 1);
             requests.Add(new BodyPartRequest(choices[i], amount));
             remaining -= amount;
         }
@@ -281,7 +302,10 @@ public class ClientTaskList : MonoBehaviour
             if (remaining <= 0)
                 break;
 
-            int amount = Mathf.Clamp(request.Amount, 1, remaining);
+            int amount = Mathf.Clamp(
+                request.Amount,
+                1,
+                Mathf.Min(BodyPartRequest.MaxAmount, remaining));
             result.Add(new BodyPartRequest(request.BodyPart, amount));
             remaining -= amount;
         }
