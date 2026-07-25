@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static EzySlice.CutContourAuthoring;
 
 public static class GizmoUtils
 {
@@ -31,7 +30,7 @@ public static class GizmoUtils
     }
     /// <summary>Draws one loop, connecting the last point to the first only when it is closed.</summary>
     /// <param name="withDots">Whether to mark each vertex with a sphere.</param>
-    public static void DrawLoop(Transform tf, SavedLoop loop, Color color, bool withDots) {
+    public static void DrawLoop(Transform tf, CuttableObject.SavedLoop loop, Color color, bool withDots) {
         int count = loop.points.Count;
         if (count < 2) return;
 

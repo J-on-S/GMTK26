@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>Lays the player's cut line: raycasts the mouse onto the cut target and appends surface points to a LineRenderer.</summary>
-/// <remarks>Driven by <see cref="CuttingSkin"/>, which calls <see cref="Trace"/> only while the camera is actually moving, so coasting between wheel ridges still lays a continuous cut.</remarks>
+/// <remarks>Traces itself every frame while <see cref="trace"/> is on, independent of camera speed.</remarks>
 public class CutTracer : MonoBehaviour {
 
     [Tooltip("Object being cut. Only raycast hits on this object add a point.")]
@@ -28,6 +28,11 @@ public class CutTracer : MonoBehaviour {
     void OnValidate()
     {
         Lrenderer.widthCurve = AnimationCurve.Constant(0, 1, LineWitdth);
+    }
+
+    void Update()
+    {
+        Trace();
     }
 
     /// <summary>Raycasts the mouse into the scene; if it hits <c>cutTarget</c>, stores the hover-offset surface point.</summary>

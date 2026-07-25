@@ -2,17 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>Drives a follower around the cut loop in lock-step with the camera, snapping it onto the mesh surface each frame.</summary>
-/// <remarks>Invariant: runs before its own <c>CameraFollow</c>, so the orbit angle it sets is applied the same frame.</remarks>
+/// <summary>Moves the follower left/right along the limb, snaps it onto the mesh surface, scores it, and draws its gizmos. The orbit angle around the loop is driven externally (by <see cref="CuttingManager"/>); this script does not sync it.</summary>
+/// <remarks>Invariant: runs before its own <c>CameraFollow</c>, so a snap uses the same frame's orbit angle.</remarks>
 [ExecuteAlways]
 [RequireComponent(typeof(CameraFollow))]
 [DefaultExecutionOrder(-10)]
 public class LoopFollowingObject : MonoBehaviour
 {
-    private InputAction ScalpelMove;
-
-    public InputActionAsset InputActions;
-
     /// <summary>Supplies the cut loop, its centre, and surface projection.</summary>
     public LoopGuideBuilder builder;
 
@@ -41,25 +37,15 @@ public class LoopFollowingObject : MonoBehaviour
     public FollowLoopPresets preset;
 
     /// <summary>Left/right arrow-and-A/D axis driving along-limb travel.</summary>
-    private InputAction arrowsLR;
 
-    /// <summary>This object's own <c>CameraFollow</c>, supplying <c>BasePosition</c> and aim while this script owns the surface-snapped position.</summary>
-    private CameraFollow owned;
-
-    [Tooltip("The main camera's CameraFollow (the one CuttingSkin drives). The scalpel slaves its orbit angle to this camera's live angle so it stays locked in frame.")]
-    public CameraFollow cameraToTrack;
-
-    [Tooltip("Fixed angular gap (deg) the scalpel keeps ahead of the camera. Drives this object's own CameraFollow.startAngle (camera.startAngle + lead) and the live lock; previews in edit mode.")]
-    public float angleLead;
+    /// <summary>This object's own <c>CameraFollow</c>, supplying <c>BasePosition</c> and aim while this script owns the surface-snapped position. Its orbit angle is driven externally by <see cref="CuttingManager"/>.</summary>
+    public CameraFollow owned;
 
     /// <summary>Along-limb travel, in world units for <c>PlaneNormal</c> mode or degrees for <c>RadialPerpendicular</c>.</summary>
     private float offset;
 
     /// <summary>Distance the object floats above the surface along the smoothed normal, in world units.</summary>
     public float ObjectHover = 0.01f;
-
-    [Tooltip("Main-camera driver. When set, the scalpel is frozen on frames where the wheel scrolls against DirectionMainScroll (unless allowBothDirection).")]
-    public CuttingSkin cuttingSkin;
 
     [Header("Trace")]
     [Tooltip("Draw the path the scalpel walks over the surface into traceRenderer.")]
@@ -93,62 +79,21 @@ public class LoopFollowingObject : MonoBehaviour
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
-        ScalpelMove = InputActions.FindAction("ObjectMove");
-        ScalpelMove.Enable();
 
-        // Build the left/right arrow-and-A/D axis in code.
-        arrowsLR = new InputAction("ScalpelArrows", InputActionType.Value, expectedControlType: "Axis");
-        arrowsLR.AddCompositeBinding("1DAxis")
-            .With("Negative", "<Keyboard>/leftArrow")
-            .With("Negative", "<Keyboard>/a")
-            .With("Positive", "<Keyboard>/rightArrow")
-            .With("Positive", "<Keyboard>/d");
-        arrowsLR.Enable();
-
-        // Angle is driven from the camera each frame; stop owned from self-advancing.
         owned = GetComponent<CameraFollow>();
-        owned.rotationSpeed = 0f;
 
         ApplyTraceWidth();
     }
 
-    void OnDestroy()
-    {
-        arrowsLR?.Dispose();
-    }
-
-    /// <summary>Holds this object's orbit start angle a fixed lead ahead of the tracked camera's.</summary>
-    /// <remarks>Invariant: runs in edit mode, so the follower previews its start angle before play.</remarks>
-    void DriveStartAngle()
-    {
-        if (owned == null) owned = GetComponent<CameraFollow>();
-        if (cameraToTrack != null && owned != null) {
-            owned.startAngle = cameraToTrack.startAngle + angleLead;
-        }
-    }
-
     void OnValidate()
     {
-        DriveStartAngle();
         ApplyTraceWidth();
     }
 
     void Update()
     {
-        // Keep the orbit start-angle lead live for the edit-mode preview.
-        DriveStartAngle();
-
         // Input runs only in play mode.
         if (!Application.isPlaying) return;
-
-        // Freeze when the wheel scrolls against the main cut direction.
-        if (IsFrozenByScroll()) return;
-
-        // Slave the orbit angle to the camera's angle; set before CameraFollow.Update so
-        // BasePosition uses it this frame.
-        if (cameraToTrack != null) {
-            owned.Angle = cameraToTrack.Angle + angleLead;
-        }
 
         // Accumulate left/right travel: MouseDelta is per-pixel, the held modes per-second.
         updateOffset(preset.moveInput);
@@ -178,7 +123,7 @@ public class LoopFollowingObject : MonoBehaviour
         if (!result) return;
 
         expected = LoopScorer.ClosestPointOnPolyline(points, onMeshPos, out float t, out float dst);
-        Debug.Log((expected - onMeshPos).magnitude.ToString("0.000"));
+        //Debug.Log(dst.ToString("0.000"));
     }
 
     void OnDrawGizmos()
@@ -197,7 +142,6 @@ public class LoopFollowingObject : MonoBehaviour
     void LateUpdate()
     {
         if (!Application.isPlaying || builder == null || owned == null) return;
-        if (IsFrozenByScroll()) return;
 
         // Both modes travel along the limb; they differ in how the surface point is found.
         Vector3 rawPos;   // free-space sample the ray starts from
@@ -246,15 +190,6 @@ public class LoopFollowingObject : MonoBehaviour
         calculatePrecision();
     }
 
-    /// <summary>Whether this frame's wheel scroll opposes the main cut direction, with both-direction cutting off.</summary>
-    bool IsFrozenByScroll()
-    {
-        if (cuttingSkin == null || cuttingSkin.allowBothDirection) return false;
-        if (Mouse.current == null) return false;
-        float scrollY = Mouse.current.scroll.ReadValue().y;
-        return scrollY != 0f && Mathf.Sign(scrollY) != Mathf.Sign(cuttingSkin.DirectionMainScroll);
-    }
-
     /// <summary>Appends a surface point to the trail, skipping near-duplicates.</summary>
     void AddTracePoint(Vector3 p)
     {
@@ -271,11 +206,16 @@ public class LoopFollowingObject : MonoBehaviour
         if (traceRenderer != null) traceRenderer.widthCurve = AnimationCurve.Constant(0, 1, traceWidth);
     }
 
+    /// <summary>Drops the trail and the along-limb offset, so a fresh run starts from a clean surface and a centred scalpel.</summary>
     [ContextMenu("reset trace points")]
-    void ResetTrace()
+    public void ResetTrace()
     {
         tracePoints.Clear();
         if (traceRenderer != null) traceRenderer.positionCount = 0;
+
+        offset = 0f;
+        hasSurface = false;
+        hasNormal = false;
     }
 
     /// <summary>Accumulates along-limb travel into <c>offset</c> from the active input.</summary>
@@ -284,7 +224,8 @@ public class LoopFollowingObject : MonoBehaviour
         bool hasMouse = Mouse.current != null;
         switch (moveInput) {
             case MoveInput.MouseDelta:
-                if (hasMouse) offset -= Mouse.current.delta.ReadValue().x * preset.Xspeed;
+                if (CuttingManager.mouseDelta != null)
+                    offset -= CuttingManager.mouseDelta.ReadValue<Vector2>().x * preset.Xspeed;
                 break;
             case MoveInput.MouseButtons: {
                 if (!hasMouse) break;
@@ -294,7 +235,7 @@ public class LoopFollowingObject : MonoBehaviour
                 break;
             }
             case MoveInput.ArrowKeys:
-                offset -= arrowsLR.ReadValue<float>() * preset.Xspeed * Time.deltaTime;
+                offset -= CuttingManager.arrows.ReadValue<Vector2>().x * preset.Xspeed * Time.deltaTime;
                 break;
         }
     }
