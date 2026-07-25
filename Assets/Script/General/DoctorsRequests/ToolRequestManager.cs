@@ -163,4 +163,9 @@ public class ToolRequestManager : MonoBehaviour
         currentState = State.Cooldown;
         Debug.Log($"Waiting for the next request. Cooldown active for {timeBetweenRequests} seconds");
     }
+
+    public float timeRemaining()
+    {
+        return remainingTime;
+    }
 }
