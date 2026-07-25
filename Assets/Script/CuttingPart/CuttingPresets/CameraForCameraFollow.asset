@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3acc454d4fc871848ad5dca140ff5286, type: 3}
+  m_Name: CameraForCameraFollow
+  m_EditorClassIdentifier: Assembly-CSharp::CameraFollowPreset
+  loopSource: 0
+  moveMode: 1
+  scale: 0.37
+  height: -0.06
+  angleOffset: 0
+  positionOffset: {x: 0, y: 0, z: 0}
+  moveSpeed: 5
+  lookMode: 0
+  lookSpeed: 5
+  loopTowardTop: 1
+  controlRotation: 1
+  controlPosition: 1
+  rollDegrees: 0
+  rollAmplitude: 0
+  rollSpeed: 0.5
+  pivotAffectsPosition: 0
+  pivotAffectsLook: 0
+  pivotOffset: {x: 0, y: 0}
+  pivotMoves: 0
+  pivotMoveRadius: 0
+  pivotMoveSpeed: 0
+  maxHorizontalDerive: 0
+  DerivePerSecondEvaluate: 0
+  DeriveSpeed: 0
+  deriveCenterBias: 0

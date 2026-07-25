@@ -1,0 +1,25 @@
+fileFormatVersion: 2
+guid: 129b9c39de9cba74db2772e44eb6d3de
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - minigamePreset: {instanceID: 0}
+  - rig: {instanceID: 0}
+  - GameObjectBeingCut: {instanceID: 0}
+  - sceneCamera: {instanceID: 0}
+  - cameraPreset: {instanceID: 0}
+  - ScalpelFollowLoopPreset: {instanceID: 0}
+  - curvePreset: {instanceID: 0}
+  - loopGuide: {instanceID: 0}
+  - moveCamera: {instanceID: 0}
+  - cameraFollow: {instanceID: 0}
+  - scalpelFollow: {instanceID: 0}
+  - speedDriver: {instanceID: 0}
+  - cutSound: {fileID: 11400000, guid: 5e749ac49c61e1b449bb726909acced2, type: 2}
+  - tearSound: {fileID: 11400000, guid: 968d4e00044910e1b8b0671d0c5bdc86, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

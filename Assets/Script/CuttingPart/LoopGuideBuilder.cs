@@ -4,7 +4,7 @@ using EzySlice;
 
 /// <summary>Builds and draws the curved target loop the player must trace.</summary>
 /// <remarks>
-/// Self-contained: it extracts the flat cut loop from <c>meshFollow</c> against <c>planeTransform</c>
+/// Self-contained: it extracts the flat cut loop from <c>meshFollow</c> against its <c>plane</c>
 /// (re-extracting only when either moves), reshapes it into a wavy, surface-snapped guide and renders
 /// it into <c>loopLine</c> every frame, including edit mode. It never moves the camera.
 /// </remarks>
@@ -12,28 +12,19 @@ using EzySlice;
 public class LoopGuideBuilder : MonoBehaviour {
 
     [Tooltip("Object being cut (its MeshFilter supplies the mesh, its Collider snaps the guide onto the surface).")]
-    public GameObject meshFollow;
+    [HideInInspector] public CuttableObject meshFollow;
 
-    [Tooltip("Transform whose position + up define the cutting plane.")]
-    public Transform planeTransform;
+    [Tooltip("Cut this guide draws. Supplies both the plane and its window, so the guide previews exactly the loop the slice will use.")]
+    public CutPlane plane;
 
-    [Header("Curved plane")]
-    [Tooltip("Warp the flat cut into a wavy ring: each loop point is pushed up/down the body axis by a sine of its angle around the ring. 0 = flat. Raise it and the drawn guide loop rides up and down the surface, so the cursor must track a moving target.")]
-    public float curveAmplitude = 0f;
+    /// <summary>The plane's transform, or null when no plane is assigned.</summary>
+    private Transform PlaneTransform => plane != null ? plane.transform : null;
 
-    [Tooltip("Number of full up/down waves around the ring. 1 = a single tilt (one high side, one low). Higher = more, tighter humps.")]
-    public float curveWaves = 2f;
+    [HideInInspector] public CurvePreset preset;
+    
+    [HideInInspector] public float curveWidth = 0.005f;
+    [HideInInspector] public float curveHoverLength = 0.01f;
 
-    public float curvePhase = 0;
-
-    public float curveWidth = 0.005f;
-    public float curveHoverLength = 0.01f;
-
-    [Tooltip("Break the clean sine: each half-cycle around the ring gets a random height and width, so the curve is bumpy and irregular instead of a pure wave. Stable per seed, so it stays learnable.")]
-    public bool curveRandom = false;
-
-    [Tooltip("Seed for the random curve. Change it to reshuffle the bumps into a new fixed shape.")]
-    public int curveSeed = 0;
 
     [Header("Loop guide")]
     [Tooltip("Draw the curved target loop into loopLine.")]
@@ -66,14 +57,20 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <summary>Mesh transform pose at the last extraction.</summary>
     private Matrix4x4 lastMesh;
 
+    /// <summary>Mesh instance at the last extraction; a slice swaps the sharedMesh without moving the transform, so pose checks alone would serve a stale loop.</summary>
+    private Mesh lastSharedMesh;
+
     /// <summary>Whether <c>cachedLocal</c> holds a result from a completed extraction.</summary>
     private bool cacheValid;
 
     /// <summary>Version counter bumped every time the flat loop is re-extracted; invalidates the guide cache.</summary>
     private int extractVersion;
 
-    /// <summary>Cached curved + surface-snapped guide loop. Rebuilt only when the extraction or a curve param changes.</summary>
+    /// <summary>Cached curved + surface-snapped guide loop, on the raw surface (hover-free). This is the scoring target. Rebuilt only when the extraction or a curve param changes.</summary>
     private List<Vector3> curvedGuide;
+
+    /// <summary>Render-only copy of <c>curvedGuide</c> lifted off the surface by <c>curveHoverLength</c> so the drawn line doesn't z-fight. Never used for scoring.</summary>
+    private List<Vector3> curvedDraw;
 
     /// <summary>Cached arc length of the curved loop, world units; rebuilt alongside <c>curvedGuide</c>.</summary>
     private float curvedLength;
@@ -94,6 +91,13 @@ public class LoopGuideBuilder : MonoBehaviour {
 
         // draw in edit mode too, so the loops are visible while authoring.
         if (!TryGetLoop(out Vector3 center, out List<Vector3> loopPoints)) {
+            // no closed loop right now: clear the lines instead of freezing the last drawn one
+            if (loopLine != null) {
+                loopLine.enabled = false;
+            }
+            if (flatLine != null) {
+                flatLine.enabled = false;
+            }
             return;
         }
 
@@ -104,13 +108,13 @@ public class LoopGuideBuilder : MonoBehaviour {
     }
 
     /// <summary>Cutting-plane normal (world space). <c>Vector3.up</c> when no plane is assigned.</summary>
-    public Vector3 PlaneNormal => planeTransform != null ? planeTransform.up : Vector3.up;
+    public Vector3 PlaneNormal => plane != null ? plane.Normal : Vector3.up;
 
     /// <summary>Cutting-plane right axis (world space). <c>Vector3.right</c> when no plane is assigned.</summary>
-    public Vector3 PlaneRight => planeTransform != null ? planeTransform.right : Vector3.right;
+    public Vector3 PlaneRight => plane != null ? plane.transform.right : Vector3.right;
 
     /// <summary>Cutting-plane forward axis (world space). <c>Vector3.forward</c> when no plane is assigned.</summary>
-    public Vector3 PlaneForward => planeTransform != null ? planeTransform.forward : Vector3.forward;
+    public Vector3 PlaneForward => plane != null ? plane.transform.forward : Vector3.forward;
 
     void OnValidate() {
         if (loopLine != null) {
@@ -128,22 +132,37 @@ public class LoopGuideBuilder : MonoBehaviour {
         center = Vector3.zero;
         loopPoints = null;
 
-        if (meshFollow == null || planeTransform == null) {
+        if (meshFollow == null || plane == null) {
             return false;
         }
 
         Transform mt = meshFollow.transform;
-        Matrix4x4 planePose = planeTransform.localToWorldMatrix;
+        Matrix4x4 planePose = plane.transform.localToWorldMatrix;
         Matrix4x4 meshPose = mt.localToWorldMatrix;
+        Mesh sharedMesh = meshFollow.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
 
-        // re-extract only when the plane or mesh has moved since the last extraction; the
-        // world loop, centre and arc length are all cached in the same block, so every
-        // frame in between just returns them.
-        if (!cacheValid || planePose != lastPlane || meshPose != lastMesh) {
-            var loops = CutContourAuthoring.GetLoops(meshFollow, planeTransform);
-            cachedLocal = loops.Count > 0 ? loops[0].points : null;
+        // re-extract only when the plane, the mesh transform or the mesh itself changed since
+        // the last extraction (a slice swaps the sharedMesh in place); the world loop, centre
+        // and arc length are all cached in the same block, so every frame in between just
+        // returns them.
+        if (!cacheValid || planePose != lastPlane || meshPose != lastMesh || sharedMesh != lastSharedMesh) {
+            // match the slice window and weld when the target is a CuttableObject, so the
+            // guide shows exactly the loop the cut will use
+            Vector2 window = plane.boundsSize;
+            float weld = meshFollow != null ? meshFollow.weld : 1e-4f;
+
+            // the guide must be a full ring the player can trace: take the largest CLOSED
+            // loop and ignore open chains the window clipped (they come first in the list)
+            var loops = CuttableObject.GetLoops(meshFollow.gameObject, plane.transform, weld, window);
+            cachedLocal = null;
+            for (int i = 0; i < loops.Count; i++) {
+                if (loops[i].closed && (cachedLocal == null || loops[i].points.Count > cachedLocal.Count)) {
+                    cachedLocal = loops[i].points;
+                }
+            }
             lastPlane = planePose;
             lastMesh = meshPose;
+            lastSharedMesh = sharedMesh;
             cacheValid = true;
             extractVersion++; // invalidate the curved-guide cache
 
@@ -198,23 +217,30 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     /// <summary>Rebuilds <c>curvedGuide</c> only when the extraction or any curve param changed since the last build.</summary>
     private void MaybeRebuildGuide(Vector3 center, List<Vector3> flatWorld) {
+        // no curve preset yet (a freshly created cut): leave curvedGuide null so the flat loop
+        // still draws, instead of throwing out of Update every frame in the editor.
+        if (preset == null) {
+            return;
+        }
+
         bool dirty = curvedGuide == null
             || guideVersion != extractVersion
-            || gAmp != curveAmplitude || gWaves != curveWaves || gPhase != curvePhase
-            || gSeed != curveSeed || gRandom != curveRandom || gHoverLength != curveHoverLength;
+            || gAmp != preset.curveAmplitude || gWaves != preset.curveWaves || gPhase != preset.curvePhase
+            || gSeed != preset.curveSeed || gRandom != preset.curveRandom || gHoverLength != curveHoverLength;
         if (!dirty) {
             return;
         }
 
         curvedGuide = BuildCurvedGuide(center, flatWorld);
+        curvedDraw = BuildHoverLift(center, curvedGuide);
         curvedLength = LoopScorer.SampledLength(curvedGuide);
 
         guideVersion = extractVersion;
-        gAmp = curveAmplitude;
-        gWaves = curveWaves;
-        gPhase = curvePhase;
-        gSeed = curveSeed;
-        gRandom = curveRandom;
+        gAmp = preset.curveAmplitude;
+        gWaves = preset.curveWaves;
+        gPhase = preset.curvePhase;
+        gSeed = preset.curveSeed;
+        gRandom = preset.curveRandom;
         gHoverLength = curveHoverLength;
     }
 
@@ -222,15 +248,15 @@ public class LoopGuideBuilder : MonoBehaviour {
     private List<Vector3> BuildCurvedGuide(Vector3 center, List<Vector3> flatWorld) {
         var result = new List<Vector3>(flatWorld.Count);
 
-        Vector3 up = planeTransform.up;
-        Vector3 right = planeTransform.right;
-        Vector3 forward = planeTransform.forward;
+        Vector3 up = PlaneTransform.up;
+        Vector3 right = PlaneTransform.right;
+        Vector3 forward = PlaneTransform.forward;
         bool hasCollider = TargetCollider != null;
 
         for (int i = 0; i < flatWorld.Count; i++) {
             Vector3 p = flatWorld[i];
 
-            if (curveAmplitude != 0f) {
+            if (preset.curveAmplitude != 0f) {
                 Vector3 flat = p - center;
                 float alongUp = Vector3.Dot(flat, up);
                 Vector3 radial = flat - up * alongUp; // point's direction out from the body axis
@@ -260,6 +286,22 @@ public class LoopGuideBuilder : MonoBehaviour {
         return result;
     }
 
+    /// <summary>Copies a loop and lifts each point off the surface by <c>curveHoverLength</c> along its outward radial (plane-normal component removed), for drawing only.</summary>
+    private List<Vector3> BuildHoverLift(Vector3 center, List<Vector3> pts) {
+        if (curveHoverLength == 0f || pts == null) {
+            return pts;
+        }
+        Vector3 up = PlaneTransform.up;
+        var lifted = new List<Vector3>(pts.Count);
+        for (int i = 0; i < pts.Count; i++) {
+            Vector3 flat = pts[i] - center;
+            Vector3 radial = flat - up * Vector3.Dot(flat, up);
+            Vector3 dir = radial.sqrMagnitude > 1e-8f ? radial.normalized : Vector3.zero;
+            lifted.Add(pts[i] + dir * curveHoverLength);
+        }
+        return lifted;
+    }
+
     /// <summary>Cached collider of <c>meshFollow</c>; re-fetched only when <c>meshFollow</c> changes.</summary>
     private Collider cachedCollider;
     private GameObject cachedColliderOwner;
@@ -272,17 +314,17 @@ public class LoopGuideBuilder : MonoBehaviour {
             }
             if (cachedCollider == null || cachedColliderOwner != meshFollow) {
                 cachedCollider = meshFollow.GetComponent<Collider>();
-                cachedColliderOwner = meshFollow;
+                cachedColliderOwner = meshFollow.gameObject;
             }
             return cachedCollider;
         }
     }
 
-    /// <summary>Projects <paramref name="near"/> onto the cut mesh by raycasting inward along <c>-rdir</c> within a short band, then lifting the hit off the surface by <c>curveHoverLength</c>.</summary>
+    /// <summary>Projects <paramref name="near"/> onto the cut mesh by raycasting inward along <c>-rdir</c> within a short band. Returns the raw surface hit (no hover); callers add any render lift themselves.</summary>
     /// <param name="near">Point to snap; the ray starts one <paramref name="band"/> outside it along <paramref name="rdir"/>.</param>
     /// <param name="rdir">Outward direction (unit); the ray shoots the opposite way, into the surface.</param>
     /// <param name="band">Half the ray length. Keep it below the body radius so the ray can't reach a far surface.</param>
-    /// <param name="surfacePoint">Snapped, hover-offset point on hit; <paramref name="near"/> otherwise.</param>
+    /// <param name="surfacePoint">Raw surface hit; <paramref name="near"/> otherwise.</param>
     /// <param name="surfaceNormal">World-space surface normal at the hit; <paramref name="rdir"/> otherwise.</param>
     /// <returns><c>true</c> when the ray hit the mesh within the band.</returns>
     public bool TryProjectOntoSurface(Vector3 near, Vector3 rdir, float band, out Vector3 surfacePoint, out Vector3 surfaceNormal) {
@@ -294,7 +336,7 @@ public class LoopGuideBuilder : MonoBehaviour {
         }
         Vector3 start = near + rdir * band;
         if (col.Raycast(new Ray(start, -rdir), out RaycastHit rh, band * 2f)) {
-            surfacePoint = rh.point + rdir * curveHoverLength;
+            surfacePoint = rh.point;
             surfaceNormal = rh.normal;
             return true;
         }
@@ -313,14 +355,11 @@ public class LoopGuideBuilder : MonoBehaviour {
         }
         if (drawCurved && curvedGuide != null) {
             loopLine.enabled = true;
-            DrawInto(loopLine, curvedGuide);
+            DrawInto(loopLine, curvedDraw ?? curvedGuide);
         }
         else if(curvedGuide != null)
         {
             loopLine.enabled = false;
-        }
-        if (drawCurved && curvedGuide != null) {
-            DrawInto(loopLine, curvedGuide);
         }
     }
 
@@ -347,18 +386,18 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <param name="angleRad">Angle around the ring, in radians.</param>
     /// <remarks>Clean sine by default; when <c>curveRandom</c> is on it is a chain of random-height, random-width humps, stable per seed.</remarks>
     private float CurveHeight(float angleRad) {
-        if (curveAmplitude == 0f) {
+        if (preset.curveAmplitude == 0f) {
             return 0f;
         }
 
-        if (!curveRandom) {
-            return curveAmplitude * Mathf.Sin(curveWaves * angleRad + curvePhase * Mathf.Deg2Rad);
+        if (!preset.curveRandom) {
+            return preset.curveAmplitude * Mathf.Sin(preset.curveWaves * angleRad + preset.curvePhase * Mathf.Deg2Rad);
         }
 
         BuildRandomCurve();
 
         // wrap into one ring turn, plus the phase shift, then find its segment
-        float b = Mathf.Repeat(angleRad + curvePhase * Mathf.Deg2Rad, 2f * Mathf.PI);
+        float b = Mathf.Repeat(angleRad + preset.curvePhase * Mathf.Deg2Rad, 2f * Mathf.PI);
         int seg = 0;
         while (seg < segEnd.Length - 1 && b >= segEnd[seg]) {
             seg++;
@@ -372,17 +411,17 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     /// <summary>Builds the random half-cycle table: each hump gets a random width and height, normalised to close the ring. Deterministic per seed.</summary>
     private void BuildRandomCurve() {
-        if (segEnd != null && builtSeed == curveSeed && builtWaves == curveWaves && builtAmp == curveAmplitude) {
+        if (segEnd != null && builtSeed == preset.curveSeed && builtWaves == preset.curveWaves && builtAmp == preset.curveAmplitude) {
             return;
         }
 
         // curveWaves full waves = twice as many half-cycle humps
-        int humps = Mathf.Max(1, Mathf.RoundToInt(curveWaves * 2f));
+        int humps = Mathf.Max(1, Mathf.RoundToInt(preset.curveWaves * 2f));
         segEnd = new float[humps];
         segAmp = new float[humps];
 
         Random.State prev = Random.state;
-        Random.InitState(curveSeed);
+        Random.InitState(preset.curveSeed);
 
         float total = 0f;
         for (int i = 0; i < humps; i++) {
@@ -390,7 +429,7 @@ public class LoopGuideBuilder : MonoBehaviour {
             total += segEnd[i];
             // alternate sign so the ring rises and falls; random fraction of the max height
             float sign = (i % 2 == 0) ? 1f : -1f;
-            segAmp[i] = sign * Random.Range(0.3f, 1f) * curveAmplitude;
+            segAmp[i] = sign * Random.Range(0.3f, 1f) * preset.curveAmplitude;
         }
 
         // normalise widths to span exactly one turn, store cumulative ends
@@ -402,8 +441,20 @@ public class LoopGuideBuilder : MonoBehaviour {
         }
 
         Random.state = prev;
-        builtSeed = curveSeed;
-        builtWaves = curveWaves;
-        builtAmp = curveAmplitude;
+        builtSeed = preset.curveSeed;
+        builtWaves = preset.curveWaves;
+        builtAmp = preset.curveAmplitude;
     }
 }
+
+
+// for lineRenderer material: 
+/*
+use unlit material : SurfaceType transparent
+TextureMode: Tile
+// 
+all texture must have Alpha is transparency
+
+
+
+*/
