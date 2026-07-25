@@ -1,0 +1,144 @@
+GAMEPLAY MANAGER - FIRST PROTOTYPE PHASE
+
+CURRENT RESPONSIBILITY
+
+At the beginning of a day, GameplayManager:
+
+1. Changes state from NotStarted to Preparing.
+2. Generates the client/task list without spawning clients.
+3. Generates the black-market body-part task.
+4. Prints every step and state change to the Console.
+5. Changes state to InProgress and raises DayStarted.
+
+
+UNITY SETUP
+
+1. Create an empty GameObject named GameplayManager.
+2. Add GameplayManager.
+3. Add GameplayAssetChecker.
+4. Add TemporaryBlackMarketTaskGenerator.
+5. Assign the RandomizedClientList component to Client List.
+6. Drag TemporaryBlackMarketTaskGenerator into Black Market Task Generator.
+7. Assign exactly two distinct OperationChair components to GameplayAssetChecker.
+8. Assign one Trapdoor, one Storage, and at least one Cutting Tool.
+9. Optionally assign the world-space Client List Poster.
+10. On RandomizedClientList, assign its Task Generator and client prefabs.
+11. Disable Prepare On Start on RandomizedClientList because GameplayManager
+   now owns beginning-of-day generation.
+12. Leave Begin First Day On Start enabled, or call BeginDay() manually.
+
+GameplayManager refuses to begin a day if:
+- GameplayAssetChecker is missing.
+- There are not exactly two assigned beds.
+- A bed reference is null or duplicated.
+- A bed is missing Client List, Gameplay Manager, or Client Spawn Point.
+- A bed references a different manager or client list.
+- Trapdoor is missing.
+- Storage is missing.
+- No cutting-tool reference is assigned.
+
+A missing Client List Poster logs a warning but does not prevent the day from
+starting.
+
+
+PUBLIC API
+
+Begin the current day:
+
+gameplayManager.BeginDay();
+
+Read the day state:
+
+GameplayDayState state = gameplayManager.State;
+
+Read the generated client list:
+
+var clients = clientList.GetGeneratedList();
+
+Read the black-market task:
+
+BlackMarketTask blackMarketTask =
+    gameplayManager.CurrentBlackMarketTask;
+
+foreach (BodyPartRequest request in blackMarketTask.RequestedParts)
+{
+    BodyPartType part = request.BodyPart;
+    int amount = request.Amount;
+}
+
+Get display-ready black-market text:
+
+string text = blackMarketTask.GetDescription();
+
+End and advance the day:
+
+gameplayManager.EndDay();
+gameplayManager.AdvanceToNextDay();
+
+
+FUTURE BLACK-MARKET INTEGRATION
+
+TemporaryBlackMarketTaskGenerator is a placeholder.
+
+The final BlackMarketManager should implement:
+
+IBlackMarketTaskGenerator
+
+It must provide:
+
+BlackMarketTask GenerateTask(int dayNumber);
+
+After that, replace the temporary component in GameplayManager's
+Black Market Task Generator field. GameplayManager does not need to change.
+
+
+EVENTS
+
+gameplayManager.DayStarted
+gameplayManager.BlackMarketTaskGenerated
+gameplayManager.DayEnded
+
+These events can later update the world-space task board, countdown,
+doctor logic, storage, scoring, and end-of-day systems.
+
+
+TEMPORARY AUTOMATIC END CONDITION
+
+RandomizedClientList raises TaskListEmptied when its last entry is removed.
+GameplayManager then ends the day only when:
+
+- Number Of Lives is greater than 3.
+- Countdown Remaining is greater than or equal to 0.
+- The current state is InProgress.
+
+If the list reaches zero without these conditions, GameplayManager logs a
+warning because that state should not normally be reachable.
+
+Until the final systems exist, tests can update the placeholder values with:
+
+gameplayManager.SetTemporaryLives(lives);
+gameplayManager.SetTemporaryCountdown(secondsRemaining);
+
+These temporary variables should be replaced by the final lives and countdown
+APIs rather than becoming permanent ownership inside GameplayManager.
+
+
+OPERATION CHAIRS / BEDS
+
+Add OperationChair to each bed.
+
+Assign:
+- Client List: the shared RandomizedClientList.
+- Gameplay Manager: the shared GameplayManager.
+- Client Spawn Point: an empty Transform positioned where the patient lies.
+
+When DayStarted fires, every empty chair requests one pending client.
+When a chair's specific client completes their task and is removed, that chair
+automatically requests the next pending client.
+
+Two chairs can therefore remain occupied independently:
+
+Chair A completes -> Chair A gets the next client.
+Chair B keeps its existing client.
+
+When Pending Client Count reaches zero, an empty chair remains empty.

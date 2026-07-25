@@ -25,6 +25,30 @@ public class SpawnBodyPartCustomer : MonoBehaviour
     {
         AddBodyPart(TestBodyPart);
     }
+    public void AddBodyPart(string newBodyPart)
+    {
+        switch (newBodyPart)
+        {
+            case "Leg":
+                RandomBodyPartPos(legsSpawn);
+                break;
+            case "Ear":
+                RandomBodyPartPos(earsSpawn);
+                break;
+            case "Arm":
+                RandomBodyPartPos(armsSpawn);
+                break;
+            case "Heart":
+                RandomBodyPartPos(heartSpawn);
+                break;
+            case "Nose":
+                RandomBodyPartPos(nosesSpawn);
+                break;
+            default:
+                Debug.LogError("Hey");
+                break;
+        }
+    }
     public void AddBodyPart(BodyPartType newBodyPart)
     {
         switch (newBodyPart)
@@ -75,13 +99,7 @@ public class SpawnBodyPartCustomer : MonoBehaviour
                 return false;
             }
         }
+
         return true;
-    }
-
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

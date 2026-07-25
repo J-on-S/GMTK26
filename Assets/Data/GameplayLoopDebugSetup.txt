@@ -1,0 +1,52 @@
+GAMEPLAY LOOP DEBUG TESTER
+
+PURPOSE
+
+GameplayLoopDebugTester does not simulate taking a tool, cutting, physics, or
+the doctor's decision. Those systems remain owned by their relevant scripts.
+
+It starts observing after GameplayManager begins the day normally. Its doctor
+actions represent only this confirmed result:
+
+"The doctor accepted this body part for this patient."
+
+
+SETUP
+
+1. Add GameplayLoopDebugTester beside GameplayManager.
+2. Assign Gameplay Manager, or leave it empty when both components share the
+   same GameObject.
+3. Configure GameplayAssetChecker and all required scene references.
+4. Enter Play Mode. GameplayManager generates the lists automatically.
+5. Inspect Runtime Debug List or the Console.
+
+
+CONTEXT MENU ACTIONS
+
+1. Refresh Debug List
+   Shows day state, temporary values, black-market order, both chairs, and
+   every generated client task with its remaining quantities.
+
+2. Set Valid Temporary End Conditions
+   Sets lives to 4 and countdown to 0 so clearing the list ends the day.
+
+3. Set Unreachable Temporary End Conditions
+   Sets lives to 3 and countdown to -1 to test the warning path.
+
+4. Doctor Accepts Selected Body Part
+   Uses Selected Chair Index and Accepted Body Part. It decrements exactly one
+   matching requirement on that chair's current client.
+
+5. Doctor Accepts Next Needed Part
+   Finds the selected client's next outstanding requirement and decrements it.
+
+6. Complete Selected Client Task
+   Repeatedly invokes the same accepted-body-part API until that client is
+   complete. The bed should automatically receive the next pending client.
+
+7. Complete All Remaining Client Tasks
+   Fast-forwards all spawned and pending tasks through the same list API.
+   With valid temporary conditions, this should end the day automatically.
+
+8. Force End Day
+   Calls GameplayManager.EndDay() directly for later-phase testing.

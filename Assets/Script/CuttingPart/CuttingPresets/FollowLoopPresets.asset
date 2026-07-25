@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e6387d97b9a274c4496a99db70f1a8d2, type: 3}
-  m_Name: CurvePreset
-  m_EditorClassIdentifier: Assembly-CSharp::CurvePreset
-  curveAmplitude: 0.2
-  curveWaves: 3
-  curvePhase: 0
-  curveRandom: 1
-  curveSeed: 0
+  m_Script: {fileID: 11500000, guid: a954bff2db1de774b87a266656c6feb2, type: 3}
+  m_Name: FollowLoopPresets
+  m_EditorClassIdentifier: Assembly-CSharp::FollowLoopPresets
+  moveInput: 0
+  Xspeed: 0
+  followSmooth: 20
+  normalSmooth: 15
+  slideAxis: 0

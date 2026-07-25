@@ -24,6 +24,19 @@ public class CameraMovesPreset : ScriptableObject
     [Tooltip("Glide time after the last push before friction starts, in seconds. The board keeps rolling before the foot slows it.")]
     public float coastTime = 0.3f;
 
+    // Direction and backward-input rules live here rather than on the CutSpeedDriver: the driver
+    // is shared by every cut, so anything a single cut needs to differ on has to travel with the
+    // preset the cut swaps in on entry.
+
+    [Tooltip("Which way this cut travels around the ring: 1 or -1. Scroll and keys are read relative to it, so the player always pushes 'forward'.")]
+    public int DirectionMainScroll = 1;
+
+    [Tooltip("Let the player travel backwards along the cut. Off, the speed floor is 0.")]
+    public bool canGoBackwards = false;
+
+    [Tooltip("Let input against the travel direction brake: it subtracts speed down to a stop, but never reverses. Ignored when canGoBackwards is on, which already accepts backward input.")]
+    public bool canDecelerateManually = false;
+
 
 
 
