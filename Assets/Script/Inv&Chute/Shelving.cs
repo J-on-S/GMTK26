@@ -1,4 +1,7 @@
+using System;
 using UnityEngine;
+using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public class Shelving : MonoBehaviour
 {
@@ -54,11 +57,9 @@ public class Shelving : MonoBehaviour
         return false;
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnMouseDown()
     {
-        if (!TryAddItemToFreeSlot(collision.gameObject))
-        {
-            TryEvictItemFromSlot(_itemsBySlotIndex[1]);
-        }
+        var item = _itemsBySlotIndex[Random.Range(0, _itemsBySlotIndex.Length)];
+        TryEvictItemFromSlot(item);
     }
 }
