@@ -5,7 +5,7 @@ using UnityEditor;
 public class ToolRequestManager : MonoBehaviour
 {
 
-    public enum ItemType {Tool, BodyPart}
+    public enum ItemType {Tool, BodyPart, OurTool}
 
     [System.Serializable]
     public struct ToolRequest
@@ -141,6 +141,7 @@ public class ToolRequestManager : MonoBehaviour
         else
         {
             // maybe add penalty to score here for not fulfilling request?
+            // PUT SUBTRACTING A HEART HERE
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
             return false; // not success
         }
