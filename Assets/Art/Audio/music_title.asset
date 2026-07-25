@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 60834d41c5f1b8846b0be01492d2c418, type: 3}
-  m_Name: remove-me-Menu Background
+  m_Name: music_title
   m_EditorClassIdentifier: Assembly-CSharp::Audio
-  AudioClip: {fileID: 8300000, guid: cb12ca74dd83558669eb5529c2abf41b, type: 3}
-  Volume: 0.721
+  AudioClip: {fileID: 8300000, guid: 63fca4032a2c2400d99710acfa537c35, type: 3}
+  Volume: 0.5
   Loop: 1
   Pan: 0
-  Pitch: 1
+  Pitch: 0.95
   PitchVariation: 0
