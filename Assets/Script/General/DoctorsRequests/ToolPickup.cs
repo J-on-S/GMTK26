@@ -8,7 +8,7 @@ public class ToolPickup : MonoBehaviour
     //tool stuff
     public string itemName;
     public float respawnTime = 4f;   // should be same or less than the cooldown time
-    public ToolRequestManager.ItemType itemType;
+    public ItemType itemType;
 
 
     private Collider col;
