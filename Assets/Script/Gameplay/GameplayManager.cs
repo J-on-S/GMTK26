@@ -29,6 +29,7 @@ public class GameplayManager : MonoBehaviour
     public int CurrentDay => currentDay;
     public GameplayDayState State => state;
     public BlackMarketTask CurrentBlackMarketTask => currentBlackMarketTask;
+    public RandomizedClientList ClientList => clientList;
 
     public event Action<int> DayStarted;
     public event Action<BlackMarketTask> BlackMarketTaskGenerated;
@@ -43,6 +44,25 @@ public class GameplayManager : MonoBehaviour
     [ContextMenu("Begin Day")]
     public void BeginDay()
     {
+        GameplayAssetChecker assetChecker =
+            GetComponent<GameplayAssetChecker>();
+
+        if (assetChecker == null)
+        {
+            Debug.LogError(
+                "GameplayManager requires GameplayAssetChecker and will not start.",
+                this);
+            return;
+        }
+
+        if (!assetChecker.ValidateSetup(this))
+        {
+            Debug.LogError(
+                "Day startup stopped because required scene assets are missing.",
+                this);
+            return;
+        }
+
         if (state == GameplayDayState.Preparing ||
             state == GameplayDayState.InProgress)
         {
