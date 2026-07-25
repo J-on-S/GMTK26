@@ -209,14 +209,14 @@ public class CameraFollow : MonoBehaviour {
     /// <param name="animated">Ease toward the pose and apply the random drift, rather than snapping exactly onto it.</param>
     public void ApplyPose(float clock, bool animated) {
         if (loopGuide == null) {
-            return;
+            return false;
         }
 
         bool got = loopSource == LoopSource.Curved
             ? loopGuide.TryGetCurvedLoop(out Vector3 center, out List<Vector3> loopPoints)
             : loopGuide.TryGetFlatLoop(out center, out loopPoints);
         if (!got) {
-            return;
+            return false;
         }
 
         // route the pivot independently into position and/or look; each falls back to the
@@ -235,16 +235,15 @@ public class CameraFollow : MonoBehaviour {
             ? movePivot + orbitDir * scale
             : moveLoopPoint + (moveLoopPoint - movePivot).normalized * scale;
 
-        // lift off the cutting plane along its normal so the camera views the cut at an
-        // angle, not edge-on: stops the near plane clipping the skin and gives the loop depth.
-        targetPos += loopGuide.PlaneNormal * height;
+        // aim measured from where this actually is, not from the orbit target, so the look
+        // stays correct while the position is still easing toward it.
+        if (!TryGetPose(angle, out Vector3 targetPos, out Quaternion targetRot, transform.position)) {
+            return;
+        }
 
         // orbit target before the world offset, exposed for anything that needs the raw
         // on-loop position (not the shifted camera position).
-        BasePosition = targetPos;
-
-        // fixed extra offset in world space.
-        targetPos += positionOffset;
+        BasePosition = targetPos - positionOffset;
 
         // random sideways drift, play-only jitter. Folded into the TARGET, not added to the
         // eased result: adding it afterwards made each frame's drift the starting point for the

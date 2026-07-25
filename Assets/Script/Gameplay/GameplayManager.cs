@@ -26,14 +26,34 @@ public class GameplayManager : MonoBehaviour
     [SerializeField] private GameplayDayState state = GameplayDayState.NotStarted;
     [SerializeField] private BlackMarketTask currentBlackMarketTask;
 
+    [Header("Temporary end condition")]
+    // TODO: These temporary global values might be replaced by the final
+    // player-lives and countdown systems when their APIs exist.
+    [SerializeField] private int numberOfLives = 4;
+    [SerializeField] private float countdownRemaining = 0f;
+
     public int CurrentDay => currentDay;
     public GameplayDayState State => state;
     public BlackMarketTask CurrentBlackMarketTask => currentBlackMarketTask;
     public RandomizedClientList ClientList => clientList;
+    public int NumberOfLives => numberOfLives;
+    public float CountdownRemaining => countdownRemaining;
 
     public event Action<int> DayStarted;
     public event Action<BlackMarketTask> BlackMarketTaskGenerated;
     public event Action<int> DayEnded;
+
+    private void OnEnable()
+    {
+        if (clientList != null)
+            clientList.TaskListEmptied += HandleClientTaskListEmptied;
+    }
+
+    private void OnDisable()
+    {
+        if (clientList != null)
+            clientList.TaskListEmptied -= HandleClientTaskListEmptied;
+    }
 
     private void Start()
     {
@@ -170,6 +190,42 @@ public class GameplayManager : MonoBehaviour
         state = GameplayDayState.NotStarted;
         currentBlackMarketTask = null;
         BeginDay();
+    }
+
+    public void SetTemporaryLives(int lives)
+    {
+        numberOfLives = lives;
+    }
+
+    public void SetTemporaryCountdown(float secondsRemaining)
+    {
+        countdownRemaining = secondsRemaining;
+    }
+
+    private void HandleClientTaskListEmptied()
+    {
+        bool hasRequiredLives = numberOfLives > 3;
+        bool countdownIsValid = countdownRemaining >= 0f;
+
+        if (state == GameplayDayState.InProgress &&
+            hasRequiredLives &&
+            countdownIsValid)
+        {
+            Debug.Log(
+                $"[Day {currentDay}] Client list reached zero with " +
+                $"{numberOfLives} lives and {countdownRemaining:0.##} " +
+                "seconds remaining. Ending the day.",
+                this);
+            EndDay();
+            return;
+        }
+
+        Debug.LogWarning(
+            $"[Day {currentDay}] Client list reached zero, but the normal " +
+            "end conditions were not satisfied. This state should not " +
+            $"normally be reachable. State={state}, Lives={numberOfLives}, " +
+            $"Countdown={countdownRemaining:0.##}.",
+            this);
     }
 
     private void SetState(GameplayDayState newState)

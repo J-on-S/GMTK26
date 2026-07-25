@@ -13,7 +13,8 @@ public class SurgeryState : State
     {
         anim.Play(animName);
         surgeryTime = 0;
-        Debug.Log("Doctor starts idle.");
+        waitSurgeryTime = Random.Range(minSurgeryTime, maxSurgeryTime);
+        Debug.LogWarning("Doctor starts surgery.");
     }
     public override State UpdateState()
     {   

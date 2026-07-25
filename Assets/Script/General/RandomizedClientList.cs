@@ -75,6 +75,9 @@ public class RandomizedClientList : MonoBehaviour
     public event Action<GameObject> ClientRemoved;
     public event Action<ClientTaskQueueEntry> TaskListEntryCreated;
     public event Action<ClientTaskQueueEntry> TaskListEntryRemoved;
+    public event Action<ClientTaskQueueEntry, BodyPartType, int>
+        TaskRequirementChanged;
+    public event Action TaskListEmptied;
 
     // ---------------------------------------------------------------------
     // Simple game-facing API
@@ -100,6 +103,114 @@ public class RandomizedClientList : MonoBehaviour
         return entry?.Task != null
             ? entry.Task.GetDialogue()
             : string.Empty;
+    }
+
+    /// <summary>Returns task text using the quantities still required.</summary>
+    public string GetRemainingTaskString(ClientTaskQueueEntry entry)
+    {
+        return entry?.Task != null
+            ? entry.Task.GetRemainingDialogue()
+            : string.Empty;
+    }
+
+    public int GetRemainingAmount(
+        ClientTaskQueueEntry entry,
+        BodyPartType bodyPart)
+    {
+        return entry?.Task != null
+            ? entry.Task.GetRemainingAmount(bodyPart)
+            : 0;
+    }
+
+    /// <summary>
+    /// Removes one required body part from a specific spawned client's task.
+    /// Call this only after the doctor has accepted the delivered body part.
+    /// </summary>
+    public bool RemoveOneFromTask(
+        GameObject targetClient,
+        BodyPartType bodyPart)
+    {
+        if (targetClient == null)
+        {
+            Debug.LogWarning(
+                "A target client is required when updating a task.",
+                this);
+            return false;
+        }
+
+        ClientTaskQueueEntry entry = FindEntry(targetClient);
+        return RemoveOneFromTask(entry, bodyPart);
+    }
+
+    /// <summary>
+    /// String overload for the current doctor-order API. Names are matched
+    /// case-insensitively against BodyPartType values such as Eye or Heart.
+    /// </summary>
+    public bool RemoveOneFromTask(
+        GameObject targetClient,
+        string bodyPartName)
+    {
+        if (!Enum.TryParse(
+                bodyPartName,
+                true,
+                out BodyPartType bodyPart))
+        {
+            Debug.LogWarning(
+                $"'{bodyPartName}' is not a valid body-part name.",
+                this);
+            return false;
+        }
+
+        return RemoveOneFromTask(targetClient, bodyPart);
+    }
+
+    /// <summary>
+    /// Removes one required body part from a specific generated task entry.
+    /// This works for both pending and spawned entries.
+    /// </summary>
+    public bool RemoveOneFromTask(
+        ClientTaskQueueEntry entry,
+        BodyPartType bodyPart)
+    {
+        if (entry == null || !generatedTaskList.Contains(entry))
+        {
+            Debug.LogWarning(
+                "Cannot update a task that is not in the generated client list.",
+                this);
+            return false;
+        }
+
+        bool accepted;
+
+        if (entry.IsSpawned)
+        {
+            ClientTaskHolder holder =
+                entry.SpawnedClient.GetComponent<ClientTaskHolder>();
+
+            if (holder == null)
+            {
+                Debug.LogError(
+                    $"{entry.SpawnedClient.name} has no ClientTaskHolder.",
+                    entry.SpawnedClient);
+                return false;
+            }
+
+            accepted = holder.GiveBodyPart(bodyPart);
+        }
+        else
+        {
+            accepted = entry.Task.TryDeliver(bodyPart);
+
+            if (accepted && entry.Task.IsComplete)
+                RemoveTaskListEntry(entry);
+        }
+
+        if (!accepted)
+            return false;
+
+        int remaining = entry.Task.GetRemainingAmount(bodyPart);
+        TaskRequirementChanged?.Invoke(entry, bodyPart, remaining);
+        return true;
     }
 
     /// <summary>Generates the configured list without spawning any clients.</summary>
@@ -262,10 +373,7 @@ public class RandomizedClientList : MonoBehaviour
             holder.TaskCompletedWithOwner -= HandleClientTaskCompleted;
 
         if (entry != null)
-        {
-            generatedTaskList.Remove(entry);
-            TaskListEntryRemoved?.Invoke(entry);
-        }
+            RemoveTaskListEntry(entry);
 
         ClientRemoved?.Invoke(client);
 
@@ -278,6 +386,17 @@ public class RandomizedClientList : MonoBehaviour
     private void HandleClientTaskCompleted(ClientTaskHolder holder, ClientTask task)
     {
         RemoveActiveClient(holder.gameObject);
+    }
+
+    private void RemoveTaskListEntry(ClientTaskQueueEntry entry)
+    {
+        if (entry == null || !generatedTaskList.Remove(entry))
+            return;
+
+        TaskListEntryRemoved?.Invoke(entry);
+
+        if (generatedTaskList.Count == 0)
+            TaskListEmptied?.Invoke();
     }
 
     private ClientTaskQueueEntry GetNextPendingEntry()

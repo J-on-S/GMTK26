@@ -5,6 +5,10 @@ Last updated: 2026-07-24
 This is the persistent source of truth for the main gameplay loop. Read it
 before implementing or changing gameplay systems.
 
+Plain-language teammate setup and debug instructions are also available at:
+
+`Assets/Data/GameplayManagerTeamGuide.txt`
+
 ## Core ownership rule
 
 `GameplayManager` coordinates the day. It should call public functions and
@@ -23,7 +27,8 @@ Every integration must identify:
 
 Required sequence:
 
-1. Validate all required scene references, including exactly two distinct beds.
+1. Validate all required scene references: exactly two distinct beds, one
+   trapdoor/chute, one storage object, and at least one cutting tool.
 2. Stop immediately and log an error if validation fails.
 3. Enter `Preparing`.
 4. Generate the client/task queue without spawning clients.
@@ -60,6 +65,8 @@ Important configuration:
 
 - `GameplayAssetChecker` must contain exactly two distinct `OperationChair`
   references. Missing or incorrectly wired beds prevent the day from starting.
+- `GameplayAssetChecker` also requires trapdoor, storage, and at least one
+  cutting-tool reference. A missing client-list poster only produces a warning.
 - `GameplayManager` owns beginning-of-day generation.
 - Disable `Prepare On Start` on `RandomizedClientList`.
 - Pre-generated clients are data only; no client GameObject exists until an
@@ -87,6 +94,7 @@ Current APIs:
 ```csharp
 GameObject client = clientList.SpawnNextClient(chairTransform);
 bool accepted = clientTaskHolder.GiveBodyPart(bodyPart);
+bool updated = clientList.RemoveOneFromTask(targetClient, bodyPart);
 bool removed = clientList.DespawnPerson(client);
 bool spawned = operationChair.TrySpawnNextClient();
 ```
@@ -99,8 +107,11 @@ clientTaskHolder.TaskCompleted
 clientTaskHolder.TaskCompletedWithOwner
 clientList.ClientSpawned
 clientList.ClientRemoved
+clientList.TaskListEmptied
+clientList.TaskRequirementChanged
 operationChair.ClientPlaced
 operationChair.ClientLeft
+clientDialogueEventChannel.DialogueRequested
 ```
 
 Current implementation:
@@ -108,6 +119,12 @@ Current implementation:
 - Independent tasks and progress per client: implemented.
 - Automatic removal on client-task completion: implemented.
 - Automatic chair refill: implemented.
+- Client task dialogue requests through a decoupled event channel: implemented.
+- Queued client dialogue UI receiver: implemented.
+- Empty client list triggers end-of-day validation: implemented.
+- Accepted doctor body parts can decrement a targeted client task: implemented.
+- Inspector gameplay-loop debug harness for accepted-order and fast-forward
+  testing: implemented.
 - Doctor item requests: exists separately; integration not confirmed.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
@@ -147,6 +164,9 @@ Current implementation:
 
 - `Ended` state and `DayEnded` event: implemented.
 - Advancing the day number: implemented.
+- Automatic ending when the client list reaches zero, temporary lives are
+  greater than three, and temporary countdown remaining is nonnegative:
+  implemented.
 - Body-part counting: planned.
 - Black-market order resolution and scoring: planned.
 - Extra-part scoring: planned.
@@ -154,6 +174,13 @@ Current implementation:
 - Decay processing: planned.
 - Freezer capacity enforcement: planned.
 - Results UI: planned.
+
+Temporary integration:
+
+- `GameplayManager.NumberOfLives` and `CountdownRemaining` are placeholder
+  values until the final lives and countdown systems expose their APIs.
+- If the client list reaches zero without the expected lives/countdown state,
+  the manager logs a warning because that path should not normally be reachable.
 
 ## Black-market integration boundary
 

@@ -1,0 +1,284 @@
+GAMEPLAY MANAGER - SIMPLE TEAM GUIDE
+
+This file explains what GameplayManager needs from the other systems and how
+to test the gameplay loop if the person responsible for it is unavailable.
+
+
+============================================================
+1. WHAT GAMEPLAY MANAGER DOES
+============================================================
+
+GameplayManager controls the order of the day.
+CO
+At the beginning of the day it:
+
+1. Checks that the scene has all required objects.
+2. Generates the client list and client tasks.
+3. Generates the black-market task.
+4. Starts the day.
+5. Tells both beds that they may spawn clients.
+
+During the day it waits for other systems to report what happened.
+
+At the end of the day it changes the state to Ended and sends DayEnded.
+
+GameplayManager does NOT perform cutting, move the doctor, manage tools, or
+decide whether the doctor accepted an item.
+
+
+============================================================
+2. REQUIRED UNITY OBJECTS
+============================================================
+
+GameplayAssetChecker must have:
+
+- Exactly 2 different OperationChair references.
+- 1 trapdoor or chute GameObject.
+- 1 body-part storage GameObject.
+- At least 1 cutting-tool GameObject.
+
+Optional:
+
+- A client-list poster.
+
+A missing optional poster only creates a warning.
+Missing any required object prevents the day from starting.
+
+Each OperationChair must have:
+
+- The shared RandomizedClientList.
+- The shared GameplayManager.
+- A Client Spawn Point where the patient should lie.
+
+RandomizedClientList must have:
+
+- Client prefabs.
+- A ClientTaskList task generator.
+- Prepare On Start disabled.
+
+GameplayManager is responsible for generating the list.
+
+
+============================================================
+3. WHAT THE DOCTOR/ORDER SCRIPT MUST IMPLEMENT
+============================================================
+
+The doctor system decides whether an item is correct.
+
+When the doctor accepts a body part, its event/function must provide:
+
+- The exact patient GameObject.
+- The accepted body-part type or name.
+
+Then call:
+
+clientList.RemoveOneFromTask(
+    targetClient,
+    BodyPartType.Eye
+);
+
+The current string system may call:
+
+clientList.RemoveOneFromTask(
+    targetClient,
+    submittedName
+);
+
+Use singular names:
+
+Eye, Leg, Heart, Arm, Ear, Hand, or Nose.
+
+IMPORTANT:
+
+Do not update a task using only "Eye" without identifying the patient.
+Both beds may have patients requesting eyes.
+
+If the doctor rejects the item, do not call RemoveOneFromTask.
+
+
+============================================================
+4. WHAT THE LIVES SCRIPT MUST IMPLEMENT
+============================================================
+
+The final lives system does not exist yet.
+
+It must give GameplayManager the current number of lives.
+Until then, the temporary test API is:
+
+gameplayManager.SetTemporaryLives(numberOfLives);
+
+The current successful end condition requires more than 3 lives.
+
+The final lives variable/API should replace the temporary value in
+GameplayManager.
+
+
+============================================================
+5. WHAT THE COUNTDOWN SCRIPT MUST IMPLEMENT
+============================================================
+
+The final day countdown does not exist yet. (it si done but it is not on main)
+
+It should provide:
+
+- A function to start the countdown at the beginning of the day.
+- A function to stop the countdown at the end of the day.
+- The current time remaining.
+- An event when time expires.
+
+Until then, use:
+
+gameplayManager.SetTemporaryCountdown(secondsRemaining);
+
+The current successful end condition requires the remaining value to be
+greater than or equal to 0.
+
+The final countdown API should replace the temporary value in GameplayManager.
+
+
+============================================================
+6. WHAT THE BLACK-MARKET SCRIPT MUST IMPLEMENT
+============================================================
+
+The final black-market manager must implement:
+
+IBlackMarketTaskGenerator
+
+Required function:
+
+BlackMarketTask GenerateTask(int dayNumber);
+
+TemporaryBlackMarketTaskGenerator currently provides this function for tests.
+Replace that component with the real black-market manager later. (or the temporary might be the final one)
+
+
+============================================================
+7. WHAT THE CUTTING AND TOOL SCRIPTS MUST IMPLEMENT
+============================================================
+
+GameplayManager does not need to know every cutting step.
+
+The cutting/tool systems handle:
+
+- Picking up a cutting tool.
+- Starting a cut.
+- Cutting visuals and physics.
+- Creating the body-part item.
+- Giving the item to the doctor.
+
+Only after the doctor confirms that the item is correct should the client task
+be decreased.
+
+
+============================================================
+8. IMPORTANT EVENTS OTHER SYSTEMS CAN LISTEN TO
+============================================================
+
+GameplayManager:
+
+- DayStarted
+- BlackMarketTaskGenerated
+- DayEnded
+
+RandomizedClientList:
+
+- ClientSpawned
+- ClientRemoved
+- TaskRequirementChanged
+- TaskListEmptied
+
+OperationChair:
+
+- ClientPlaced
+- ClientLeft
+
+ClientTaskHolder:
+
+- TaskAssigned
+- TaskCompleted
+
+UI scripts should listen to these events. They should not require
+GameplayManager to forward every UI message.
+
+
+============================================================
+9. HOW TO TEST WITHOUT THE GAMEPLAY-LOOP PROGRAMMER
+============================================================
+
+SETUP:
+
+1. Put GameplayLoopDebugTester on the same GameObject as GameplayManager.
+2. Assign Gameplay Manager if it is not filled automatically.
+3. Configure GameplayAssetChecker with every required object.
+4. Make sure both beds are configured.
+5. Make sure every client prefab has ClientTaskHolder.
+6. Enter Play Mode.
+
+Do not manually generate the client list.
+GameplayManager does this automatically when the game starts.
+
+
+NORMAL TEST:
+
+1. Enter Play Mode.
+2. Open GameplayLoopDebugTester's component menu.
+3. Run "1. Refresh Debug List".
+4. Confirm:
+   - State is InProgress.
+   - Two beds have clients.
+   - Generated tasks are visible.
+5. Run "2. Set Valid Temporary End Conditions".
+6. Choose Selected Chair Index:
+   - 0 means the first bed.
+   - 1 means the second bed.
+7. Run "5. Doctor Accepts Next Needed Part".
+8. Watch one requirement decrease by 1.
+9. Repeat it or run "6. Complete Selected Client Task".
+10. Confirm that the completed patient leaves.
+11. Confirm that the empty bed receives the next pending patient.
+12. Run "7. Complete All Remaining Client Tasks".
+13. Confirm that the client list reaches 0.
+14. Confirm that GameplayManager changes to Ended.
+
+
+WARNING-PATH TEST:
+
+1. Start a new test in Play Mode.
+2. Run "3. Set Unreachable Temporary End Conditions".
+3. Run "7. Complete All Remaining Client Tasks".
+4. The Console should warn:
+   "This state should not normally be reachable."
+
+
+OTHER DEBUG ACTIONS:
+
+- "4. Doctor Accepts Selected Body Part"
+  Uses the selected bed and selected body-part value.
+
+- "8. Force End Day"
+  Ends the active day without completing every task.
+
+The Runtime Debug List and Console show the current state after every action.
+
+
+============================================================
+10. IF THE GAME DOES NOT START
+============================================================
+
+Read the first red error in the Console.
+
+Most common causes:
+
+- GameplayAssetChecker is missing.
+- One of the two bed slots is empty.
+- Both slots reference the same bed.
+- Trapdoor is missing.
+- Storage is missing.
+- No cutting tool is assigned.
+- A bed has no Client Spawn Point.
+- A bed references the wrong GameplayManager or Client List.
+- ClientTaskDatabase is not assigned.
+- Client prefabs are missing ClientTaskHolder.
+- Black Market Task Generator is not assigned.
+
+Fix the missing reference and enter Play Mode again.

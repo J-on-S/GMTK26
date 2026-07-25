@@ -113,6 +113,7 @@ public class CuttableObject : MonoBehaviour
         ApplyMaterials(mr, body, skinMats);
 
         // each removed chunk becomes its own GameObject next to this one
+        List<GameObject> gameObjects = new List<GameObject>();
         for (int i = 0; i < pieces.Count; i++) {
             string pieceName = pieces.Count == 1 ? "Lower_Hull" : $"Lower_Hull_{i}";
             spawned.Add(SpawnPiece(pieceName, pieces[i], skinMats));
