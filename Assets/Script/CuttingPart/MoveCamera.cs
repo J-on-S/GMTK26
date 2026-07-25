@@ -41,13 +41,12 @@ public class MoveCamera  :  MonoBehaviour {
         Ray ray = c.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
 
         MeshRenderer hitRenderer = null;
-
-        if (Physics.Raycast(ray, out RaycastHit hit)
+        if (Physics.Raycast(ray, out RaycastHit hit,100f)
             && hit.collider.TryGetComponent(out CuttingManager cm)
-            && cm.canEnterMinigame())
+            && cm.canEnterMinigame(cm.toolNeeded))
         {
             hit.collider.TryGetComponent(out hitRenderer);
-
+        
             if (pressed)
             {
                 // drop the tint before handing over: this script stops updating during the cut.
