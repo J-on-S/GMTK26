@@ -8,6 +8,7 @@ public class DetachedBodyPart : MonoBehaviour
     [SerializeField] public BodyPart bodyPart;
     [SerializeField] public float maxHealth = 100.0f;
     [SerializeField] public float health = 100.0f;
+    [SerializeField] public Fridge fridge;
     
     private BodyPartDescriptionHUD _bodyPartDescriptionHUD;
     private Material _material;

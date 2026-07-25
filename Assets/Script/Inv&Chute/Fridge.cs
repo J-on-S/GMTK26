@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class Fridge : MonoBehaviour
 {
+    [SerializeField] private GlobalFridgeState globalFridgeState;
     [SerializeField] private Transform[] slots;
     
     private DetachedBodyPart[] _itemsBySlotIndex;
@@ -10,6 +11,12 @@ public class Fridge : MonoBehaviour
     private void OnEnable()
     {
         _itemsBySlotIndex = new DetachedBodyPart[slots.Length];
+        globalFridgeState.Fridges.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        globalFridgeState.Fridges.Remove(this);
     }
 
     private bool TryGetNextFreeSlot(out int slotIndex)
@@ -35,6 +42,8 @@ public class Fridge : MonoBehaviour
         {
             itemRigidbody.constraints = RigidbodyConstraints.FreezeAll;
         }
+
+        item.fridge = this;
         return true;
     }
 
@@ -49,6 +58,8 @@ public class Fridge : MonoBehaviour
             {
                 itemRigidbody.constraints = RigidbodyConstraints.None;
             }
+
+            item.fridge = null;
             return true;
         }
 
