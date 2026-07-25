@@ -62,6 +62,17 @@ public class CutRegionHighlighter : MonoBehaviour
         if (overlayRenderer != null)
         {
             overlayRenderer.enabled = false;
+            overlayRenderer.transform.localPosition = Vector3.zero;
+        }
+    }
+
+    /// <summary>Displaces the highlight from the body, in the body's local space.</summary>
+    /// <remarks>Invariant: the mesh is untouched, so an offset costs nothing per frame and <see cref="Hide"/> undoes it exactly.</remarks>
+    public void SetOffset(Vector3 localOffset)
+    {
+        if (overlayRenderer != null)
+        {
+            overlayRenderer.transform.localPosition = localOffset;
         }
     }
 
