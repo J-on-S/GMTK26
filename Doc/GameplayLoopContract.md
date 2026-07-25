@@ -5,6 +5,10 @@ Last updated: 2026-07-24
 This is the persistent source of truth for the main gameplay loop. Read it
 before implementing or changing gameplay systems.
 
+Plain-language teammate setup and debug instructions are also available at:
+
+`Assets/Data/GameplayManagerTeamGuide.txt`
+
 ## Core ownership rule
 
 `GameplayManager` coordinates the day. It should call public functions and
@@ -23,7 +27,8 @@ Every integration must identify:
 
 Required sequence:
 
-1. Validate all required scene references, including exactly two distinct beds.
+1. Validate all required scene references: exactly two distinct beds, one
+   trapdoor/chute, one storage object, and at least one cutting tool.
 2. Stop immediately and log an error if validation fails.
 3. Enter `Preparing`.
 4. Generate the client/task queue without spawning clients.
@@ -60,6 +65,8 @@ Important configuration:
 
 - `GameplayAssetChecker` must contain exactly two distinct `OperationChair`
   references. Missing or incorrectly wired beds prevent the day from starting.
+- `GameplayAssetChecker` also requires trapdoor, storage, and at least one
+  cutting-tool reference. A missing client-list poster only produces a warning.
 - `GameplayManager` owns beginning-of-day generation.
 - Disable `Prepare On Start` on `RandomizedClientList`.
 - Pre-generated clients are data only; no client GameObject exists until an
@@ -116,6 +123,8 @@ Current implementation:
 - Queued client dialogue UI receiver: implemented.
 - Empty client list triggers end-of-day validation: implemented.
 - Accepted doctor body parts can decrement a targeted client task: implemented.
+- Inspector gameplay-loop debug harness for accepted-order and fast-forward
+  testing: implemented.
 - Doctor item requests: exists separately; integration not confirmed.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.

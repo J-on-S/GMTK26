@@ -20,10 +20,12 @@ UNITY SETUP
 5. Assign the RandomizedClientList component to Client List.
 6. Drag TemporaryBlackMarketTaskGenerator into Black Market Task Generator.
 7. Assign exactly two distinct OperationChair components to GameplayAssetChecker.
-8. On RandomizedClientList, assign its Task Generator and client prefabs.
-9. Disable Prepare On Start on RandomizedClientList because GameplayManager
+8. Assign one Trapdoor, one Storage, and at least one Cutting Tool.
+9. Optionally assign the world-space Client List Poster.
+10. On RandomizedClientList, assign its Task Generator and client prefabs.
+11. Disable Prepare On Start on RandomizedClientList because GameplayManager
    now owns beginning-of-day generation.
-10. Leave Begin First Day On Start enabled, or call BeginDay() manually.
+12. Leave Begin First Day On Start enabled, or call BeginDay() manually.
 
 GameplayManager refuses to begin a day if:
 - GameplayAssetChecker is missing.
@@ -31,6 +33,12 @@ GameplayManager refuses to begin a day if:
 - A bed reference is null or duplicated.
 - A bed is missing Client List, Gameplay Manager, or Client Spawn Point.
 - A bed references a different manager or client list.
+- Trapdoor is missing.
+- Storage is missing.
+- No cutting-tool reference is assigned.
+
+A missing Client List Poster logs a warning but does not prevent the day from
+starting.
 
 
 PUBLIC API
