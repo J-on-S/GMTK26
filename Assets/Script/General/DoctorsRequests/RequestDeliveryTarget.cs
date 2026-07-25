@@ -15,7 +15,7 @@ public class RequestDeliveryTarget : MonoBehaviour
     }
 
     // returns boolean indicating if the item was correctly received
-    public bool ReceiveItem(string itemName, ToolRequestManager.ItemType itemType)
+    public bool ReceiveItem(string itemName, ItemType itemType)
     {
         if (manager != null)
         {
@@ -41,7 +41,7 @@ public class RequestDeliveryTarget : MonoBehaviour
     }
 
     // find object and trigger its respawn
-    private void TriggerWorldItemRespawn(string targetName, ToolRequestManager.ItemType targetType)
+    private void TriggerWorldItemRespawn(string targetName, ItemType targetType)
     {
         ToolPickup[] allPickups = FindObjectsByType<ToolPickup>(FindObjectsSortMode.None);
 

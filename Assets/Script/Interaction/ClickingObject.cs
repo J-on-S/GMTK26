@@ -10,8 +10,11 @@ public class ClickingObject : MonoBehaviour, IInteractable{
     objRenderer = GetComponent<Renderer>();
     initialColor = objRenderer.material.color;
   }
-  
+  //Doctor scrit
   public void Interact(Interactor player){
+    //player.heldobj
+    //heldObj information: type of it:
+    //
     if (objRenderer.material.color == changeColor){
       objRenderer.material.color = initialColor;
     } else {

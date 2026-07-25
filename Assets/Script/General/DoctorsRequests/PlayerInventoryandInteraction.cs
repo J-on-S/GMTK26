@@ -5,7 +5,7 @@ public class PlayerInventoryandInteraction : MonoBehaviour
     // inventory stuff
     public bool isHoldingItem = false;
     public string heldItemName;
-    public ToolRequestManager.ItemType heldItemType;
+    public ItemType heldItemType;
 
     public LayerMask interactionLayers;
     public float interactionDistance = 100f;  // idk what number to set here probably this is too high
@@ -70,6 +70,8 @@ public class PlayerInventoryandInteraction : MonoBehaviour
     }
 
     // only remove item from inventory if it is the correct item
+
+    //Interact on Doctor
     private void TryDeliverItem(RequestDeliveryTarget target)
     {
         if (!isHoldingItem)
@@ -77,9 +79,12 @@ public class PlayerInventoryandInteraction : MonoBehaviour
             Debug.Log("You're not holding anything.");
             return;
         }
+        //get the heldobj
+        //
         // try give item 
+        //heldobj info:
         bool deliveryAccepted = target.ReceiveItem(heldItemName, heldItemType);
-
+        //held obj = null;
         if (deliveryAccepted)
         {
             // remove from inventory if item is accepted

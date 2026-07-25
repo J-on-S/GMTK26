@@ -1,12 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEditor;
+// using UnityEditor;
 
 public class ToolRequestManager : MonoBehaviour
 {
-
-    public enum ItemType {Tool, BodyPart}
-
     [System.Serializable]
     public struct ToolRequest
     {
