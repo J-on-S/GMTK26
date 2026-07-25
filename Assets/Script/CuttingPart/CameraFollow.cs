@@ -15,7 +15,7 @@ using UnityEngine;
 /// - The camera walks its <c>angle</c> around the ring each frame and sits over the
 ///   matching loop point (or a plain circle of radius <c>scale</c> in Circle mode).
 /// </remarks>
-[ExecuteAlways]
+
 public class CameraFollow : MonoBehaviour {
 
     /// <summary>What the camera aims at while orbiting.</summary>
@@ -98,6 +98,31 @@ public class CameraFollow : MonoBehaviour {
     [Tooltip("Orbit rotation speed, in degrees per second.")]
     public float rotationSpeed = 30f;
 
+    [Tooltip("Optional. When set, rotationSpeed is pulled from this each frame (its SignedSpeed) instead of being a fixed value -- lets the speed source own the travel speed while this only orbits. Must implement ISpeedSource. Leave null for a fixed-speed orbit (e.g. the scalpel).")]
+    // Serialized as MonoBehaviour, not ISpeedSource: Unity does not serialize bare interface
+    // fields, so an ISpeedSource slot silently stays null at runtime however it's dragged.
+    [SerializeField] private MonoBehaviour speedSourceBehaviour;
+
+    /// <summary>The wired speed source, or null when the slot is empty. Resolved off <c>speedSourceBehaviour</c>.</summary>
+    public ISpeedSource speedSource => speedSourceBehaviour as ISpeedSource;
+
+    /// <summary>Wires the speed source in code, for owners like <see cref="CuttingManager"/> that already hold the driver. Pass null for a fixed-speed orbit.</summary>
+    public void SetSpeedSource(ISpeedSource source) {
+        if (source == null) {
+            speedSourceBehaviour = null;
+            return;
+        }
+
+        if (source is not MonoBehaviour behaviour) {
+            Debug.LogError($"Speed source {source.GetType().Name} is not a MonoBehaviour, so it can't be stored on {name}.", this);
+            return;
+        }
+
+        speedSourceBehaviour = behaviour;
+    }
+
+
+
     [Tooltip("How fast the camera eases toward the target rotation (higher = snappier).")]
     public float lookSpeed = 5f;
 
@@ -116,11 +141,21 @@ public class CameraFollow : MonoBehaviour {
     /// <summary>Current angle around the ring, in degrees (advances every frame at <c>rotationSpeed</c>).</summary>
     private float angle;
 
-    /// <summary>Live orbit angle around the ring, in degrees. Readable/settable so followers can slave to it.</summary>
+    /// <summary>Live orbit angle around the ring, in degrees.</summary>
     public float Angle { get => angle; set => angle = value; }
 
     private void OnEnable() {
         angle = startAngle;
+    }
+
+    private void OnValidate() {
+        // reject a behaviour that doesn't implement ISpeedSource, so a wrong drag fails loud
+        // instead of silently leaving the orbit on its fixed speed. The field takes any
+        // MonoBehaviour (that's what makes it serialize), so this is the only gate.
+        if (speedSourceBehaviour != null && speedSourceBehaviour is not ISpeedSource) {
+            Debug.LogError($"{speedSourceBehaviour.GetType().Name} does not implement ISpeedSource; cleared the speed source on {name}.", this);
+            speedSourceBehaviour = null;
+        }
     }
 
     /// <summary>How far around the ring the orbit currently sits, 0..1 (one full turn = 1). Includes <c>angleOffset</c>.</summary>
@@ -149,9 +184,11 @@ public class CameraFollow : MonoBehaviour {
         Vector3 movePivot = pivotAffectsPosition ? pivot : center;
         Vector3 lookPivot = pivotAffectsLook ? pivot : center;
 
-        // walk the angle around the ring, then turn it into a direction vector in the plane.
-        // angleOffset shifts the whole orbit (and Progress) by a fixed head start.
-        // Edit mode holds the angle at startAngle so the follower previews where it will begin.
+        // pull the live travel speed from the speed source when wired; otherwise keep the fixed value.
+        if (playing && speedSource != null) {
+            rotationSpeed = speedSource.GetSignedSpeed();
+        }
+
         if (playing) {
             angle += rotationSpeed * Time.deltaTime;
         } else {
