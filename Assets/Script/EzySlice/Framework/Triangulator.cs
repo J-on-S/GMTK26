@@ -45,8 +45,146 @@ namespace EzySlice {
             return MonotoneChain(vertices, normal, out tri, new TextureRegion(0.0f, 0.0f, 1.0f, 1.0f));
         }
 
+        /// <summary>Triangulates one closed planar contour by ear clipping, keeping its exact (possibly concave) outline.</summary>
+        /// <param name="vertices">Ordered contour points, all lying in the plane <paramref name="normal"/> defines. Either winding is accepted.</param>
+        /// <param name="normal">Plane normal; output triangles are wound to face along it (Unity clockwise-front convention).</param>
+        /// <param name="tri">Resulting triangles with planar UVs normalized over the contour's bounds; <c>null</c> when triangulation is impossible.</param>
+        /// <returns><c>false</c> when fewer than 3 points are supplied.</returns>
+        /// <remarks>Unlike <see cref="MonotoneChain"/> this caps exactly one contour: it never bridges disjoint loops and never fills concavities.</remarks>
+        public static bool EarClip(List<Vector3> vertices, Vector3 normal, out List<Triangle> tri) {
+            return EarClip(vertices, normal, out tri, new TextureRegion(0.0f, 0.0f, 1.0f, 1.0f));
+        }
+
+        /// <summary>Overloaded variant of <see cref="EarClip(List{Vector3}, Vector3, out List{Triangle})"/> mapping UVs into a <c>TextureRegion</c>.</summary>
+        public static bool EarClip(List<Vector3> vertices, Vector3 normal, out List<Triangle> tri, TextureRegion texRegion) {
+            tri = null;
+
+            int count = vertices.Count;
+            if (count < 3) {
+                return false;
+            }
+
+            Vector3 n = Vector3.Normalize(normal);
+
+            // 2D basis in the contour's plane, chosen so that a counter-clockwise
+            // triangle in (u, v) faces +normal under Unity's clockwise-front winding
+            Vector3 u = Vector3.Normalize(Vector3.Cross(n, Vector3.up));
+            if (Vector3.zero == u) {
+                u = Vector3.Normalize(Vector3.Cross(n, Vector3.forward));
+            }
+            Vector3 v = Vector3.Cross(n, u);
+
+            var pts = new Vector2[count];
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+
+            for (int i = 0; i < count; i++) {
+                pts[i] = new Vector2(Vector3.Dot(vertices[i], u), Vector3.Dot(vertices[i], v));
+                minX = Mathf.Min(minX, pts[i].x);
+                minY = Mathf.Min(minY, pts[i].y);
+                maxX = Mathf.Max(maxX, pts[i].x);
+                maxY = Mathf.Max(maxY, pts[i].y);
+            }
+
+            float width = Mathf.Max(maxX - minX, 1e-9f);
+            float height = Mathf.Max(maxY - minY, 1e-9f);
+
+            // orient the working index list counter-clockwise (positive shoelace area)
+            float area2 = 0.0f;
+            for (int i = 0; i < count; i++) {
+                Vector2 p0 = pts[i];
+                Vector2 p1 = pts[(i + 1) % count];
+                area2 += p0.x * p1.y - p1.x * p0.y;
+            }
+
+            var index = new List<int>(count);
+            for (int i = 0; i < count; i++) {
+                index.Add(i);
+            }
+            if (area2 < 0.0f) {
+                index.Reverse();
+            }
+
+            tri = new List<Triangle>(count - 2);
+            float eps = Mathf.Abs(area2) * 1e-9f + 1e-20f;
+
+            while (index.Count > 3) {
+                int m = index.Count;
+                int clip = -1;
+                int fallback = 0;
+                float widest = float.MinValue;
+
+                for (int i = 0; i < m; i++) {
+                    Vector2 a = pts[index[(i + m - 1) % m]];
+                    Vector2 b = pts[index[i]];
+                    Vector2 c = pts[index[(i + 1) % m]];
+
+                    float cross = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+                    // remember the widest corner so degenerate outlines still finish
+                    if (cross > widest) {
+                        widest = cross;
+                        fallback = i;
+                    }
+                    if (cross <= eps) {
+                        continue; // reflex or flat corner: not an ear
+                    }
+
+                    bool blocked = false;
+                    for (int p = 0; p < m && !blocked; p++) {
+                        if (p == (i + m - 1) % m || p == i || p == (i + 1) % m) {
+                            continue;
+                        }
+                        blocked = PointInTriangle(pts[index[p]], a, b, c);
+                    }
+                    if (blocked) {
+                        continue;
+                    }
+
+                    clip = i;
+                    break;
+                }
+
+                if (clip < 0) {
+                    clip = fallback;
+                }
+                EmitEar(vertices, pts, index, clip, minX, minY, width, height, n, texRegion, tri);
+                index.RemoveAt(clip);
+            }
+
+            EmitEar(vertices, pts, index, 1, minX, minY, width, height, n, texRegion, tri);
+            return true;
+        }
+
+        /// <summary>Appends the triangle formed at working-list corner <paramref name="i"/> with planar UVs.</summary>
+        private static void EmitEar(List<Vector3> vertices, Vector2[] pts, List<int> index, int i,
+            float minX, float minY, float width, float height,
+            Vector3 normal, TextureRegion texRegion, List<Triangle> tri) {
+
+            int m = index.Count;
+            int ia = index[(i + m - 1) % m];
+            int ib = index[i];
+            int ic = index[(i + 1) % m];
+
+            Triangle newTri = new Triangle(vertices[ia], vertices[ib], vertices[ic]);
+            newTri.SetUV(
+                texRegion.Map(new Vector2((pts[ia].x - minX) / width, (pts[ia].y - minY) / height)),
+                texRegion.Map(new Vector2((pts[ib].x - minX) / width, (pts[ib].y - minY) / height)),
+                texRegion.Map(new Vector2((pts[ic].x - minX) / width, (pts[ic].y - minY) / height)));
+            newTri.SetNormal(normal, normal, normal);
+            newTri.ComputeTangents();
+            tri.Add(newTri);
+        }
+
+        /// <summary>Whether point <paramref name="p"/> lies inside (or on) triangle <c>a-b-c</c>, given counter-clockwise winding.</summary>
+        private static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c) {
+            float d0 = (b.x - a.x) * (p.y - a.y) - (p.x - a.x) * (b.y - a.y);
+            float d1 = (c.x - b.x) * (p.y - b.y) - (p.x - b.x) * (c.y - b.y);
+            float d2 = (a.x - c.x) * (p.y - c.y) - (p.x - c.x) * (a.y - c.y);
+            return d0 >= 0.0f && d1 >= 0.0f && d2 >= 0.0f;
+        }
+
         /**
-         * O(n log n) Convex Hull Algorithm. 
+         * O(n log n) Convex Hull Algorithm.
          * Accepts a list of vertices as Vector3 and triangulates them according to a projection
          * plane defined as planeNormal. Algorithm will output vertices, indices and UV coordinates
          * as arrays

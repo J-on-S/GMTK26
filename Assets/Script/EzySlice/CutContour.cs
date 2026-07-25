@@ -38,8 +38,17 @@ namespace EzySlice {
             /// <returns><c>false</c> when the segment lies fully outside the rectangle.</returns>
             /// <remarks>Invariant: trimmed endpoints stay on the cutting plane.</remarks>
             public bool ClipSegment(Vector3 p0, Vector3 p1, out Vector3 c0, out Vector3 c1) {
+                return ClipSegment(p0, p1, out c0, out c1, out _, out _);
+            }
+
+            /// <summary>Trims a mesh-local segment to the rectangle, reporting which endpoints were actually cut back.</summary>
+            /// <param name="trimmed0">Whether <paramref name="c0"/> was moved off <paramref name="p0"/> by the border.</param>
+            /// <param name="trimmed1">Whether <paramref name="c1"/> was moved off <paramref name="p1"/> by the border.</param>
+            public bool ClipSegment(Vector3 p0, Vector3 p1, out Vector3 c0, out Vector3 c1, out bool trimmed0, out bool trimmed1) {
                 c0 = p0;
                 c1 = p1;
+                trimmed0 = false;
+                trimmed1 = false;
 
                 Vector3 a0 = meshToBounds.MultiplyPoint3x4(p0);
                 Vector3 a1 = meshToBounds.MultiplyPoint3x4(p1);
@@ -55,6 +64,8 @@ namespace EzySlice {
                 if (!ClipEdge(-dy, y0 - (-halfV), ref t0, ref t1)) return false; // z >= -halfV
                 if (!ClipEdge( dy, halfV - y0,    ref t0, ref t1)) return false; // z <=  halfV
 
+                trimmed0 = t0 > 0.0f;
+                trimmed1 = t1 < 1.0f;
                 c0 = Vector3.Lerp(p0, p1, t0);
                 c1 = Vector3.Lerp(p0, p1, t1);
                 return true;
@@ -93,9 +104,10 @@ namespace EzySlice {
         }
 
         /// <summary>Extracts every contour where the plane meets the mesh surface.</summary>
-        /// <param name="weld">Distance below which two intersection points merge into one vertex; use a small fraction of the mesh's smallest feature.</param>
+        /// <param name="weld">Distance below which two mesh vertices count as the same vertex (collapses UV/normal seam duplicates); use a small fraction of the mesh's smallest feature.</param>
         /// <param name="bounds">Optional finite window; when set, only the contour inside it is kept and clipped contours come back open.</param>
         /// <returns>Empty when the plane misses the mesh, or nothing survives <paramref name="bounds"/>.</returns>
+        /// <remarks>Invariant: segments are connected by the mesh feature they cross (edge or vertex identity), never by intersection-point position — so a loop's closure is topological and survives any plane rotation, where position welding can snap a chain apart on float rounding.</remarks>
         public static List<Loop> ExtractLoops(Mesh mesh, Plane pl, float weld = 1e-4f, PlaneBounds? bounds = null) {
             var loops = new List<Loop>();
 
@@ -104,17 +116,46 @@ namespace EzySlice {
             }
 
             Vector3[] verts = mesh.vertices;
-
-            // welded vertex table: quantized key -> vertex id
-            var lookup = new Dictionary<Vector3Int, int>();
-            var points = new List<Vector3>();
-            // adjacency: vertex id -> its neighbour ids (degree 2 on a clean cut)
-            var adjacency = new List<List<int>>();
-
             float invWeld = 1.0f / Mathf.Max(weld, 1e-8f);
 
-            // 1. collect the cut segment (2 points) of every straddling triangle
-            //    and weld its endpoints into the shared edge graph.
+            // canonical id per vertex POSITION, so seam-duplicated vertices share one id and a
+            // mesh edge keeps one identity no matter which triangle (or duplicate pair) names it
+            var canonical = new Dictionary<Vector3Int, int>();
+            int[] canon = new int[verts.Length];
+            for (int i = 0; i < verts.Length; i++) {
+                var key = new Vector3Int(
+                    Mathf.RoundToInt(verts[i].x * invWeld),
+                    Mathf.RoundToInt(verts[i].y * invWeld),
+                    Mathf.RoundToInt(verts[i].z * invWeld));
+                if (!canonical.TryGetValue(key, out int id)) {
+                    id = canonical.Count;
+                    canonical.Add(key, id);
+                }
+                canon[i] = id;
+            }
+
+            // graph nodes keyed by the mesh feature the contour point sits on (a crossed edge, or
+            // a vertex lying ON the plane). Neighbouring triangles share the crossed edge, so they
+            // connect exactly; a clipped endpoint gets a fresh unkeyed node and ends its chain.
+            var nodeByFeature = new Dictionary<long, int>();
+            var points = new List<Vector3>();
+            var adjacency = new List<List<int>>();
+
+            int NodeOf(long feature, Vector3 pos) {
+                if (feature >= 0 && nodeByFeature.TryGetValue(feature, out int id)) {
+                    return id;
+                }
+                int fresh = points.Count;
+                if (feature >= 0) {
+                    nodeByFeature.Add(feature, fresh);
+                }
+                points.Add(pos);
+                adjacency.Add(new List<int>(2));
+                return fresh;
+            }
+
+            // 1. collect the cut segment (2 points) of every straddling triangle and link the
+            //    two mesh features it spans.
             int submeshCount = mesh.subMeshCount;
 
             for (int submesh = 0; submesh < submeshCount; submesh++) {
@@ -122,9 +163,12 @@ namespace EzySlice {
                 int indicesCount = indices.Length;
 
                 for (int index = 0; index < indicesCount; index += 3) {
-                    Vector3 a = verts[indices[index + 0]];
-                    Vector3 b = verts[indices[index + 1]];
-                    Vector3 c = verts[indices[index + 2]];
+                    int ia = indices[index + 0];
+                    int ib = indices[index + 1];
+                    int ic = indices[index + 2];
+                    Vector3 a = verts[ia];
+                    Vector3 b = verts[ib];
+                    Vector3 c = verts[ic];
 
                     // classify each vertex against the plane
                     SideOfPlane sa = pl.SideOf(a);
@@ -149,22 +193,30 @@ namespace EzySlice {
                         continue;
                     }
 
-                    // gather exactly the two crossing points of this triangle
-                    if (!TryGetSegment(pl, a, b, c, sa, sb, sc, out Vector3 p0, out Vector3 p1)) {
+                    // gather exactly the two crossing points of this triangle, each tagged with
+                    // the mesh feature (edge or ON vertex) it lies on
+                    if (!TryGetSegment(pl, canon[ia], canon[ib], canon[ic], a, b, c, sa, sb, sc,
+                        out Vector3 p0, out Vector3 p1, out long f0, out long f1)) {
                         continue;
                     }
 
-                    // clip to the finite plane window, if one was supplied
+                    // clip to the finite plane window, if one was supplied; a trimmed endpoint no
+                    // longer lies on its mesh feature, so it becomes a fresh chain end
                     if (bounds.HasValue) {
-                        if (!bounds.Value.ClipSegment(p0, p1, out p0, out p1)) {
+                        if (!bounds.Value.ClipSegment(p0, p1, out p0, out p1, out bool trimmed0, out bool trimmed1)) {
                             continue;
                         }
+                        if (trimmed0) f0 = -1;
+                        if (trimmed1) f1 = -1;
                     }
 
-                    int id0 = WeldVertex(p0, invWeld, lookup, points, adjacency);
-                    int id1 = WeldVertex(p1, invWeld, lookup, points, adjacency);
+                    // ignore degenerate segments that start and end on the same feature
+                    if (f0 == f1 && f0 >= 0) {
+                        continue;
+                    }
 
-                    // ignore zero-length segments produced by welding
+                    int id0 = NodeOf(f0, p0);
+                    int id1 = NodeOf(f1, p1);
                     if (id0 == id1) {
                         continue;
                     }
@@ -312,34 +364,46 @@ namespace EzySlice {
             return m * miter;
         }
 
-        /// <summary>Finds the two points where the plane crosses the edges of triangle <c>a-b-c</c>.</summary>
+        /// <summary>Encodes a mesh edge between two canonical vertex ids as a graph-node feature key, disjoint from single-vertex keys.</summary>
+        private static long EdgeFeature(int i, int j) {
+            long lo = Mathf.Min(i, j) + 1;
+            long hi = Mathf.Max(i, j) + 1;
+            return (lo << 32) | (uint)hi;
+        }
+
+        /// <summary>Finds the two points where the plane crosses the edges of triangle <c>a-b-c</c>, tagging each with the mesh feature it lies on (crossed edge, or ON vertex).</summary>
+        /// <param name="ca">Canonical id of vertex <paramref name="a"/> (likewise <paramref name="cb"/>, <paramref name="cc"/>).</param>
+        /// <param name="f0">Feature key of <paramref name="p0"/>: canonical vertex id for an ON vertex, <see cref="EdgeFeature"/> for a crossed edge.</param>
         /// <returns><c>false</c> unless exactly two crossing points were found.</returns>
         private static bool TryGetSegment(Plane pl,
+            int ca, int cb, int cc,
             Vector3 a, Vector3 b, Vector3 c,
             SideOfPlane sa, SideOfPlane sb, SideOfPlane sc,
-            out Vector3 p0, out Vector3 p1) {
+            out Vector3 p0, out Vector3 p1, out long f0, out long f1) {
 
             p0 = Vector3.zero;
             p1 = Vector3.zero;
+            f0 = -1;
+            f1 = -1;
 
             int found = 0;
 
             // a vertex sitting ON the plane is itself a contour point
-            if (sa == SideOfPlane.ON) { p0 = a; found++; }
-            if (sb == SideOfPlane.ON) { if (found == 0) p0 = b; else p1 = b; found++; }
-            if (sc == SideOfPlane.ON) { if (found == 0) p0 = c; else p1 = c; found++; }
+            if (sa == SideOfPlane.ON) { p0 = a; f0 = ca; found++; }
+            if (sb == SideOfPlane.ON) { if (found == 0) { p0 = b; f0 = cb; } else { p1 = b; f1 = cb; } found++; }
+            if (sc == SideOfPlane.ON) { if (found == 0) { p0 = c; f0 = cc; } else { p1 = c; f1 = cc; } found++; }
 
             // edges that straddle the plane (opposite non-ON sides) contribute a point
             if (found < 2 && Crosses(sa, sb) && Intersector.Intersect(pl, a, b, out Vector3 q0)) {
-                if (found == 0) p0 = q0; else p1 = q0;
+                if (found == 0) { p0 = q0; f0 = EdgeFeature(ca, cb); } else { p1 = q0; f1 = EdgeFeature(ca, cb); }
                 found++;
             }
             if (found < 2 && Crosses(sb, sc) && Intersector.Intersect(pl, b, c, out Vector3 q1)) {
-                if (found == 0) p0 = q1; else p1 = q1;
+                if (found == 0) { p0 = q1; f0 = EdgeFeature(cb, cc); } else { p1 = q1; f1 = EdgeFeature(cb, cc); }
                 found++;
             }
             if (found < 2 && Crosses(sc, sa) && Intersector.Intersect(pl, c, a, out Vector3 q2)) {
-                if (found == 0) p0 = q2; else p1 = q2;
+                if (found == 0) { p0 = q2; f0 = EdgeFeature(cc, ca); } else { p1 = q2; f1 = EdgeFeature(cc, ca); }
                 found++;
             }
 
@@ -350,29 +414,6 @@ namespace EzySlice {
         private static bool Crosses(SideOfPlane s0, SideOfPlane s1) {
             return (s0 == SideOfPlane.UP && s1 == SideOfPlane.DOWN) ||
                    (s0 == SideOfPlane.DOWN && s1 == SideOfPlane.UP);
-        }
-
-        /// <summary>Returns a stable vertex id for a point, snapping it to the weld grid and merging duplicates.</summary>
-        private static int WeldVertex(Vector3 p, float invWeld,
-            Dictionary<Vector3Int, int> lookup,
-            List<Vector3> points,
-            List<List<int>> adjacency) {
-
-            Vector3Int key = new Vector3Int(
-                Mathf.RoundToInt(p.x * invWeld),
-                Mathf.RoundToInt(p.y * invWeld),
-                Mathf.RoundToInt(p.z * invWeld));
-
-            if (lookup.TryGetValue(key, out int existing)) {
-                return existing;
-            }
-
-            int id = points.Count;
-            lookup.Add(key, id);
-            points.Add(p);
-            adjacency.Add(new List<int>(2));
-
-            return id;
         }
 
         /// <summary>Links two vertices as mutual neighbours, ignoring a link that already exists.</summary>
