@@ -73,7 +73,8 @@ public class CountdownUI : MonoBehaviour
             {
                 SetFlashOpacity(maxIntensity);
                 //channel.Stop(alarm);
-                channel.Play(alarm);
+                channel.Play(alarm);   // sound when flashing light
+                
             }
             else
             {
