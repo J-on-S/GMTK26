@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Chute : MonoBehaviour
 {
@@ -9,6 +11,11 @@ public class Chute : MonoBehaviour
 
     [SerializeField] private AudioEventChannel audioEventChannel;
     [SerializeField] private Audio dropSoundEffect;
+    
+    [Serializable] public class PartSoldEvent : UnityEvent {}
+    [Header("Events")]
+    [SerializeField] private PartSoldEvent onPartSold = new PartSoldEvent();
+    public PartSoldEvent OnPartSold => onPartSold;
 
     public IEnumerator SellPart(GameObject part)
     {
@@ -21,5 +28,6 @@ public class Chute : MonoBehaviour
                 (Time.time - startTime) / transitionDuration);
             yield return new WaitForEndOfFrame();
         }
+        OnPartSold.Invoke();
     }
 }

@@ -1,17 +1,22 @@
-using System;
 using UnityEngine;
-using UnityEngine.Serialization;
-using Random = UnityEngine.Random;
 
-public class Shelving : MonoBehaviour
+public class Fridge : MonoBehaviour
 {
+    [SerializeField] private GlobalFridgeState globalFridgeState;
     [SerializeField] private Transform[] slots;
     
-    private GameObject[] _itemsBySlotIndex;
+    private DetachedBodyPart[] _itemsBySlotIndex;
+    public DetachedBodyPart[] StoredBodyParts => _itemsBySlotIndex;
 
     private void OnEnable()
     {
-        _itemsBySlotIndex = new GameObject[slots.Length];
+        _itemsBySlotIndex = new DetachedBodyPart[slots.Length];
+        globalFridgeState.Fridges.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        globalFridgeState.Fridges.Remove(this);
     }
 
     private bool TryGetNextFreeSlot(out int slotIndex)
@@ -27,7 +32,7 @@ public class Shelving : MonoBehaviour
         return false;
     }
 
-    public bool TryAddItemToFreeSlot(GameObject item)
+    public bool TryAddItemToFreeSlot(DetachedBodyPart item)
     {
         if (!TryGetNextFreeSlot(out var index)) return false;
         _itemsBySlotIndex[index] = item;
@@ -37,10 +42,12 @@ public class Shelving : MonoBehaviour
         {
             itemRigidbody.constraints = RigidbodyConstraints.FreezeAll;
         }
+
+        item.fridge = this;
         return true;
     }
 
-    public bool TryEvictItemFromSlot(GameObject item)
+    public bool TryEvictItemFromFridge(DetachedBodyPart item)
     {
         for (var i = 0; i < slots.Length; i++)
         {
@@ -51,15 +58,11 @@ public class Shelving : MonoBehaviour
             {
                 itemRigidbody.constraints = RigidbodyConstraints.None;
             }
+
+            item.fridge = null;
             return true;
         }
 
         return false;
-    }
-
-    private void OnMouseDown()
-    {
-        var item = _itemsBySlotIndex[Random.Range(0, _itemsBySlotIndex.Length)];
-        TryEvictItemFromSlot(item);
     }
 }

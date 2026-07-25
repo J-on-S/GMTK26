@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using System;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 
 public class PauseMenu : MonoBehaviour
 {
@@ -25,6 +26,7 @@ public class PauseMenu : MonoBehaviour
     private float savedSFX, savedSubmarine, savedPrintNoise, savedMusic, savedRadio, savedDayTransition; 
 
     private bool isSubMenuOpen = false;
+    private CursorLockMode previousCursorLockMode;
     
     private AudioMaster.PlayingClip _playingBackgroundMusic;
 
@@ -36,6 +38,13 @@ public class PauseMenu : MonoBehaviour
         }
         instance = this;
         DontDestroyOnLoad(gameObject);
+
+        if (EventSystem.current == null)
+        {
+            GameObject eventSystem = new GameObject("EventSystem");
+            eventSystem.AddComponent<EventSystem>();
+            eventSystem.AddComponent<StandaloneInputModule>();
+        }
 
         SceneManager.activeSceneChanged += OnChangeScene;
     }
@@ -80,6 +89,7 @@ public class PauseMenu : MonoBehaviour
 
     public void Resume()
     {
+        Cursor.lockState = previousCursorLockMode;
         pauseMenuUI.SetActive(false);
         Time.timeScale = 1f;
         isPaused = false;
@@ -89,6 +99,8 @@ public class PauseMenu : MonoBehaviour
 
     public void Pause()
     {
+        previousCursorLockMode = Cursor.lockState;
+        Cursor.lockState = CursorLockMode.None;
         pauseMenuUI.SetActive(true);
         Time.timeScale = 0f;
         isPaused = true;
