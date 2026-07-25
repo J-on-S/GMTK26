@@ -72,7 +72,7 @@ public class CountdownUI : MonoBehaviour
             if (timeToDisplay % 1f > 0.5f)
             {
                 SetFlashOpacity(maxIntensity);
-                channel.Stop(alarm);
+                //channel.Stop(alarm);
                 channel.Play(alarm);
             }
             else
