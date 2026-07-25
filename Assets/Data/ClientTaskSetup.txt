@@ -1,0 +1,128 @@
+CLIENT TASK QUEUE - UNITY SETUP
+
+OVERVIEW
+
+Clients and tasks are prepared before any client GameObject is spawned.
+Each queue entry contains:
+- A client prefab reference.
+- A generated ClientTask.
+- A spawned-client reference, which stays empty until that entry is spawned.
+
+Each individual body-part request is limited to 1, 2, or 3 parts.
+The complete client task is still limited to 6 parts in total.
+
+When the task is completed, the entry is removed from the generated task
+list and the spawned client is destroyed automatically.
+
+
+1. CLIENT TASK DATABASE
+
+Assign Assets/Data/ClientTaskDatabase.asset to the Database field of the
+ClientTaskList component.
+
+
+2. CLIENT PREFABS
+
+Add ClientTaskHolder to every client prefab.
+Add those prefabs to Client Prefabs on RandomizedClientList.
+
+
+3. PRE-GENERATION SETTINGS
+
+On RandomizedClientList:
+- Assign the ClientTaskList component to Task Generator.
+- Set Clients To Prepare.
+- Enable Prepare On Start to build the list automatically in Start().
+- Enable Use Hand Made Tasks to use templates when the database has them.
+
+Pre-generation does not instantiate client GameObjects.
+
+Manual API:
+
+clientList.PregenerateClientTasks();
+
+Or:
+
+clientList.PregenerateClientTasks(amount, taskList);
+
+
+4. INSPECT THE PRE-GENERATED LIST
+
+foreach (ClientTaskQueueEntry entry in clientList.GeneratedTaskList)
+{
+    Debug.Log(entry.ClientPrefab.name);
+    Debug.Log(entry.Task.GetDialogue());
+    Debug.Log(entry.IsSpawned);
+}
+
+
+5. SPAWN THE NEXT PENDING CLIENT
+
+GameObject client = clientList.SpawnNextClient(operationChair);
+
+Spawning does not generate a new task. It takes the first pending queue entry,
+instantiates its prefab, and assigns its existing task to ClientTaskHolder.
+
+The client is spawned at the chair position and rotation without being
+parented to the chair, so chair scaling does not affect client size.
+
+
+6. COMPLETE A CLIENT TASK
+
+ClientTaskHolder holder = client.GetComponent<ClientTaskHolder>();
+holder.GiveBodyPart(BodyPartType.Eye);
+
+When all requested parts have been delivered:
+- ClientTaskHolder raises its completion event.
+- RandomizedClientList removes the associated queue entry.
+- The client is removed from ActiveClients.
+- The spawned GameObject is destroyed.
+
+No tag is required.
+
+
+7. DEBUG TEST
+
+Add ClientTaskDebugTester to a GameObject and assign:
+- Client List
+- Task List
+- Operation Chair
+
+Enter Play Mode and run its Context Menu functions in order:
+
+1. Pregenerate Client Task List
+2. Log Pregenerated Task List
+3. Spawn Next Pregenerated Client
+4. Log Current Client Task
+5. Complete Current Client Task
+
+
+8. SIMPLE GAME-FACING API
+
+Generate the configured list without spawning people:
+
+clientList.GenerateList();
+
+Generate a specific number:
+
+clientList.GenerateList(6, taskList);
+
+Read the generated list:
+
+IReadOnlyList<ClientTaskQueueEntry> entries =
+    clientList.GetGeneratedList();
+
+Get each person's prefab name and display-ready task string:
+
+foreach (ClientTaskQueueEntry entry in clientList.GetGeneratedList())
+{
+    string personName = clientList.GetPersonName(entry);
+    string taskText = clientList.GetTaskString(entry);
+    Debug.Log(personName + ": " + taskText);
+}
+
+Despawn a spawned person and remove its generated-list entry:
+
+clientList.DespawnPerson(spawnedPerson);
+
+Tasks completed through ClientTaskHolder do this automatically.
