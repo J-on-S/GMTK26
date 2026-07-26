@@ -34,6 +34,9 @@ public class ToolRequestManager : MonoBehaviour
     // stuff for doctor request UI
     public TextMeshProUGUI myTextLabel;
 
+    // request sound
+    public PlayerHitSound confusedDoctor;
+
     private void Start()
     {
         // the field is serialized, so a scene can wire it; found here only when it was left empty.
@@ -149,7 +152,8 @@ public class ToolRequestManager : MonoBehaviour
 
         string itemCategory = currentRequest.itemType.ToString();
         Debug.Log($"Hey, hand me a {itemCategory}: [{currentRequest.itemName}] within {remainingTime:F1} seconds!");
-        SetRequestText("Hey, hand me a " +  itemCategory + ":<color=\"red\"> " + currentRequest.itemName + "</color>"); //+ " within " + remainingTime + " seconds!";
+        myTextLabel.text = "Hey, hand me a " +  itemCategory + ":<color=\"red\"> " + currentRequest.itemName + "</color>"; //+ " within " + remainingTime + " seconds!";
+        confusedDoctor.playAudio();
 
 
         // remove request from the list immediately, doctor will not ask again regardless of if request is fulfilled or not
@@ -180,9 +184,7 @@ public class ToolRequestManager : MonoBehaviour
         }
         else
         {   
-            //  Todo
-            // maybe add penalty to score here for not fulfilling request?
-            // PUT SUBTRACTING A HEART HERE
+            HealthScript.Instance.TakeDamage();
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
             SetRequestText("Nah man wrong tool.");
             return false; // not success
@@ -195,6 +197,8 @@ public class ToolRequestManager : MonoBehaviour
         Debug.Log("Time is up! You failed the request.");
         SetRequestText("Ran out of time");
         //TODO: LOOSE LIFE
+        myTextLabel.text = "Ran out of time";
+        HealthScript.Instance.TakeDamage();
         StartCooldown();
     }
 
