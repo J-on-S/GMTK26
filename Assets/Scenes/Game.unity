@@ -557,6 +557,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 564921976}
     m_Modifications:
+    - target: {fileID: 815285203064898425, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 1191889370, guid: 4838b4cdfcecf6d4a9eb6c03d9093b98, type: 3}
+    - target: {fileID: 815285203064898425, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
+      propertyPath: m_Color.a
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 815285203064898425, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
+      propertyPath: m_Color.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 815285203064898425, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
+      propertyPath: m_Color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 815285203064898425, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 815285203064898425, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1232017785356964780, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
       propertyPath: m_Pivot.x
       value: 1
@@ -640,6 +664,10 @@ PrefabInstance:
     - target: {fileID: 1336774125694446701, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
       propertyPath: m_Name
       value: BodyPartDescriptionHUD
+      objectReference: {fileID: 0}
+    - target: {fileID: 1359174858383565107, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2275166023103616934, guid: 296e81653bdbf5aa8b32f4cb20396b0e, type: 3}
       propertyPath: m_AnchorMax.y
