@@ -10,12 +10,36 @@ public class Fridge : MonoBehaviour, IInteractable
 
     private void OnEnable()
     {
-        _itemsBySlotIndex = new DetachedBodyPart[slots.Length];
+        if (slots == null || slots.Length == 0)
+        {
+            Debug.LogError($"{name}: fridge has no slots assigned; nothing can be stored in it.", this);
+            _itemsBySlotIndex = new DetachedBodyPart[0];
+        }
+        else
+        {
+            for (var i = 0; i < slots.Length; i++)
+            {
+                if (slots[i] == null)
+                {
+                    Debug.LogError($"{name}: fridge slot {i} is empty; storing into it would drop the part at the world origin.", this);
+                }
+            }
+
+            _itemsBySlotIndex = new DetachedBodyPart[slots.Length];
+        }
+
+        if (globalFridgeState == null)
+        {
+            Debug.LogError($"{name}: no GlobalFridgeState assigned; this fridge's contents are invisible to the rest of the game.", this);
+            return;
+        }
+
         globalFridgeState.Fridges.Add(this);
     }
 
     private void OnDisable()
     {
+        if (globalFridgeState == null) return;
         globalFridgeState.Fridges.Remove(this);
     }
 
@@ -24,6 +48,7 @@ public class Fridge : MonoBehaviour, IInteractable
         for (var i = 0; i < slots.Length; i++)
         {
             if (_itemsBySlotIndex[i] != null) continue;
+            if (slots[i] == null) continue;
             slotIndex = i;
             return true;
         }
@@ -67,9 +92,6 @@ public class Fridge : MonoBehaviour, IInteractable
         return false;
     }
 
-    /// <summary>Stores the body part the player is carrying, and empties their hands when it lands in a slot.</summary>
-    /// <remarks>Hands are only cleared on success: a full fridge leaves the player still holding the part,
-    /// rather than dropping their claim on something that is still parented to them.</remarks>
     public void Interact(Interactor player)
     {
         if (player.heldObject == null) return;
