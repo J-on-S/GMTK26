@@ -27,6 +27,9 @@ public class ToolRequestManager : MonoBehaviour
     private float remainingCooldown;
     private SpawnBodyPartCustomer spawnBodyPartCustomer;
 
+    [Tooltip("Where a delivered body part gets stuck onto the customer. Found in the scene when left empty.")]
+    [SerializeField] private SpawnBodyPartCustomer spawnBodyPartCustomer;
+
 
     // stuff for doctor request UI
     public TextMeshProUGUI myTextLabel;
@@ -36,9 +39,31 @@ public class ToolRequestManager : MonoBehaviour
 
     private void Start()
     {
+        // the field is serialized, so a scene can wire it; found here only when it was left empty.
+        if (spawnBodyPartCustomer == null)
+        {
+            spawnBodyPartCustomer = FindFirstObjectByType<SpawnBodyPartCustomer>();
+            if (spawnBodyPartCustomer == null)
+            {
+                Debug.LogWarning($"{name}: no SpawnBodyPartCustomer in the scene, so delivered body parts will not be attached to the customer.", this);
+            }
+        }
+
+        if (myTextLabel == null)
+        {
+            Debug.LogError($"{name}: no myTextLabel assigned, so the doctor's requests cannot be shown.", this);
+        }
+
         // start a request immediately
         StartCooldown();
         FinishDoctorRequestList(); // add random assortment of tools to doctor request list -- this will probably need to be called after the client commands are in
+    }
+
+    /// <summary>Writes the doctor's line, when there is a label to write it on.</summary>
+    private void SetRequestText(string text)
+    {
+        if (myTextLabel == null) return;
+        myTextLabel.text = text;
     }
 
     // Update is called once per frame
@@ -77,7 +102,14 @@ public class ToolRequestManager : MonoBehaviour
     public void FinishDoctorRequestList()
     {
         if (availableRequests.Count >= numberOfRequests) return; // request list already full no need to add anything else
-        
+
+        // nothing to draw from: Random.Range(0, 0) returns 0 and indexing an empty list throws.
+        if (allTools.Count == 0)
+        {
+            Debug.LogError($"{name}: allTools is empty, so the doctor has nothing to ask for.", this);
+            return;
+        }
+
         // fill up the available requests list with random tools from the list of all tools
         while (availableRequests.Count < numberOfRequests)
         {
@@ -138,7 +170,7 @@ public class ToolRequestManager : MonoBehaviour
         if (submittedName == currentRequest.itemName && submittedType == currentRequest.itemType)
         {
             Debug.Log("Dude thanks for giving me that.");
-            myTextLabel.text = "Dude thanks for giving me that."; 
+            SetRequestText("Dude thanks for giving me that.");
 
             StartCooldown();
             //For now: Add the body on it
@@ -154,7 +186,7 @@ public class ToolRequestManager : MonoBehaviour
         {   
             HealthScript.Instance.TakeDamage();
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
-            myTextLabel.text = "Nah man wrong tool.";
+            SetRequestText("Nah man wrong tool.");
             return false; // not success
         }
     }
@@ -163,6 +195,8 @@ public class ToolRequestManager : MonoBehaviour
     private void FailRequest()
     {
         Debug.Log("Time is up! You failed the request.");
+        SetRequestText("Ran out of time");
+        //TODO: LOOSE LIFE
         myTextLabel.text = "Ran out of time";
         HealthScript.Instance.TakeDamage();
         StartCooldown();

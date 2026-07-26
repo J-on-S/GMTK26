@@ -102,7 +102,10 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         hovering = false;
     }
 
-    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset)
+    /// <param name="itemName">What the piece is called. Names the GameObject and fills GrabbableObject.itemName,
+    /// so the doctor's requests and the black market can match it by name. Left empty, the object keeps
+    /// the name the slice gave it.</param>
+    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset, string itemName = null)
     {
         if (!gameObject.TryGetComponent<Rigidbody>(out _))
         {
@@ -121,6 +124,13 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         detachedBodyPart.bodyPart = bodyPart;
         detachedBodyPart.itemType = ItemType.BodyPart;
         detachedBodyPart.audioPreset = preset;
+
+        if (!string.IsNullOrWhiteSpace(itemName))
+        {
+            detachedBodyPart.itemName = itemName;
+            gameObject.name = itemName;
+        }
+
         return detachedBodyPart;
     }
     

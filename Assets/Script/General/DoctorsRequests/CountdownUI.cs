@@ -37,6 +37,10 @@ public class CountdownUI : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // without a manager there is no countdown to show; Start already said so once, and this would
+        // otherwise throw on every frame for the rest of the session.
+        if (manager == null) return;
+
         timeRemaining = manager.timeRemaining();    // gets the time remaining from the toolrequestmanager script
         if (timeRemaining > 0)
         {
@@ -58,12 +62,19 @@ public class CountdownUI : MonoBehaviour
 
     void UpdateTimerDisplay(float timeToDisplay)
     {
+        if (timerText == null) return;
+
         // show up digital clock style
         float minutes = Mathf.FloorToInt(timeToDisplay / 60);
         float seconds = Mathf.FloorToInt(timeToDisplay % 60);
 
         timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
     }
+
+    /// <summary>Whether the alarm has already sounded for the flash currently on screen.</summary>
+    /// <remarks>The flash is a per-frame test, so without this the alarm was fired on every frame it was
+    /// lit -- around thirty overlapping copies per half-second flash, each one a fresh AudioSource.</remarks>
+    private bool alarmSoundedThisFlash;
 
     // checks if within flashing lights threshold, calls function to set the opacity of the light image
     void FlashScreen(float timeToDisplay)
@@ -73,19 +84,28 @@ public class CountdownUI : MonoBehaviour
             if (timeToDisplay % 1f > 0.5f)
             {
                 SetFlashOpacity(maxIntensity);
-                //channel.Stop(alarm);
-                channel.Play(alarm);   // sound when flashing light
-                
+
+                // once per flash, on the frame it lights up
+                if (!alarmSoundedThisFlash)
+                {
+                    alarmSoundedThisFlash = true;
+                    if (channel != null && alarm != null)
+                    {
+                        channel.Play(alarm);   // sound when flashing light
+                    }
+                }
             }
             else
             {
                 SetFlashOpacity(0f);
+                alarmSoundedThisFlash = false;
             }
         }
         else
         {
             {
                 SetFlashOpacity(0f);
+                alarmSoundedThisFlash = false;
             }
         }
     }
