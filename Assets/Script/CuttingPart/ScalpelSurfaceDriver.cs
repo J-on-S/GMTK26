@@ -62,8 +62,14 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     [Tooltip("How far the edit-mode preview line floats off the body, in world units. Drawing only. Too low and the line z-fights the mesh and looks tangled; in play the line rides the scalpel, so Object Hover sets its height instead.")]
     public float traceHover = 0.01f;
 
-    [Tooltip("Min world distance between stored points; skips near-duplicates so the list stays small.")]
-    public float traceMinStep = 0.005f;
+    [Tooltip("Min world distance between stored points; skips near-duplicates so the list stays small. 0 stores one point every frame the scalpel is on the surface.")]
+    public float traceMinStep = 0.001f;
+
+    [Tooltip("Max world distance between stored points. A jump longer than this is filled in with points along the way, so a fast sweep draws a curve instead of a straight chord between two frames. 0 turns the fill-in off.")]
+    public float traceMaxStep = 0.01f;
+
+    [Tooltip("Most fill-in points one frame may add. Only reached when the scalpel jumps a long way at once (an entry, a teleport); it keeps that frame from queueing thousands of points.")]
+    public int traceMaxFillPerFrame = 64;
 
     private readonly List<Vector3> tracePoints = new List<Vector3>();
 
@@ -91,7 +97,23 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         EnsureTraceRenderer();
         ApplyTraceWidth();
 
-        if (Application.isPlaying) HideScalpelRenderers();
+        if (!Application.isPlaying) return;
+
+        HideScalpelRenderers();
+
+        // clear the edit-mode preview the line was left holding. ShowTrace fills it with the whole
+        // closed loop as an authoring aid, and those points serialize into the scene -- left as they
+        // are, play opens with every scalpel's full cut ring floating on its body before anything is
+        // cut. ResetTrace empties the points and reopens the loop, so the trail starts clean and only
+        // grows once a cut is running.
+        ResetTrace();
+
+        // Parked until a cut claims it. There is one of these per cut, so every driver in the scene
+        // would otherwise start snapping its own scalpel onto its own body and drawing its own trail
+        // from the first frame, on bodies nobody is cutting. CuttingManager.SetScalpelTrace switches
+        // the running cut's driver on at entry and off again on the way out.
+        // Edit mode is left alone: there the driver IS the authoring preview.
+        enabled = false;
     }
 
     void HideScalpelRenderers()
@@ -304,15 +326,50 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         calculatePrecision();
     }
 
-    /// <summary>Appends a surface point to the trail, skipping near-duplicates.</summary>
+    /// <summary>Appends a surface point to the trail, skipping near-duplicates and filling in long jumps.</summary>
+    /// <remarks>
+    /// The trail is sampled once a frame, so how far apart its points land is the scalpel's speed times
+    /// the frame time -- a fast sweep, or a frame that hitched, leaves a straight chord across a curve
+    /// the player did not cut that way. Anything longer than <see cref="traceMaxStep"/> is walked in
+    /// even steps so the drawn line keeps the shape of the surface at any speed.
+    /// <para>The fill-in is a straight line between two surface points, not re-projected onto the mesh:
+    /// over a step this short the two are the same to the eye, and a projection per fill point would put
+    /// a raycast burst on the frames that are already the slowest.</para>
+    /// <para>Points go in one at a time with <c>SetPosition</c>. Rewriting the whole array on every
+    /// append allocated a copy of the trail per point, which a denser trail turns into real garbage.</para>
+    /// </remarks>
     void AddTracePoint(Vector3 p)
     {
         int n = tracePoints.Count;
-        if (n > 0 && (p - tracePoints[n - 1]).sqrMagnitude < traceMinStep * traceMinStep) return;
+        if (n == 0)
+        {
+            AppendTracePoint(p);
+            return;
+        }
 
+        Vector3 last = tracePoints[n - 1];
+        float distance = Vector3.Distance(last, p);
+
+        if (distance < traceMinStep) return;
+
+        if (traceMaxStep > 0f && distance > traceMaxStep)
+        {
+            int fill = Mathf.Min(Mathf.CeilToInt(distance / traceMaxStep) - 1, Mathf.Max(traceMaxFillPerFrame, 0));
+            for (int i = 1; i <= fill; i++)
+            {
+                AppendTracePoint(Vector3.Lerp(last, p, i / (float)(fill + 1)));
+            }
+        }
+
+        AppendTracePoint(p);
+    }
+
+    /// <summary>Stores one point and shows it, without any spacing rule.</summary>
+    void AppendTracePoint(Vector3 p)
+    {
         tracePoints.Add(p);
         traceRenderer.positionCount = tracePoints.Count;
-        traceRenderer.SetPositions(tracePoints.ToArray());
+        traceRenderer.SetPosition(tracePoints.Count - 1, p);
     }
 
     void ApplyTraceWidth()

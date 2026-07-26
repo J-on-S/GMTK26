@@ -342,6 +342,36 @@ public enum CuttingState
         // no speed-driver entry: it is provisioned on demand, so it can never be "missing".
         if (SpeedPreset == null) missing.Add("Camera moves preset");
         if (Curve == null) missing.Add("Curve preset");
+
+        // ---- per-cut authoring, not wiring: the data a cut needs to mean something ----
+
+        // the severed piece is named and requested by this, so an empty one leaves a piece the rest
+        // of the game cannot ask for by name.
+        if (string.IsNullOrWhiteSpace(itemName)) missing.Add("Item name (what the severed piece is called)");
+
+        // the BodyPart asset the detached piece is built from; without it the piece has no identity.
+        if (bodyPartType == null) missing.Add("Body part (a BodyPart asset)");
+
+        // start and end must span an arc. Equal angles are a zero-length cut: progress divides by
+        // (End - Start) and the ring never opens.
+        if (Mathf.Approximately(startAngle, endAngle)) missing.Add("Start/End angle span (they are equal, so the cut has no length)");
+
+        // the finisher is mandatory: every cut ends on the close-up chop, so a missing, disabled,
+        // unframed or tool-less one is not a runnable cut. Each state names its own fix.
+        if (finisher == null)
+        {
+            missing.Add("Finisher (a CutFinisher on the cut)");
+        }
+        else if (!finisher.enableFinisher)
+        {
+            missing.Add("Finisher enabled (its Enable Finisher is off)");
+        }
+        else
+        {
+            if (!finisher.hasShot) missing.Add("Finisher camera shot (frame it, then Set Shot From Camera)");
+            if (finisher.ToolPrefab == null) missing.Add("Finisher tool (a scalpel/saw for the finisher to swing)");
+        }
+
         return missing;
     }
 
@@ -376,6 +406,16 @@ public enum CuttingState
         if (finisher == null)
         {
             finisher = GetComponentInChildren<CutFinisher>(true);
+        }
+
+        // the scalpel is per-cut, not scene-wide: its driver snaps the transform it sits on and draws
+        // this cut's trail into its own line. Resolved from this cut's own children only -- a scalpel
+        // found anywhere else in the scene belongs to another cut, and taking it would leave both cuts
+        // fighting over one transform and one trace.
+        if (scalpelFollow == null)
+        {
+            ScalpelSurfaceDriver own = GetComponentInChildren<ScalpelSurfaceDriver>(true);
+            if (own != null) own.TryGetComponent(out scalpelFollow);
         }
 
         // free-look is one scene-wide component, not a per-cut one, so every cut points at the same
@@ -1222,11 +1262,18 @@ public enum CuttingState
                 scalpel.ApplyPreset();
             }
 
-            if (ScalpelPreset != null
-                && scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
+            if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
             {
-                scalpelLoop.preset = ScalpelPreset;
+                // NOT gated on there being a preset. The builder is which loop this scalpel rides --
+                // its centre, its plane and the surface it projects onto -- and it is hidden in the
+                // driver's inspector, so a cut that never pushed it keeps whichever guide the driver
+                // was last handed. On a copied cut that is the ORIGINAL cut's guide: the scalpel snaps
+                // onto the body it came from and its trace draws there, shifted off the body being cut.
                 if (loopGuide != null) scalpelLoop.builder = loopGuide;
+
+                // tuning, unlike the builder, is optional: with no preset the driver keeps its own
+                // inline values, which is what a scalpel authored before presets existed relies on.
+                if (ScalpelPreset != null) scalpelLoop.preset = ScalpelPreset;
             }
         }
     }

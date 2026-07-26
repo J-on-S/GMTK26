@@ -37,6 +37,21 @@ public class CuttingManagerEditor : Editor
         "moveCamera", "scalpelFollow",
     };
 
+    /// <summary>Stops this cut's preview when the inspector is torn down, so deselecting it puts the camera and rig back.</summary>
+    /// <remarks>
+    /// The preview is a static system on <c>EditorApplication.update</c>, not owned by this editor:
+    /// without this, selecting another object leaves it running with the game camera claimed at an
+    /// orbit pose and nothing ever puts it back until a domain reload. Only this cut's own preview is
+    /// stopped -- another cut's is left alone.
+    /// </remarks>
+    private void OnDisable()
+    {
+        if (CutPreview.IsRunning && CutPreview.Active == target as CuttingManager)
+        {
+            CutPreview.Stop();
+        }
+    }
+
     public override void OnInspectorGUI()
     {
         serializedObject.Update();

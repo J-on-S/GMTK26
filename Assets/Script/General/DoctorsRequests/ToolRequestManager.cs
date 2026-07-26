@@ -29,6 +29,9 @@ public class ToolRequestManager : MonoBehaviour
 
     // states
     private enum State{Idle, ActiveRequest, Cooldown}
+    private State currentState = State.Idle;
+
+
     [Header("Runtime debug")]
     [SerializeField] private State currentState = State.Idle;
 

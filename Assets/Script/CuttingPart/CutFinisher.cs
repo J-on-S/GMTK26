@@ -45,7 +45,7 @@ public class CutFinisher : MonoBehaviour
     [Tooltip("Shapes the camera's move into the pose.")]
     public AnimationCurve easeInCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
-    [Tooltip("Prefab that does the chopping -- bone saw, cleaver, whatever this cut calls for. Separate from Required Tool Name, which gates entry rather than choosing what swings.")]
+    [Tooltip("Object that does the chopping -- bone saw, cleaver, whatever this cut calls for. A scene object is swung where it sits; a prefab asset is spawned. Separate from Required Tool Name, which gates entry rather than choosing what swings.")]
     public GameObject toolPrefab;
 
     [Tooltip("Extra rotation on the tool, in degrees, on top of the blade-across-the-sweep orientation.")]
@@ -131,11 +131,22 @@ public class CutFinisher : MonoBehaviour
     /// <summary>Impulse pushing the severed piece away; <c>0</c> leaves it where it fell.</summary>
     public float Kick => preset != null ? preset.kick : kick;
 
-    /// <summary>The spawned tool, or <c>null</c> when none is up.</summary>
+    /// <summary>How much world-up is mixed into the severed piece's push, relative to the cut's -normal.</summary>
+    /// <remarks>A little, on purpose: enough to lift the piece off the stump so it arcs clear, not so much it flies straight up. ~0.25 is about a 14° lift.</remarks>
+    private const float KickUpBias = 0.25f;
+
+    /// <summary>The spawned copy of a prefab-asset tool, or <c>null</c> when none is up. Owned by the finisher and destroyed on release.</summary>
     private GameObject toolInstance;
 
     /// <summary>Prefab <see cref="toolInstance"/> was made from, so a changed prefab respawns rather than showing the old tool.</summary>
     private GameObject toolInstanceSource;
+
+    /// <summary>A scene object driven in place instead of copied, or <c>null</c>. Belongs to the scene, so it is posed back to rest on release, never destroyed.</summary>
+    private GameObject drivenTool;
+
+    /// <summary>The driven tool's pose when the finisher took it, restored on release so the saw does not stay frozen mid-swing.</summary>
+    private Vector3 drivenRestPos;
+    private Quaternion drivenRestRot;
 
     /// <summary>The running beat, so a second <see cref="Begin"/> cannot stack two.</summary>
     private Coroutine running;
@@ -315,7 +326,13 @@ public class CutFinisher : MonoBehaviour
     }
 
     /// <summary>How far the severed piece appears pushed away at a point in the swing, <c>Vector3.zero</c> before impact.</summary>
-    /// <remarks>Invariant: a display offset only — no physics runs, and nothing is sliced.</remarks>
+    /// <remarks>
+    /// Invariant: a display offset only — no physics runs, and nothing is sliced.
+    /// <para>Pushed down the cut's <b>-normal</b>, so the piece leaves along the face it was cut from
+    /// rather than along the blade's approach — the two differ whenever <see cref="ApproachTilt"/> is
+    /// off 90. A small world-up lift is mixed in so it arcs clear of the stump instead of sliding
+    /// straight back into it.</para>
+    /// </remarks>
     public Vector3 SeveredOffsetAt(float t)
     {
         if (t <= ImpactT)
@@ -323,7 +340,14 @@ public class CutFinisher : MonoBehaviour
             return Vector3.zero;
         }
 
-        return -ApproachAxis * (Kick * 0.05f * (t - ImpactT));
+        CutPlane plane = Plane;
+        Vector3 normal = plane != null ? plane.Normal : Vector3.up;
+
+        // -normal is the free side of the cut; the up bias is the "little y" that lifts the piece off
+        // the stump. Normalized so the bias changes the direction, not the distance Kick sets.
+        Vector3 dir = (-normal + Vector3.up * KickUpBias).normalized;
+
+        return dir * (Kick * 0.05f * (t - ImpactT));
     }
 
     // ---- the beat ----
@@ -468,14 +492,44 @@ public class CutFinisher : MonoBehaviour
         }
     }
 
-    /// <summary>Spawns the tool if it is not up yet and hands back its transform, or <c>null</c> when no prefab is set.</summary>
-    /// <param name="temporary">Hides the instance from the hierarchy and keeps it out of the saved scene.</param>
+    /// <summary>Readies the tool and hands back the transform the swing drives, or <c>null</c> when none is set.</summary>
+    /// <param name="temporary">For a spawned prefab copy, hides it from the hierarchy and keeps it out of the saved scene. Ignored for a scene object, which is driven in place.</param>
+    /// <remarks>
+    /// A scene object is swung <b>where it already sits</b> -- no copy is made, the assigned transform is
+    /// returned directly. Only a prefab ASSET is instantiated, since an asset is not in the scene to
+    /// move. This is what lets the saw already placed in the level be dropped into the slot and swing,
+    /// rather than only a prefab working.
+    /// </remarks>
     public Transform EnsureTool(bool temporary)
     {
-        GameObject prefab = ToolPrefab;
+        GameObject source = ToolPrefab;
+        if (source == null)
+        {
+            ReleaseTool();
+            return null;
+        }
+
+        // scene object: drive it in place. IsValid() is the discriminator -- a prefab asset has no scene.
+        if (source.scene.IsValid())
+        {
+            if (drivenTool != source)
+            {
+                ReleaseTool();
+                drivenTool = source;
+
+                // its resting pose, so release puts the saw back rather than leaving it mid-swing
+                drivenRestPos = source.transform.position;
+                drivenRestRot = source.transform.rotation;
+            }
+
+            if (!source.activeSelf) source.SetActive(true);
+            return source.transform;
+        }
+
+        // ---- prefab asset: spawn a throwaway copy the finisher owns ----
 
         // a changed prefab has to respawn, or the old tool stays on screen
-        if (toolInstance != null && toolInstanceSource != prefab)
+        if (toolInstance != null && toolInstanceSource != source)
         {
             ReleaseTool();
         }
@@ -485,14 +539,16 @@ public class CutFinisher : MonoBehaviour
             return toolInstance.transform;
         }
 
-        if (prefab == null)
-        {
-            return null;
-        }
+        toolInstance = Instantiate(source);
+        toolInstance.name = $"~{source.name} (finisher)";
+        toolInstanceSource = source;
 
-        toolInstance = Instantiate(prefab);
-        toolInstance.name = $"~{prefab.name} (finisher)";
-        toolInstanceSource = prefab;
+        // a prefab kept switched off until the minigame is often saved with an inactive root, which
+        // Instantiate carries over. The finisher shows this copy deliberately, so force it on.
+        if (!toolInstance.activeSelf)
+        {
+            toolInstance.SetActive(true);
+        }
 
         if (temporary)
         {
@@ -500,44 +556,33 @@ public class CutFinisher : MonoBehaviour
             toolInstance.hideFlags = HideFlags.HideAndDontSave;
         }
 
-        if (Application.isPlaying)
-        {
-            SetRenderersEnabled(toolInstance, false);
-        }
-
         return toolInstance.transform;
     }
 
-    /// <summary>Shows or hides every renderer under an object, leaving line renderers alone.</summary>
-    private static void SetRenderersEnabled(GameObject root, bool enabled)
-    {
-        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            if (renderers[i] is LineRenderer) continue;
-            renderers[i].enabled = enabled;
-        }
-    }
-
-    /// <summary>Destroys the spawned tool, doing nothing when there is none.</summary>
+    /// <summary>Puts the tool away: a driven scene object back to its rest pose, a spawned prefab copy destroyed. No-op when none is up.</summary>
     public void ReleaseTool()
     {
-        if (toolInstance == null)
+        // driven scene object: it belongs to the scene, so restore its pose and let it be
+        if (drivenTool != null)
         {
-            toolInstanceSource = null;
-            return;
+            drivenTool.transform.SetPositionAndRotation(drivenRestPos, drivenRestRot);
+            drivenTool = null;
         }
 
-        if (Application.isPlaying)
+        // spawned copy: the finisher's own, so destroy it
+        if (toolInstance != null)
         {
-            Destroy(toolInstance);
-        }
-        else
-        {
-            DestroyImmediate(toolInstance);
+            if (Application.isPlaying)
+            {
+                Destroy(toolInstance);
+            }
+            else
+            {
+                DestroyImmediate(toolInstance);
+            }
+            toolInstance = null;
         }
 
-        toolInstance = null;
         toolInstanceSource = null;
     }
 

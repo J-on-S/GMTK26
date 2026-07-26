@@ -21,7 +21,7 @@ public class MouseMovement : MonoBehaviour
 
   void Update(){
     // the action is static and built by CuttingManager.Start, so it is null in a scene with no cut
-    if(!active || CuttingManager.mouseDelta == null) return;
+    if(!active || CuttingManager.mouseDelta == null  || PauseMenu.isPaused) return;
 
     Vector2 move = CuttingManager.mouseDelta.ReadValue<Vector2>();
     
