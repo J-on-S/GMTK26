@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 60834d41c5f1b8846b0be01492d2c418, type: 3}
-  m_Name: music_level
+  m_Name: surgeon_angry_3
   m_EditorClassIdentifier: Assembly-CSharp::Audio
-  AudioClip: {fileID: 8300000, guid: ccd722a1c8ee089af8f6ccda1a4a0889, type: 3}
+  AudioClip: {fileID: 8300000, guid: 15cd9abafa5273329af8c71f0c67f287, type: 3}
   Volume: 1
   Loop: 0
   Pan: 0
