@@ -191,6 +191,9 @@ Current implementation:
 - `BodyPartRunSummary` persists per-type chute and fridge counts across the
   gameplay-to-Win/Lost scene transition. Result UI displays combined Hand,
   Leg, Nose, and Ear totals: implemented.
+- The Win and Lost result scenes first show their scene-specific background
+  with the dossier and statistics hidden. Clicking the background restores
+  `PAUSEMENU_Cover` and reveals the dossier and statistics: implemented.
 - End-of-day freezer/storage/decay integration: planned.
 
 ## End of Day
