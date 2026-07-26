@@ -49,6 +49,7 @@ public class GenerateClientInfoUI : MonoBehaviour
         
                 card.images[indexImg].sprite = bodyPart.bodyPartImg;
                 card.images[indexImg].enabled = true;
+                indexImg++;
             }
             
             card.text.text = text;
