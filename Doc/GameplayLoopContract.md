@@ -99,12 +99,11 @@ Expected loop:
 Current APIs:
 
 ```csharp
-GameObject client = clientList.SpawnNextClient(chairTransform);
+GameObject client = clientList.SpawnNextClient(operationChair);
 bool accepted = clientTaskHolder.GiveBodyPart(bodyPart);
 bool updated = clientList.RemoveOneFromTask(targetClient, bodyPart);
 bool removed = clientList.DespawnPerson(client);
 bool spawned = operationChair.TrySpawnNextClient();
-toolRequestManager.BuildRequestsForClient(spawnedClient);
 ```
 
 Current events:
@@ -114,6 +113,7 @@ clientTaskHolder.TaskAssigned
 clientTaskHolder.TaskCompleted
 clientTaskHolder.TaskCompletedWithOwner
 clientList.ClientSpawned
+clientList.ClientSpawnedOnChair
 clientList.ClientRemoved
 clientList.TaskListEmptied
 clientList.TaskRequirementChanged
@@ -125,18 +125,23 @@ clientDialogueEventChannel.DialogueRequested
 Current implementation:
 
 - Independent tasks and progress per client: implemented.
+- Spawned queue entries record their assigned `OperationChair`, allowing
+  systems to distinguish Bed A from Bed B: implemented.
 - Automatic removal on client-task completion: implemented.
 - Automatic chair refill: implemented.
+- Operation chairs spawn clients using a character pose proxy's world
+  position, rotation, and scale: implemented.
 - Client task dialogue requests through a decoupled event channel: implemented.
 - Queued client dialogue UI receiver: implemented.
 - Empty client list triggers end-of-day validation: implemented.
 - Accepted doctor body parts can decrement a targeted client task: implemented.
 - Inspector gameplay-loop debug harness for accepted-order and fast-forward
   testing: implemented.
-- Spawned clients automatically add their required body parts to the shared
-  doctor request queue through `RandomizedClientList.ClientSpawned`: implemented.
-- Random tools fill the shared doctor queue up to its configured minimum after
-  each client contributes its body-part requests: implemented.
+- Occupied chairs provide an editor-only context command that completes their
+  current client's remaining requirements through the normal task API:
+  implemented.
+- Automatically adding a spawned client's body-part requirements to the doctor
+  request queue: planned.
 - Doctor request acceptance targeting the correct client task: planned.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.

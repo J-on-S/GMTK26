@@ -20,11 +20,12 @@ public class ToolRequestManager : MonoBehaviour
 
     // states
     private enum State{Idle, ActiveRequest, Cooldown}
-    private State currentState = State.Idle;
+    [Header("Runtime debug")]
+    [SerializeField] private State currentState = State.Idle;
 
-    private ToolRequest currentRequest;
-    private float remainingTime;
-    private float remainingCooldown;
+    [SerializeField] private ToolRequest currentRequest;
+    [SerializeField] private float remainingTime;
+    [SerializeField] private float remainingCooldown;
     private SpawnBodyPartCustomer spawnBodyPartCustomer;
 
 

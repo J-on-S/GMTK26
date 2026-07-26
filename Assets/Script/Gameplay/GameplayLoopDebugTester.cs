@@ -102,7 +102,8 @@ public class GameplayLoopDebugTester : MonoBehaviour
         {
             text.AppendLine(
                 $"{entryNumber}. {clientList.GetPersonName(entry)} " +
-                $"[{(entry.IsSpawned ? "SPAWNED" : "PENDING")}]");
+                $"[{(entry.IsSpawned ? "SPAWNED" : "PENDING")}] " +
+                $"Chair: {entry.AssignedChairName}");
             text.AppendLine($"   {clientList.GetRemainingTaskString(entry)}");
 
             foreach (BodyPartRequest request in entry.Task.Requests)
