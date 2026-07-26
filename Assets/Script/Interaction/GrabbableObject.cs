@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class GrabbableObject : MonoBehaviour, IInteractable{
+public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   public string itemName;
   public ItemType itemType;
   public BodyPartType bodyPartType;
@@ -48,6 +48,12 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
   private bool startKinematic;
 
   public Vector3 StartWorldScale => startWorldScale;
+
+  /// <summary>What the description HUD calls this item: its authored <see cref="itemName"/>, or the GameObject's name when that is blank.</summary>
+  public string DisplayName => string.IsNullOrWhiteSpace(itemName) ? gameObject.name : itemName;
+
+  /// <summary>Set the frame the player is looking at this, cleared in LateUpdate: the interactor calls HoverOver every such frame, so a frame with no call means the aim left.</summary>
+  private bool hovering;
 
   void Awake(){
     rb = GetComponent<Rigidbody>();
@@ -193,6 +199,28 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
       holder.heldObject = null;
     }
     holder = null;
+  }
+
+  // HOVER -- the interactor calls this every frame the player's aim is on this object.
+  public virtual void HoverOver(Interactor player){
+    ShowHudDescription();
+    hovering = true;
+  }
+
+  /// <summary>What this item puts on the description HUD while hovered. Base shows just the name, and only for a tool; a body part overrides this to add its decay bar.</summary>
+  protected virtual void ShowHudDescription(){
+    if (itemType == ItemType.BodyPart) return; // parts override; a plain grabbable that is not a tool shows nothing
+    BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
+    if (hud != null) hud.ShowName(this);
+  }
+
+  /// <summary>Clears the HUD once the aim leaves: a frame with no HoverOver call means the player is no longer looking at this.</summary>
+  protected virtual void LateUpdate(){
+    if (!hovering){
+      BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
+      if (hud != null) hud.HideDescription(this);
+    }
+    hovering = false;
   }
 
   // DROP

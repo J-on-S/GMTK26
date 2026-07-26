@@ -61,7 +61,6 @@ public class CuttingManagerEditor : Editor
 
         DrawTargetSection();
         DrawPlaySection(manager);
-        DrawGuideLinesSection();
         DrawCameraTravelSection();
         DrawSoundSection();
         DrawSeveredPieceSection();
@@ -119,19 +118,6 @@ public class CuttingManagerEditor : Editor
 
             EditorGUILayout.HelpBox("Tuning comes from the preset. Edit the asset to change it, here or in the Project window.", MessageType.None);
             DrawEmbeddedPreset(preset);
-        }
-    }
-
-    // not in the inline block: no preset carries it, so it applies either way.
-    private void DrawGuideLinesSection()
-    {
-        SerializedProperty inPlay = serializedObject.FindProperty("showGuideLinesInPlay");
-        string summary = inPlay != null && inPlay.boolValue ? "shown in play" : "authoring only";
-
-        using (var section = new Section("guides", "Guide lines", false, summary))
-        {
-            if (!section.Open) return;
-            Draw("showGuideLinesInPlay");
         }
     }
 
@@ -274,6 +260,12 @@ public class CuttingManagerEditor : Editor
             Undo.RecordObject(manager, "Auto-wire cut");
             manager.AutoWire();
             EditorUtility.SetDirty(manager);
+
+            // AutoWire wrote straight to the component, so the serializedObject snapshot taken at the top
+            // of OnInspectorGUI is now stale: without this resync the fields below still draw the old
+            // (empty) values and the ApplyModifiedProperties at the end pushes them back, so the wiring
+            // reads as reverted -- most visibly on a prefab, where it looks like the edit would not save.
+            serializedObject.Update();
         }
     }
 
@@ -299,6 +291,11 @@ public class CuttingManagerEditor : Editor
             // apply first: the button can be clicked in the same frame a field was edited.
             serializedObject.ApplyModifiedProperties();
             CreatePresetFrom(manager);
+
+            // CreatePresetFrom assigned minigamePreset straight on the component; resync so the snapshot
+            // matches, or the ApplyModifiedProperties at the end of OnInspectorGUI clears the assignment
+            // back and the preset appears not to have been set.
+            serializedObject.Update();
         }
         EditorGUI.indentLevel--;
     }
