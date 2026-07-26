@@ -11,7 +11,7 @@ public class Chute : MonoBehaviour, IInteractable
 
     [SerializeField] private AudioEventChannel audioEventChannel;
     [SerializeField] private Audio dropSoundEffect;
-    [SerializeField] private TemporaryBlackMarketTaskGenerator temporaryBlackMarketTaskGenerator;
+    [SerializeField] private BlackMarketGenerator temporaryBlackMarketTaskGenerator;
     [SerializeField] private CameraSwitch cameraSwitch;
     [SerializeField] private ReturnMain returnMain;
     
