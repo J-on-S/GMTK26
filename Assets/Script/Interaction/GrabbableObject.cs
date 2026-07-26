@@ -10,7 +10,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
   [Tooltip("Channel and clips this object plays on grab and drop. When set, it wins over the four fields below; they stay as the fallback so objects placed before presets existed keep sounding the same.")]
   public AudioGrappablePreset audioPreset;
 
-  public  AudioEventChannel channel;
+  public AudioEventChannel channel;
   public Audio metalPickupAudio;
   public Audio clothPickupAudio;
   public Audio metalDropAudio;

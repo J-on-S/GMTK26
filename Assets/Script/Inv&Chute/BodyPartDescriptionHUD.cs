@@ -44,8 +44,9 @@ public class BodyPartDescriptionHUD : MonoBehaviour
         _visible = true;
     }
     
-    public void HideBodyPartDescription()
+    public void HideBodyPartDescription(DetachedBodyPart bodyPart)
     {
+        if (_selectedBodyPart != bodyPart) return;
         _selectedBodyPart = null;
         _visible = false;
     }

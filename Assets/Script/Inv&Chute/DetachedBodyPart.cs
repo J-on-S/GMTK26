@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [DisallowMultipleComponent]
-public class DetachedBodyPart : GrabbableObject
+public class DetachedBodyPart : GrabbableObject, IHoverable
 {
     [SerializeField] public BodyPart bodyPart;
     [SerializeField] public float maxHealth = 100.0f;
@@ -30,23 +30,14 @@ public class DetachedBodyPart : GrabbableObject
 
     private void Update()
     {
-        health = Math.Clamp(health - Time.deltaTime, 0, maxHealth);
+        var multiplier = fridge == null ? 1.0f : 0.5f;
+        health = Math.Clamp(health - Time.deltaTime * multiplier, 0, maxHealth);
         var c = _material.color;
         _material.color = new Color(c.r, c.g, c.b, health / maxHealth);
         if (health <= 0)
         {
             _material.color = new Color(255, c.g, c.b, 0.7f);
         }
-    }
-
-    private void OnMouseEnter()
-    {
-        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
-    }
-    
-    private void OnMouseExit()
-    {
-        _bodyPartDescriptionHUD.HideBodyPartDescription();
     }
 
     /// <summary>Takes the part out of the fridge, if it is in one, then grabs it like any other object.</summary>
@@ -63,6 +54,24 @@ public class DetachedBodyPart : GrabbableObject
         }
 
         base.Interact(player);
+    }
+    
+    private bool hovering;
+
+    public void HoverOver(Interactor player)
+    {
+        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
+        hovering = true;
+    }
+
+    private void LateUpdate()
+    {
+        if (!hovering)
+        {
+            _bodyPartDescriptionHUD.HideBodyPartDescription(this);
+        }
+
+        hovering = false;
     }
 
     /// <param name="preset">Grab/drop sounds for the piece. Added here rather than left to the inspector because
