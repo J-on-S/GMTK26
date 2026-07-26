@@ -101,11 +101,13 @@ public class LoopGuideBuilder : MonoBehaviour {
     private float gHoverLength;
 
     private void Update() {
-        // curved is exempt: it is the loop the player cuts along, so it draws in play whatever this says.
-        bool hiddenInPlay = Application.isPlaying && !showInPlayMode;
+        // edit mode draws both loops whatever the toggles say: they are the authoring view of this cut,
+        // and an author who cannot see the loop cannot place the plane. The toggles govern play only.
+        bool editMode = !Application.isPlaying;
 
-        bool drawCurved = showCurvedLoop && loopLine != null;
-        bool drawFlat = showFlatLoop && flatLine != null && !hiddenInPlay;
+        // curved is exempt from showInPlayMode: it is the loop the player cuts along.
+        bool drawCurved = loopLine != null && (editMode || showCurvedLoop);
+        bool drawFlat = flatLine != null && (editMode || (showFlatLoop && showInPlayMode));
         if (!drawCurved && !drawFlat) {
             // turning a loop off mid-run has to take its line with it, or the last frame drawn stays up
             HideLines();
@@ -135,11 +137,21 @@ public class LoopGuideBuilder : MonoBehaviour {
     public Vector3 PlaneForward => plane != null ? plane.transform.forward : Vector3.forward;
 
     void OnValidate() {
+        ApplyLineWidth();
+    }
+
+    /// <summary>Writes <see cref="curveWidth"/> onto both line renderers.</summary>
+    /// <remarks>Public so the <see cref="CuttingManager"/> that owns the width can land it the moment it
+    /// pushes: this component's own OnValidate does not fire when another script writes its fields, so
+    /// without this the new width waits for the next frame that happens to draw.</remarks>
+    public void ApplyLineWidth() {
         if (loopLine != null) {
             loopLine.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
+            loopLine.widthMultiplier = 1f;
         }
         if (flatLine != null) {
             flatLine.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
+            flatLine.widthMultiplier = 1f;
         }
     }
 

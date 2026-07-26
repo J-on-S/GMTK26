@@ -125,6 +125,16 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         return traceRenderer;
     }
 
+    /// <summary>Puts the trace line back on screen, without touching the points it holds.</summary>
+    /// <remarks>Authoring wants the line visible whatever the cut last did to it: a manager that ended a
+    /// run in play mode leaves the renderer disabled, and that state is what the next edit-mode session
+    /// comes up in. Never creates the renderer -- that is play-mode work, so edit mode cannot dirty the
+    /// scene just by having this component selected.</remarks>
+    public void ShowTrace()
+    {
+        if (traceRenderer != null) traceRenderer.enabled = true;
+    }
+
     void OnValidate()
     {
         ApplyTraceWidth();
@@ -133,7 +143,10 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     void Update()
     {
         // Input runs only in play mode.
-        if (!Application.isPlaying) return;
+        if (!Application.isPlaying) {
+            ShowTrace();
+            return;
+        }
 
         // Accumulate left/right travel: MouseDelta is per-pixel, the held modes per-second.
         updateOffset(preset.moveInput);

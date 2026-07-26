@@ -839,16 +839,27 @@ public enum CuttingState
     {
         CameraFollow scalpel = scalpelFollow;
         if (scalpel == null) return;
-        if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
+        if (!scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop)) return;
+
+        scalpelLoop.drawTrace = on;
+
+        // edit mode keeps both: the driver is the authoring preview, and the line it drew is what the
+        // author is looking at. Only a running game takes them down.
+        if (!Application.isPlaying)
         {
-            scalpelLoop.drawTrace = on;
-            scalpelLoop.enabled = on;
+            scalpelLoop.enabled = true;
+            scalpelLoop.ShowTrace();
+            return;
         }
+
+        scalpelLoop.enabled = on;
     }
 
-    /// <summary>Wipes the scalpel's drawn trail, if it has a follower.</summary>
+    /// <summary>Wipes the scalpel's drawn trail, if it has a follower. Play mode only: in edit mode the line is the authoring preview.</summary>
     void ClearScalpelTrace()
     {
+        if (!Application.isPlaying) return;
+
         CameraFollow scalpel = scalpelFollow;
         if (scalpel == null) return;
         if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
@@ -1107,7 +1118,10 @@ public enum CuttingState
             if (Curve != null) loopGuide.preset = Curve;
 
             // one width for every line this cut owns, preset first and the inline field otherwise.
+            // applied here and not left to the next draw: OnValidate calls this, and an author dragging
+            // the width wants the line to change under the cursor.
             loopGuide.curveWidth = GuideLineWidth;
+            loopGuide.ApplyLineWidth();
             loopGuide.showInPlayMode = showGuideLinesInPlay;
 
             if (minigamePreset != null)
