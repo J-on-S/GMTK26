@@ -21,7 +21,7 @@ public class PauseMenu : MonoBehaviour
 
     public static PauseMenu instance {get; private set; }
     public static bool isPaused = false;
-    public string mainMenuScene;
+    public string mainMenuScene = "StartScreen";
 
     private float savedSFX, savedSubmarine, savedPrintNoise, savedMusic, savedRadio, savedDayTransition; 
 

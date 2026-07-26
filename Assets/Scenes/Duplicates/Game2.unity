@@ -834,7 +834,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DetachedBodyPart
   itemName: 
   itemType: 0
-  bodyPartType: 0
+  bodyPartType: 1
   respawnTime: 3
   audioPreset: {fileID: 0}
   channel: {fileID: 0}
@@ -2352,7 +2352,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DetachedBodyPart
   itemName: 
   itemType: 0
-  bodyPartType: 0
+  bodyPartType: 1
   respawnTime: 3
   audioPreset: {fileID: 0}
   channel: {fileID: 0}
@@ -5122,7 +5122,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DetachedBodyPart
   itemName: 
   itemType: 0
-  bodyPartType: 0
+  bodyPartType: 1
   respawnTime: 3
   audioPreset: {fileID: 0}
   channel: {fileID: 0}
@@ -5510,7 +5510,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DetachedBodyPart
   itemName: 
   itemType: 0
-  bodyPartType: 0
+  bodyPartType: 1
   respawnTime: 3
   audioPreset: {fileID: 0}
   channel: {fileID: 0}
@@ -12589,6 +12589,10 @@ MonoBehaviour:
   onPartSold:
     m_PersistentCalls:
       m_Calls: []
+  logTrapdoorEntries: 1
+  debugEntryCount: 0
+  debugLastObject: None
+  debugLastBodyPart: Unknown
 --- !u!65 &8704601295310553095
 BoxCollider:
   m_ObjectHideFlags: 0
