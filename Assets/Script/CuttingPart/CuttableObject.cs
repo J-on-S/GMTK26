@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using EzySlice;
+using Unity.VisualScripting;
 
 [RequireComponent(typeof(MeshCollider))]
 [RequireComponent(typeof(MeshRenderer))]
@@ -234,17 +235,21 @@ public class CuttableObject : MonoBehaviour , IInteractable
     public void Interact(Interactor player)
     {
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        if(player.heldObject == null) return;
 
         if (!Physics.Raycast(ray, out RaycastHit hit)) Debug.LogError("Should not happen: raycast on interact hit. Check layers");
         Debug.Log("successfully interacted");
         
-        CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
 
-        if(player.heldObject != null){
-            bool hasTool = aimed.HasRequiredTool(player.heldObject.itemName);
-            bool ready = aimed.canEnterMinigame() && hasTool;
+        CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
+        if(aimed == null) return;
+
+        bool hasTool = aimed.HasRequiredTool(player.heldObject.itemName);
+        if(aimed.canEnterMinigame() && hasTool){
             aimed.EnterMinigame();
         }
+        
+
     }
 
     /// <summary>Checks at least one cut contour inside the bounds window is a closed loop, i.e. some cut fully crosses the mesh. Multiple closed loops are allowed — each becomes its own removed piece by connectivity. Open (clipped) loops are allowed too; the splice discards them and welds their cut shut.</summary>
