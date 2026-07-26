@@ -143,7 +143,7 @@ public enum CuttingState
 
     public CameraMovesPreset cameraPreset;
 
-    public FollowLoopPresets ScalpelFollowLoopPreset;
+    public ScalpelSurfacePreset ScalpelFollowLoopPreset;
 
     public CurvePreset curvePreset;
 
@@ -214,6 +214,9 @@ public enum CuttingState
     /// <summary>Whether the cut loop is currently meant to be sounding. Edge-triggers the play/stop so a frame where the channel returns nothing doesn't retry forever.</summary>
     private bool cutSoundOn;
 
+    /// <summary>Whether this cut has already sounded its tear, so the finisher's early play and the splice's own cannot both land.</summary>
+    private bool tearPlayed;
+
     /// <summary>The shared speed driver, provisioned on demand. Not a serialized slot: one driver serves every cut, and its per-cut tuning arrives with the CameraMovesPreset.</summary>
     public CutSpeedDriver speedDriver => CutSpeedDriver.Shared;
 
@@ -260,8 +263,8 @@ public enum CuttingState
         ? minigamePreset.curvePreset
         : curvePreset;
 
-    /// <summary>Along-limb tuning handed to the scalpel's follower.</summary>
-    public FollowLoopPresets ScalpelPreset => minigamePreset != null && minigamePreset.scalpelFollowPreset != null
+    /// <summary>Along-limb tuning handed to the scalpel's surface driver.</summary>
+    public ScalpelSurfacePreset ScalpelPreset => minigamePreset != null && minigamePreset.scalpelFollowPreset != null
         ? minigamePreset.scalpelFollowPreset
         : ScalpelFollowLoopPreset;
 
@@ -338,6 +341,15 @@ public enum CuttingState
         if (finisher == null)
         {
             finisher = GetComponentInChildren<CutFinisher>(true);
+        }
+
+        // free-look is one scene-wide component, not a per-cut one, so every cut points at the same
+        // instance. Found, never created: AutoWire also runs from Reset, and spawning a GameObject
+        // from there would litter the scene each time the component is added. The setup menu makes
+        // one when the scene has none.
+        if (moveCamera == null)
+        {
+            moveCamera = FindFirstObjectByType<MoveCamera>(FindObjectsInactive.Include);
         }
 
         PushParameters();
@@ -603,6 +615,7 @@ public enum CuttingState
         Debug.LogWarning("entering minigame");
 
         state = CuttingState.PROGRESSING;
+        tearPlayed = false;
 
         SetupRig();
     }
@@ -755,7 +768,7 @@ public enum CuttingState
         if (loopGuide != null) loopGuide.ClearTrace();
 
         if (scalpelFollow != null
-            && scalpelFollow.TryGetComponent<LoopFollowingObject>(out var scalpelLoop))
+            && scalpelFollow.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
         {
             scalpelLoop.ResetTrace();
         }
@@ -806,7 +819,7 @@ public enum CuttingState
     {
         CameraFollow scalpel = scalpelFollow;
         if (scalpel == null) return;
-        if (scalpel.TryGetComponent<LoopFollowingObject>(out var scalpelLoop))
+        if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
         {
             scalpelLoop.enabled = on;
             scalpelLoop.drawTrace = on;
@@ -838,6 +851,26 @@ public enum CuttingState
         {
             StopCutSound();
         }
+    }
+
+    /// <summary>Sounds the tear, once per cut.</summary>
+    /// <remarks>
+    /// The finisher calls this as the swing starts rather than on the impact frame: the splice
+    /// between them -- the mesh slice and the convex cook -- stalls the main thread, so a tear fired
+    /// next to the kick is already heard late. Firing it on the swing puts the sound where the player
+    /// reads the blade landing.
+    /// <para>Invariant: guarded, so the direct no-finisher path in <see cref="ApplySplice"/> can call
+    /// it unconditionally without doubling the one the finisher already played.</para>
+    /// </remarks>
+    public void PlayTearSound()
+    {
+        if (tearPlayed || Channel == null || TearSound == null)
+        {
+            return;
+        }
+
+        tearPlayed = true;
+        Channel.Play(TearSound);
     }
 
     /// <summary>Silences the cut loop, if it is sounding. Safe to call when it isn't.</summary>
@@ -907,12 +940,10 @@ public enum CuttingState
     {
         state = CuttingState.COMPLETED;
 
-        // the loop stops and the tear lands together, on the frame the part comes away
         StopCutSound();
-        if (Channel != null && TearSound != null)
-        {
-            Channel.Play(TearSound);
-        }
+
+        // no-op when a finisher already sounded it as the swing started
+        PlayTearSound();
 
         LastSeveredPiece = SliceOffPart();
         InstantiateBodyPart(LastSeveredPiece);
@@ -940,7 +971,7 @@ public enum CuttingState
 
     private void KickSeveredPiece(GameObject bodyPart)
     {
-        float force = finisher.kick;
+        float force = finisher.Kick;
         if (force <= 0f)
         {
             return;
@@ -1069,7 +1100,7 @@ public enum CuttingState
             }
 
             if (ScalpelPreset != null
-                && scalpel.TryGetComponent<LoopFollowingObject>(out var scalpelLoop))
+                && scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
             {
                 scalpelLoop.preset = ScalpelPreset;
                 if (loopGuide != null) scalpelLoop.builder = loopGuide;

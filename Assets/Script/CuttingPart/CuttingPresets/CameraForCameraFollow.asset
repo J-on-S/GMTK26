@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollowPreset
   loopSource: 0
   moveMode: 1
-  scale: 0.37
-  height: -0.06
-  angleOffset: 0
+  scale: 1.08
+  height: 0.44
+  angleOffset: 7.26
   positionOffset: {x: 0, y: 0, z: 0}
   moveSpeed: 5
   lookMode: 0

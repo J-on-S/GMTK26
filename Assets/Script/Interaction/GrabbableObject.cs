@@ -10,6 +10,8 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
   public AudioEventChannel channel;
   public Audio metalPickupAudio;
   public Audio clothPickupAudio;
+  public Audio metalDropAudio;
+  public Audio clothDropAudio;
 
   private Vector3 initialPosition;
   private Quaternion initialRotation;
@@ -25,22 +27,29 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     if (player.heldObject == null){ 
       // make an object as a child for holdPoint
       Debug.Log("player holdp"+player.holdPoint);
-      transform.SetParent(player.holdPoint, true);
-
-      // local means relative to the parent
-      this.transform.localPosition = Vector3.zero; // centre of holdPoint
-      this.transform.localRotation = Quaternion.identity; //without rotation
-      rb.isKinematic = true; // no physics for object;
-      player.heldObject = this;
       if (itemType == ItemType.Tool){
         channel.Play(metalPickupAudio);
       } else {
         channel.Play(clothPickupAudio);
       }
+      transform.SetParent(player.holdPoint, true);
+
+      // local means relative to the parent
+      this.transform.localPosition = Vector3.zero; // centre of holdPoint
+      this.transform.localRotation = Quaternion.identity; //without rotation
+    if (!TryGetComponent<Rigidbody>(out var rb))
+      rb = gameObject.AddComponent<Rigidbody>();
+      rb.isKinematic = true; // no physics for object;
+      player.heldObject = this;
     }
   }
   // DROP
   public void Drop(){
+    if (itemType == ItemType.Tool){
+      channel.Play(metalDropAudio);
+    } else {
+      channel.Play(clothDropAudio);
+    }
     // remove parenting
     transform.parent = null;
     rb.isKinematic = false; // no physics for object;

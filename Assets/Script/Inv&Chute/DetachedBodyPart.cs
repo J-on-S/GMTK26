@@ -57,18 +57,19 @@ public class DetachedBodyPart : MonoBehaviour, IInteractable
         }
     }
 
-    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, GameObject gameObject)
+    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject)
     {
-        var bodyPart = gameObject.GetComponent<DetachedBodyPart>();
+        var detachedBodyPart = gameObject.GetComponent<DetachedBodyPart>();
         
-        if (bodyPart == null)
+        if (detachedBodyPart == null)
         {
-            bodyPart = gameObject.AddComponent<DetachedBodyPart>();
+            detachedBodyPart = gameObject.AddComponent<DetachedBodyPart>();
         }
         
-        bodyPart.health = startingHealth;
-        bodyPart.maxHealth = maxHealth;
-        return bodyPart;
+        detachedBodyPart.health = startingHealth;
+        detachedBodyPart.maxHealth = maxHealth;
+        detachedBodyPart.bodyPart = bodyPart;
+        return detachedBodyPart;
     }
     
 }

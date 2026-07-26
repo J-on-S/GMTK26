@@ -235,7 +235,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
     public void Interact(Interactor player)
     {
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        if(player.heldObject == null) return;
+        if(player.heldObject == null && false) return;
 
         if (!Physics.Raycast(ray, out RaycastHit hit)) Debug.LogError("Should not happen: raycast on interact hit. Check layers");
         Debug.Log("successfully interacted");
@@ -244,7 +244,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
         CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
         if(aimed == null) return;
 
-        bool hasTool = aimed.HasRequiredTool(player.heldObject.itemName);
+        bool hasTool = true || aimed.HasRequiredTool(player.heldObject.itemName);
         if(aimed.canEnterMinigame() && hasTool){
             aimed.EnterMinigame();
         }

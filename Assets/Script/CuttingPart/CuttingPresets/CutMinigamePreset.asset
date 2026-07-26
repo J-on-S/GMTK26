@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CutMinigamePreset
   m_EditorClassIdentifier: Assembly-CSharp::CutMinigamePreset
   cameraFOV: 39.21
-  scalpelAngleLead: -4.94
+  scalpelAngleLead: 0
   cameraPreset: {fileID: 11400000, guid: 75612b990c9c21e4d9058da711e7f3db, type: 2}
   curvePreset: {fileID: 11400000, guid: 01d5a639055a2844b9b2e815d4481571, type: 2}
   scalpelFollowPreset: {fileID: 11400000, guid: fe3ef3a98701134469bf5c0582fec9bd, type: 2}

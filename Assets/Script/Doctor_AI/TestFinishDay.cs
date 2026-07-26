@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 public class TestFinishDay : MonoBehaviour
 {
-    [SerializeField] private TemporaryBlackMarketTaskGenerator temporaryBlackMarketTaskGenerator;
+    [FormerlySerializedAs("temporaryBlackMarketTaskGenerator")]
+    [SerializeField] private BlackMarketGenerator blackMarketGenerator;
 
     [ContextMenu("Finish Day")]
     public void FinishDay()
@@ -24,7 +26,7 @@ public class TestFinishDay : MonoBehaviour
     {
         //TODO: ADD BODY PART IN BLACK MARKET
         //PUT BODY PART IN FRIDGE
-        temporaryBlackMarketTaskGenerator.IsSucceedBlackMarket();
-        return temporaryBlackMarketTaskGenerator;
+        blackMarketGenerator.IsSucceedBlackMarket();
+        return blackMarketGenerator;
     }
 }

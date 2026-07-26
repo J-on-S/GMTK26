@@ -147,7 +147,8 @@ public class ToolRequestManager : MonoBehaviour
             // some sort of score stuff
         }
         else
-        {
+        {   
+            //  Todo
             // maybe add penalty to score here for not fulfilling request?
             // PUT SUBTRACTING A HEART HERE
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");

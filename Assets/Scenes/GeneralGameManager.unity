@@ -606,6 +606,37 @@ Transform:
   - {fileID: 714578160}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &998867139
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 998867140}
+  m_Layer: 0
+  m_Name: UiManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &998867140
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 998867139}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.30729, y: -0, z: 20.00512}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1614007374
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -706,7 +737,6 @@ GameObject:
   - component: {fileID: 1718087761}
   - component: {fileID: 1718087760}
   - component: {fileID: 1718087759}
-  - component: {fileID: 1718087758}
   m_Layer: 0
   m_Name: GameplayManager
   m_TagString: Untagged
@@ -729,26 +759,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1718087758
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1718087756}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 296a9a79b58f887469d37ceddaaeb9b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RandomizedClientList
-  clientPrefabs: []
-  reshuffleWhenEmpty: 1
-  taskGenerator: {fileID: 0}
-  clientsToPrepare: 6
-  useHandMadeTasks: 1
-  prepareOnStart: 1
-  generatedTaskList: []
-  activeClients: []
 --- !u!114 &1718087759
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -762,7 +772,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TemporaryBlackMarketTaskGenerator
   maximumDifferentPartTypes: 3
+  MaxPerType: 3
+  minNbBodyParts: 1
+  maxNbBodyParts: 3
+  notFoundMat: {fileID: 0}
+  totalParts: 12
   availableBodyParts: 00000000010000000200000003000000040000000500000006000000
+  currentBlackMarketTask:
+    requestedParts: []
+  bodyPartsPosParent: {fileID: 0}
+  bodyPartsPos: []
+  bodyParts: {fileID: 0}
+  bodyPartTypeFound: 0
 --- !u!114 &1718087760
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -778,6 +799,11 @@ MonoBehaviour:
   operationChairs:
   - {fileID: 0}
   - {fileID: 0}
+  trapdoor: {fileID: 0}
+  storage: {fileID: 0}
+  cuttingTools:
+  - {fileID: 0}
+  clientListPoster: {fileID: 0}
 --- !u!114 &1718087761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -790,13 +816,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7fc918fd032ac24eab8661aba0d7b71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameplayManager
-  clientList: {fileID: 1718087758}
   blackMarketTaskGenerator: {fileID: 0}
   beginFirstDayOnStart: 1
   currentDay: 1
   state: 0
   currentBlackMarketTask:
     requestedParts: []
+  numberOfLives: 4
+  countdownRemaining: 0
 --- !u!1 &1826851024
 GameObject:
   m_ObjectHideFlags: 0
@@ -1025,3 +1052,4 @@ SceneRoots:
   - {fileID: 1672940220}
   - {fileID: 1826851028}
   - {fileID: 854151312}
+  - {fileID: 998867140}
