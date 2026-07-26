@@ -20,6 +20,7 @@ public class GenerateClientInfoUI : MonoBehaviour
                 if(i == 0)
                 {
                     newCard.text = child.GetComponent<TextMeshProUGUI>();
+                    child.GetComponent<TextMeshProUGUI>().text = "";
                 }
                 else
                 {
