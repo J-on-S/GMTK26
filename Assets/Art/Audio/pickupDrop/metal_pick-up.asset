@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60834d41c5f1b8846b0be01492d2c418, type: 3}
   m_Name: metal_pick-up
   m_EditorClassIdentifier: Assembly-CSharp::Audio
-  AudioClip: {fileID: 8300000, guid: ccb78f3d5159d7ae8a65a2246be1a7bc, type: 3}
+  AudioClip: {fileID: 8300000, guid: d460b23721a9845fdbcc6c7e6582f35b, type: 3}
   Volume: 1
   Loop: 0
   Pan: 0
