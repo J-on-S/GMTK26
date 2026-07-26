@@ -26,7 +26,6 @@ public class TestFinishDay : MonoBehaviour
     {
         //TODO: ADD BODY PART IN BLACK MARKET
         //PUT BODY PART IN FRIDGE
-        return blackMarketGenerator != null &&
-               blackMarketGenerator.IsSucceedBlackMarket();
+        return blackMarketGenerator.IsSucceedBlackMarket();
     }
 }
