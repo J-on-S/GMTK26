@@ -69,6 +69,12 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <summary>Mesh instance at the last extraction; a slice swaps the sharedMesh without moving the transform, so pose checks alone would serve a stale loop.</summary>
     private Mesh lastSharedMesh;
 
+    /// <summary>Cut window at the last extraction. Part of the signature because resizing the window changes which loops survive it without moving a single transform -- and dragging a window box is exactly how the window gets tuned.</summary>
+    private Vector2 lastWindowSize;
+
+    /// <summary>Cut window centre at the last extraction, for the same reason as <c>lastWindowSize</c>.</summary>
+    private Vector2 lastWindowCenter;
+
     /// <summary>Whether <c>cachedLocal</c> holds a result from a completed extraction.</summary>
     private bool cacheValid;
 
@@ -154,15 +160,18 @@ public class LoopGuideBuilder : MonoBehaviour {
         // the last extraction (a slice swaps the sharedMesh in place); the world loop, centre
         // and arc length are all cached in the same block, so every frame in between just
         // returns them.
-        if (!cacheValid || planePose != lastPlane || meshPose != lastMesh || sharedMesh != lastSharedMesh) {
-            // match the slice window and weld when the target is a CuttableObject, so the
-            // guide shows exactly the loop the cut will use
-            Vector2 window = plane.boundsSize;
+        // match the slice window and weld when the target is a CuttableObject, so the
+        // guide shows exactly the loop the cut will use
+        Vector2 window = plane.WindowSize;
+        Vector2 windowCenter = plane.WindowCenter;
+
+        if (!cacheValid || planePose != lastPlane || meshPose != lastMesh || sharedMesh != lastSharedMesh
+            || window != lastWindowSize || windowCenter != lastWindowCenter) {
             float weld = meshFollow != null ? meshFollow.weld : 1e-4f;
 
             // the guide must be a full ring the player can trace: take the largest CLOSED
             // loop and ignore open chains the window clipped (they come first in the list)
-            var loops = CuttableObject.GetLoops(meshFollow.gameObject, plane.transform, weld, window);
+            var loops = CuttableObject.GetLoops(meshFollow.gameObject, plane.transform, weld, window, windowCenter);
             cachedLocal = null;
             for (int i = 0; i < loops.Count; i++) {
                 if (loops[i].closed && (cachedLocal == null || loops[i].points.Count > cachedLocal.Count)) {
@@ -172,6 +181,8 @@ public class LoopGuideBuilder : MonoBehaviour {
             lastPlane = planePose;
             lastMesh = meshPose;
             lastSharedMesh = sharedMesh;
+            lastWindowSize = window;
+            lastWindowCenter = windowCenter;
             cacheValid = true;
             extractVersion++; // invalidate the curved-guide cache
 

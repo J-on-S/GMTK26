@@ -3147,7 +3147,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6878925314053301928, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1147442672}
   m_SourcePrefab: {fileID: 100100000, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
 --- !u!1 &975702050
 GameObject:
@@ -3908,9 +3911,10 @@ MonoBehaviour:
   GameObjectBeingCut: {fileID: 0}
   bodyPartName: 
   requiredToolName: 
+  bodyPartType: {fileID: 0}
   cameraFOV: 40
   cameraPreset: {fileID: 0}
-  ScalpelFollowLoopPreset: {fileID: 0}
+  scalpelSurfacePreset: {fileID: 0}
   curvePreset: {fileID: 0}
   loopGuide: {fileID: 0}
   moveCamera: {fileID: 0}
@@ -3923,6 +3927,43 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
   m_PrefabInstance: {fileID: 974695388}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1147442668 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9081844400141631352, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
+  m_PrefabInstance: {fileID: 974695388}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 54785003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c83b58baa05a94286afb268943ac1900, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactor
+--- !u!114 &1147442669 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2163062960582052215, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
+  m_PrefabInstance: {fileID: 974695388}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 54785003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1519704388d714237922de4a9f0df439, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+--- !u!114 &1147442672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 54785003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e53b23234c50549a00131ee08cead4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DisabledDuringMinigame
+  ToDeactivate:
+  - {fileID: 1147442668}
+  - {fileID: 1147442669}
 --- !u!1001 &1200048961
 PrefabInstance:
   m_ObjectHideFlags: 0

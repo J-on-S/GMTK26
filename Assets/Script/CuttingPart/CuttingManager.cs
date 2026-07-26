@@ -101,6 +101,7 @@ public enum CuttingState
 
     [Tooltip("ToolPickup.itemName the player must be holding to start this cut. Leave empty for a cut that needs no particular tool.")]
     public string requiredToolName;
+    [SerializeField] public BodyPart bodyPartType;
 
     // Snapshot of the free-look camera pose, by value: holding the Transform itself would just
     // alias the live camera, so restoring would assign every field to itself.
@@ -143,7 +144,7 @@ public enum CuttingState
 
     public CameraMovesPreset cameraPreset;
 
-    public ScalpelSurfacePreset ScalpelFollowLoopPreset;
+    public ScalpelSurfacePreset scalpelSurfacePreset;
 
     public CurvePreset curvePreset;
 
@@ -208,11 +209,20 @@ public enum CuttingState
     [Tooltip("Channel and clips this cut plays. Shared across cuts, so one asset normally serves them all.")]
     public CutSoundPreset soundPreset;
 
+    [Tooltip("Grab/drop sounds handed to the severed piece. The piece is built at runtime, so its audio can only come from here.")]
+    public AudioGrappablePreset severedPieceAudioPreset;
+
+    [Tooltip("Health the severed piece starts and caps at, in seconds of freshness before it is spoiled.")]
+    public float SeveredPieceHealth = 60f;
+
     /// <summary>The looping cut sound while it is playing, so exactly that instance can be stopped again.</summary>
     private AudioMaster.PlayingClip cutLoop;
 
     /// <summary>Whether the cut loop is currently meant to be sounding. Edge-triggers the play/stop so a frame where the channel returns nothing doesn't retry forever.</summary>
     private bool cutSoundOn;
+
+    /// <summary>Whether the cut loop is held mid-clip for an open menu. Separate from <c>cutSoundOn</c>: the loop is still the one the cut wants, it is only suspended, so unpausing puts it back rather than starting a new one.</summary>
+    private bool cutSoundPaused;
 
     /// <summary>Whether this cut has already sounded its tear, so the finisher's early play and the splice's own cannot both land.</summary>
     private bool tearPlayed;
@@ -266,7 +276,7 @@ public enum CuttingState
     /// <summary>Along-limb tuning handed to the scalpel's surface driver.</summary>
     public ScalpelSurfacePreset ScalpelPreset => minigamePreset != null && minigamePreset.scalpelFollowPreset != null
         ? minigamePreset.scalpelFollowPreset
-        : ScalpelFollowLoopPreset;
+        : scalpelSurfacePreset;
 
     /// <summary>Framing pushed onto the shared camera orbit on entry. Preset-only: there is no inline fallback, since the follow keeps its own hand-tuned values when none is given.</summary>
     public CameraFollowPreset CameraOrbitPreset => minigamePreset != null ? minigamePreset.cameraOrbitPreset : null;
@@ -834,6 +844,32 @@ public enum CuttingState
     /// </remarks>
     void UpdateCutSound()
     {
+        // Menu open: suspend the loop where it is and decide nothing else. Update still runs at
+        // timeScale 0, so without this the speed test below keeps its own verdict and the blade
+        // goes on sawing behind the pause screen.
+        if (PauseMenu.isPaused)
+        {
+            if (cutSoundOn && !cutSoundPaused && cutLoop != null && Channel != null)
+            {
+                // the immediate pause, not FadePause: a fade is a coroutine on scaled time, and at
+                // timeScale 0 it would never reach the pause it was on its way to.
+                Channel.Pause(cutLoop);
+                cutSoundPaused = true;
+            }
+            return;
+        }
+
+        // Back from the menu: put the held loop back before the speed test gets a say, so the cut
+        // resumes mid-clip instead of restarting from the top of the saw.
+        if (cutSoundPaused)
+        {
+            cutSoundPaused = false;
+            if (cutLoop != null && Channel != null)
+            {
+                Channel.Resume(cutLoop);
+            }
+        }
+
         bool wants = isPlaying
             && CutSound != null
             && Channel != null
@@ -877,6 +913,9 @@ public enum CuttingState
     void StopCutSound()
     {
         cutSoundOn = false;
+        // cleared with the clip it referred to: a stopped loop has nothing left to resume, and a
+        // stale flag would make the next unpause resume a PlayingClip the AudioMaster has released.
+        cutSoundPaused = false;
         if (cutLoop != null && Channel != null)
         {
             Channel.Stop(cutLoop);
@@ -946,7 +985,7 @@ public enum CuttingState
         PlayTearSound();
 
         LastSeveredPiece = SliceOffPart();
-        InstantiateBodyPart(LastSeveredPiece);
+        OutfitSeveredPiece(LastSeveredPiece);
     }
 
     /// <summary>Hands the camera back and reports the cut done, after the follow-through when there is a finisher.</summary>
@@ -957,39 +996,32 @@ public enum CuttingState
         OnMinigameCompleted?.Invoke(this, LastSeveredPiece);
     }
 
-    void InstantiateBodyPart(GameObject bodyPart)
+    
+    void OutfitSeveredPiece(GameObject piece)
     {
-        GrabbableObject grabbableObject =bodyPart.AddComponent<GrabbableObject>();
-        grabbableObject.itemName = bodyPartName;
-        grabbableObject.itemType = ItemType.BodyPart;
-        
-        KickSeveredPiece(bodyPart);
-       
+        // a slice that severed nothing is already reported by SliceOffPart
+        if (piece == null) return;
 
+        // convex first: a concave collider on the Rigidbody the next line adds warns and falls through the world.
+        MakeCollidersDynamic(piece);
 
+        // adds the Rigidbody too, so every component the loose part is made of comes from this one call
+        DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset);
+
+        KickSeveredPiece(piece);
     }
 
-    private void KickSeveredPiece(GameObject bodyPart)
+    /// <summary>Throws the piece off along the swing, when the finisher asks for it.</summary>
+    /// <remarks>Silent no-op without a finisher: the cut then splices with no close-up and no swing to be thrown by.</remarks>
+    private void KickSeveredPiece(GameObject piece)
     {
+        if (finisher == null) return;
+
         float force = finisher.Kick;
-        if (force <= 0f)
-        {
-            return;
-        }
+        if (force <= 0f) return;
 
-      
-        if (bodyPart == null)
-        {
-            // a slice that severed nothing is already reported by the cut
-            return;
-        }
-
-        MakeCollidersDynamic(bodyPart);
-
-        if (!bodyPart.TryGetComponent(out Rigidbody body))
-        {
-            body = bodyPart.AddComponent<Rigidbody>();
-        }
+        // MakeDetachedBodyPart guarantees one, but a piece fitted out some other way may not have it
+        if (!piece.TryGetComponent(out Rigidbody body)) return;
 
         body.AddForce(-finisher.ApproachAxis * force, ForceMode.Impulse);
     }
@@ -1205,6 +1237,7 @@ public enum CuttingState
     private Matrix4x4 previewBodyPose;
     private Mesh previewSourceMesh;
     private Vector2 previewWindow;
+    private Vector2 previewWindowCenter;
     private bool previewBuilt;
 
     /// <summary>The piece this cut would take off, as a mesh in the body's local space. Rebuilt only when the plane, the body or the window moves.</summary>
@@ -1241,7 +1274,8 @@ public enum CuttingState
 
         Matrix4x4 planePose = plane.transform.localToWorldMatrix;
         Matrix4x4 bodyPose = GameObjectBeingCut.transform.localToWorldMatrix;
-        Vector2 window = plane.boundsSize;
+        Vector2 window = plane.WindowSize;
+        Vector2 windowCenter = plane.WindowCenter;
 
         // a slice swaps sharedMesh in place without moving anything, so the mesh identity has to
         // be part of the signature, not just the two poses.
@@ -1249,7 +1283,8 @@ public enum CuttingState
             && planePose == previewPlanePose
             && bodyPose == previewBodyPose
             && sourceMesh == previewSourceMesh
-            && window == previewWindow)
+            && window == previewWindow
+            && windowCenter == previewWindowCenter)
         {
             return;
         }
@@ -1273,6 +1308,7 @@ public enum CuttingState
         previewBodyPose = bodyPose;
         previewSourceMesh = sourceMesh;
         previewWindow = window;
+        previewWindowCenter = windowCenter;
         previewBuilt = true;
     }
 

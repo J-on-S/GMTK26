@@ -67,6 +67,11 @@ public class CuttingManagerEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("soundPreset"));
 
         EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Severed Piece", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("severedPieceAudioPreset"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("SeveredPieceHealth"));
+
+        EditorGUILayout.Space();
         EditorGUILayout.LabelField("Finisher", EditorStyles.boldLabel);
         SerializedProperty finisher = serializedObject.FindProperty("finisher");
         EditorGUILayout.PropertyField(finisher);
@@ -273,7 +278,7 @@ public class CuttingManagerEditor : Editor
         preset.scalpelAngleLead = manager.scalpelAngleLead;
         preset.cameraPreset = manager.cameraPreset;
         preset.curvePreset = manager.curvePreset;
-        preset.scalpelFollowPreset = manager.ScalpelFollowLoopPreset;
+        preset.scalpelFollowPreset = manager.scalpelSurfacePreset;
         if (manager.loopGuide != null)
         {
             preset.curveWidth = manager.loopGuide.curveWidth;
