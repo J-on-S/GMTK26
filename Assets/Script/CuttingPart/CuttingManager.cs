@@ -285,7 +285,10 @@ public enum CuttingState
     /// <summary>Travel speed above which the cut counts as cutting, in deg/sec.</summary>
     public float CutSoundSpeedThreshold => soundPreset != null ? soundPreset.cutSoundSpeedThreshold : 0.5f;
 
-  
+    /// <summary>
+    /// null when there is no game being played
+    /// </summary>
+    public static CuttingManager currentGame = null;
 
     /// <summary>What is still missing before this cut can run, in inspector-readable words. Empty when it is ready.</summary>
     public List<string> MissingWiring()
@@ -595,7 +598,7 @@ public enum CuttingState
             Debug.LogError($"{name}: can't enter the cut, still missing {string.Join(", ", missing)}.", this);
             return;
         }
-
+        currentGame = this;
         OnMinigameEntered?.Invoke(this);
         Debug.LogWarning("entering minigame");
 
@@ -618,7 +621,7 @@ public enum CuttingState
         StopCutSound();
 
         RestoreRig();
-
+        
         OnMinigameQuit?.Invoke(this);
     }
 
@@ -871,7 +874,7 @@ public enum CuttingState
             BeginFinisher();
             return;
         }
-
+        CuttingManager.currentGame = null;
         ApplySplice();
         FinishUp();
     }

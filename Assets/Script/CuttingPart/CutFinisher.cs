@@ -428,11 +428,9 @@ public class CutFinisher : MonoBehaviour
         {
             yield return new WaitForSeconds(hold);
         }
-
-        // the tool is deliberately left up: onDone starts the fly-out, and it is still in shot for
         // all of it. The cut releases it when the camera lands.
         running = null;
-
+        CuttingManager.currentGame = null;
         onDone?.Invoke();
     }
 
