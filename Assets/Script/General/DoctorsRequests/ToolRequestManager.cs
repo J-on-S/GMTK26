@@ -31,6 +31,9 @@ public class ToolRequestManager : MonoBehaviour
     // stuff for doctor request UI
     public TextMeshProUGUI myTextLabel;
 
+    // request sound
+    public PlayerHitSound confusedDoctor;
+
     private void Start()
     {
         // start a request immediately
@@ -118,6 +121,7 @@ public class ToolRequestManager : MonoBehaviour
         string itemCategory = currentRequest.itemType.ToString();
         Debug.Log($"Hey, hand me a {itemCategory}: [{currentRequest.itemName}] within {remainingTime:F1} seconds!");
         myTextLabel.text = "Hey, hand me a " +  itemCategory + ":<color=\"red\"> " + currentRequest.itemName + "</color>"; //+ " within " + remainingTime + " seconds!";
+        confusedDoctor.playAudio();
 
 
         // remove request from the list immediately, doctor will not ask again regardless of if request is fulfilled or not

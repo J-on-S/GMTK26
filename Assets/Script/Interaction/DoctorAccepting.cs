@@ -1,7 +1,9 @@
 using UnityEngine;
 
 public class DoctorAccepting : MonoBehaviour, IInteractable {
+
   private ToolRequestManager manager;
+  public PlayerHitSound angerSound;
 
   void Start() {
     manager = FindFirstObjectByType<ToolRequestManager>();
@@ -20,6 +22,7 @@ public class DoctorAccepting : MonoBehaviour, IInteractable {
     } else {
         // just keep the item otherwise -- would need to drop it
         Debug.Log($"The doctor rejected the {player.heldObject.itemName}.");
+        angerSound.playAudio();
     }
   }
   
