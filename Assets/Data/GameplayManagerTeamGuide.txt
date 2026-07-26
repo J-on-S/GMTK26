@@ -26,7 +26,9 @@ GameplayManager does NOT perform cutting, move the doctor, manage tools, or
 decide whether the doctor accepted an item.
 
 Automatic transfer of a spawned client's body-part requirements into
-ToolRequestManager is not currently connected.
+ToolRequestManager listens to RandomizedClientList.ClientSpawnedOnChair.
+Every spawned client's remaining body-part requirements are added to the
+shared doctor queue with references to the exact client and bed.
 
 
 ============================================================
@@ -287,6 +289,15 @@ ToolRequestManager:
 - Current Request is the request currently being asked.
 - Current State shows Idle, ActiveRequest, or Cooldown.
 - Remaining Time and Remaining Cooldown show the runtime timers.
+
+To skip the active doctor request, open ToolRequestManager's component menu
+during Play Mode and choose:
+
+Debug > Force Complete Active Request
+
+This skips the required item and starts the normal doctor cooldown. It does
+count as accepted. For a body-part request, it decreases the targeted client's
+requirement and can complete that client.
 
 
 ============================================================

@@ -104,6 +104,9 @@ bool accepted = clientTaskHolder.GiveBodyPart(bodyPart);
 bool updated = clientList.RemoveOneFromTask(targetClient, bodyPart);
 bool removed = clientList.DespawnPerson(client);
 bool spawned = operationChair.TrySpawnNextClient();
+toolRequestManager.BuildRequestsForClient(operationChair, client);
+bool doctorAccepted =
+    toolRequestManager.PlayerSubmittedTool(itemName, itemType);
 ```
 
 Current events:
@@ -120,6 +123,10 @@ clientList.TaskRequirementChanged
 operationChair.ClientPlaced
 operationChair.ClientLeft
 clientDialogueEventChannel.DialogueRequested
+toolRequestManager.RequestStarted
+toolRequestManager.RequestCompleted
+toolRequestManager.RequestFailed
+toolRequestManager.RequestQueueEmptied
 ```
 
 Current implementation:
@@ -140,9 +147,19 @@ Current implementation:
 - Occupied chairs provide an editor-only context command that completes their
   current client's remaining requirements through the normal task API:
   implemented.
-- Automatically adding a spawned client's body-part requirements to the doctor
-  request queue: planned.
-- Doctor request acceptance targeting the correct client task: planned.
+- `ToolRequestManager` provides an editor-only context command that
+  force-completes its active request and starts the normal cooldown:
+  implemented.
+- The doctor handles one request at a time from one shared queue. Body-part
+  requests retain their target client and chair, while ordinary tools have no
+  client target: implemented.
+- Spawned client requirements are automatically added through
+  `ClientSpawnedOnChair`: implemented.
+- Accepted or debug-completed body-part requests decrement the exact targeted
+  client task. Completion then follows the existing client-removal and
+  chair-refill event chain: implemented.
+- Failed body-part requests return to the queue so their client remains
+  completable: implemented.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
 - Doctor detection and heart penalty: planned.
