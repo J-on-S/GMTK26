@@ -339,7 +339,7 @@ public class RandomizedClientList : MonoBehaviour
     /// </summary>
     public GameObject SpawnNextClient(Transform spawnPose)
     {
-        return SpawnNextClient(spawnPose, null);
+        return SpawnNextClientInternal(spawnPose, null);
     }
 
     /// <summary>
@@ -356,10 +356,10 @@ public class RandomizedClientList : MonoBehaviour
             return null;
         }
 
-        return SpawnNextClient(chair.ClientPoseProxy, chair);
+        return SpawnNextClientInternal(chair.ClientPoseProxy, chair);
     }
 
-    private GameObject SpawnNextClient(
+    private GameObject SpawnNextClientInternal(
         Transform spawnPose,
         OperationChair assignedChair)
     {
@@ -420,7 +420,7 @@ public class RandomizedClientList : MonoBehaviour
         if (taskGenerator == null)
             taskGenerator = generator;
 
-        return SpawnNextClient(spawnPose, null);
+        return SpawnNextClientInternal(spawnPose, null);
     }
 
     /// <summary>
