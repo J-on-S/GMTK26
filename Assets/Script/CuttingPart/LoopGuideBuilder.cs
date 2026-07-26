@@ -39,6 +39,9 @@ public class LoopGuideBuilder : MonoBehaviour {
     [Tooltip("Optional LineRenderer for the flat cut loop (raw cross-section).")]
     public LineRenderer flatLine;
 
+    [Tooltip("Draw the lines in play mode too. Off, they are an authoring aid and only appear in edit mode. The curved target loop always draws either way. Pushed down by the CuttingManager that owns this guide.")]
+    public bool showInPlayMode = true;
+
     [Tooltip("Rub the curved guide out behind the scalpel as it passes, so the drawn line is what is left to cut. Off, the whole ring stays drawn for the run.")]
     public bool eraseTraced = true;
 
@@ -98,21 +101,21 @@ public class LoopGuideBuilder : MonoBehaviour {
     private float gHoverLength;
 
     private void Update() {
+        // curved is exempt: it is the loop the player cuts along, so it draws in play whatever this says.
+        bool hiddenInPlay = Application.isPlaying && !showInPlayMode;
+
         bool drawCurved = showCurvedLoop && loopLine != null;
-        bool drawFlat = showFlatLoop && flatLine != null;
+        bool drawFlat = showFlatLoop && flatLine != null && !hiddenInPlay;
         if (!drawCurved && !drawFlat) {
+            // turning a loop off mid-run has to take its line with it, or the last frame drawn stays up
+            HideLines();
             return;
         }
 
         // draw in edit mode too, so the loops are visible while authoring.
         if (!TryGetLoop(out Vector3 center, out List<Vector3> loopPoints)) {
             // no closed loop right now: clear the lines instead of freezing the last drawn one
-            if (loopLine != null) {
-                loopLine.enabled = false;
-            }
-            if (flatLine != null) {
-                flatLine.enabled = false;
-            }
+            HideLines();
             return;
         }
 
@@ -499,6 +502,12 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <summary>Puts the whole ring back, for when no cut is running.</summary>
     public void ClearTrace() {
         tracedFraction = -1f;
+    }
+
+    /// <summary>Takes both lines off screen, leaving their points alone.</summary>
+    private void HideLines() {
+        if (loopLine != null) loopLine.enabled = false;
+        if (flatLine != null) flatLine.enabled = false;
     }
 
     /// <summary>Pushes a loop of points into a LineRenderer at the guide width.</summary>
