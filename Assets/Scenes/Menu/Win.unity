@@ -586,7 +586,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WinScreenReveal
   winBackground: {fileID: 21300000, guid: ee912a21037786565a96fa2dd4689ce2, type: 3}
   backgroundImage: {fileID: 369536555}
-  pauseMenuCover: {fileID: 21300000, guid: ee912a21037786565a96fa2dd4689ce2, type: 3}
+  pauseMenuCover: {fileID: 21300000, guid: b50ae7b0dddfd40f2824d84c0cf377c4, type: 3}
   dossier: {fileID: 320504138}
   verticalLayoutGroup: {fileID: 2133506206}
 --- !u!114 &1198493944
