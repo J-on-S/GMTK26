@@ -35,8 +35,9 @@ public class CheckState : State
 
         if (checkIsLooping)
         {
-            if (isTestSawIllegal)
+            if (DisabledDuringMinigame.IsMinigameActive)
             {
+                Debug.LogError("Loook?");
                 return stateManager.RandomState(states);
             }
 
