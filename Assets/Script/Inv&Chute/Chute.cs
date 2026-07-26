@@ -11,10 +11,14 @@ public class Chute : MonoBehaviour, IInteractable
 
     [SerializeField] private AudioEventChannel audioEventChannel;
     [SerializeField] private Audio dropSoundEffect;
+    [SerializeField] private TemporaryBlackMarketTaskGenerator temporaryBlackMarketTaskGenerator;
+    [SerializeField] private CameraSwitch cameraSwitch;
+    [SerializeField] private ReturnMain returnMain;
     
     [Serializable] public class PartSoldEvent : UnityEvent<BodyPart> {}
     [Header("Events")]
     [SerializeField] private PartSoldEvent onPartSold = new PartSoldEvent();
+    //[SerializeField] private BodyPartType
     public PartSoldEvent OnPartSold => onPartSold;
 
     public IEnumerator SellPart(DetachedBodyPart part)
@@ -29,13 +33,35 @@ public class Chute : MonoBehaviour, IInteractable
             yield return new WaitForEndOfFrame();
         }
         OnPartSold.Invoke(part.bodyPart);
+        CheckBlackMarket();
         Destroy(part.gameObject);
     }
 
     public void Interact(Interactor player)
     {
-        var bodyPart = player.heldObject.GetComponent<DetachedBodyPart>();
-        if (bodyPart == null) return;
-        SellPart(bodyPart);
+        if(!player.heldObject) {
+            CheckBlackMarket();
+            return;
+        }
+        GrabbableObject grabbableObject = player.heldObject;
+        GameObject grabbableGO = grabbableObject.gameObject;
+
+        DetachedBodyPart detachedBodyPart = grabbableGO.GetComponent<DetachedBodyPart>();
+        
+        if (detachedBodyPart == null) {
+            temporaryBlackMarketTaskGenerator.AddBodyPartInBlackMarket(grabbableObject.bodyPartType);
+            CheckBlackMarket();
+            player.heldObject = null;
+            Destroy(grabbableGO);
+            return;
+        }
+        temporaryBlackMarketTaskGenerator.AddBodyPartInBlackMarket(detachedBodyPart.GetBodyPartType());
+        SellPart(detachedBodyPart);
+        player.heldObject = null;
+    }
+    private void CheckBlackMarket()
+    {
+        cameraSwitch.SwitchToOtherCamera();
+        returnMain.enabled = true;
     }
 }

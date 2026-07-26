@@ -9,7 +9,6 @@ public class DetachedBodyPart : MonoBehaviour, IInteractable
     [SerializeField] public float maxHealth = 100.0f;
     [SerializeField] public float health = 100.0f;
     [SerializeField] public Fridge fridge;
-    
     private BodyPartDescriptionHUD _bodyPartDescriptionHUD;
     private Material _material;
     
@@ -22,7 +21,12 @@ public class DetachedBodyPart : MonoBehaviour, IInteractable
     {
         _material =  GetComponent<MeshRenderer>().material;
         _bodyPartDescriptionHUD = BodyPartDescriptionHUD.LastActiveInstance;
+        
     }
+    public BodyPartType GetBodyPartType()
+    {
+        return bodyPart.BodyPartType;
+    } 
 
     private void Update()
     {
@@ -66,4 +70,5 @@ public class DetachedBodyPart : MonoBehaviour, IInteractable
         bodyPart.maxHealth = maxHealth;
         return bodyPart;
     }
+    
 }

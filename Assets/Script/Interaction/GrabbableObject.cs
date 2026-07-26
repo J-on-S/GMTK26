@@ -4,6 +4,7 @@ using System.Collections;
 public class GrabbableObject : MonoBehaviour, IInteractable{
   public string itemName;
   public ItemType itemType;
+  public BodyPartType bodyPartType;
   public float respawnTime = 3f;
 
   public AudioEventChannel channel;
