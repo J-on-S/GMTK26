@@ -6,6 +6,7 @@ public class BodyPartContain
     [SerializeField] private BodyPart bodyPart;
     [ReadOnly] [SerializeField] private bool hasBodyPart = false;
     [ReadOnly] [SerializeField] private GameObject spawnedBodyPartObj;
+    public GameObject obj2d;
     [ReadOnly][SerializeField] private Material originalMat;
     public BodyPart BodyPart => bodyPart;
     public bool HasBodyPart

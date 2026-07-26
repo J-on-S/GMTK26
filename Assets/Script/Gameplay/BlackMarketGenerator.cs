@@ -201,6 +201,7 @@ public class BlackMarketGenerator :
                 newBodyPart2DObj.transform.rotation = Quaternion.Euler(90, 0, 0);
                 newBodyPart2DObj.GetComponent<SpriteRenderer>().color = Color.black;// = Quaternion.Euler(90, 0, 0);
                 newBodyPart2DObj.transform.localScale *=0.2f;
+                
                 Renderer renderer;
                 if (newBodyPartObj.transform.childCount > 0)
                 {
@@ -218,6 +219,7 @@ public class BlackMarketGenerator :
                 }
                 pos_index++;
                 BodyPartContain newBodyPartContain = new BodyPartContain(bodyPart, newBodyPartObj, originalMat);
+                newBodyPartContain.obj2d = newBodyPart2DObj;
                 currentBodyPartTypeContains.Add(newBodyPartContain);
             }
             bodyPartsContainByType.Add(bodyPartType, currentBodyPartTypeContains);
@@ -258,7 +260,8 @@ public class BlackMarketGenerator :
                         renderer.material = bodyPartContain.OriginalMat;
                     }
                     bodyPartContain.HasBodyPart = true;
-                    spawnedBodyPartObj.SetActive(true);
+                    //spawnedBodyPartObj.SetActive(true);
+                    bodyPartContain.obj2d.GetComponent<SpriteRenderer>().color = Color.white;
                     return;
                 }
             }
