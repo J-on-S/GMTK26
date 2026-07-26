@@ -1594,6 +1594,8 @@ MonoBehaviour:
   page1: {fileID: 127692329}
   page2: {fileID: 1594147473}
   mouseMov: {fileID: 1583918022}
+  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  paperAudio: {fileID: 11400000, guid: 8d9c466861527c1e3b38281111de74db, type: 2}
 --- !u!65 &1006468215
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2393,22 +2395,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 127692329}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1594147473}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 1006468214}
+        m_TargetAssemblyTypeName: OpenClients, Assembly-CSharp
+        m_MethodName: nextPage1
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2490,7 +2480,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
   itemName: Arm
   itemType: 1
+  bodyPartType: 0
   respawnTime: 3
+  audioPreset: {fileID: 0}
   channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
   metalPickupAudio: {fileID: 11400000, guid: e13f608cbd95485cb8880489622f05c4, type: 2}
   clothPickupAudio: {fileID: 11400000, guid: 8979acb1c662ac999aeb04e0e268e7a7, type: 2}
@@ -2780,7 +2772,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
   itemName: Knife
   itemType: 0
+  bodyPartType: 0
   respawnTime: 3
+  audioPreset: {fileID: 0}
   channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
   metalPickupAudio: {fileID: 11400000, guid: e13f608cbd95485cb8880489622f05c4, type: 2}
   clothPickupAudio: {fileID: 11400000, guid: 8979acb1c662ac999aeb04e0e268e7a7, type: 2}
@@ -3328,9 +3322,10 @@ MonoBehaviour:
   GameObjectBeingCut: {fileID: 0}
   bodyPartName: 
   requiredToolName: 
+  bodyPartType: {fileID: 0}
   cameraFOV: 40
   cameraPreset: {fileID: 0}
-  ScalpelFollowLoopPreset: {fileID: 0}
+  scalpelSurfacePreset: {fileID: 0}
   curvePreset: {fileID: 0}
   loopGuide: {fileID: 0}
   moveCamera: {fileID: 0}
@@ -3338,6 +3333,8 @@ MonoBehaviour:
   scalpelAngleLead: 0
   finisher: {fileID: 0}
   soundPreset: {fileID: 0}
+  severedPieceAudioPreset: {fileID: 0}
+  SeveredPieceHealth: 60
 --- !u!4 &1714666873
 Transform:
   m_ObjectHideFlags: 0
@@ -3723,7 +3720,7 @@ GameObject:
   - component: {fileID: 1878545620}
   - component: {fileID: 1878545619}
   m_Layer: 5
-  m_Name: Next
+  m_Name: Back
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3793,10 +3790,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 127692329}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 1006468214}
+        m_TargetAssemblyTypeName: OpenClients, Assembly-CSharp
+        m_MethodName: backPage2
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -3804,18 +3801,6 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 1
-        m_CallState: 2
-      - m_Target: {fileID: 1594147473}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &1878545620
 MonoBehaviour:
