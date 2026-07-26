@@ -119,6 +119,17 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!114 &467936222 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2969038016331848041, guid: e0a153dda5ab97ce5901642bf4c47852, type: 3}
+  m_PrefabInstance: {fileID: 751397526}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!1001 &751397526
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -235,6 +246,7 @@ GameObject:
   - component: {fileID: 760393578}
   - component: {fileID: 760393577}
   - component: {fileID: 760393576}
+  - component: {fileID: 760393579}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -316,6 +328,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &760393579
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 760393575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!1 &822509168
 GameObject:
   m_ObjectHideFlags: 0
@@ -845,6 +901,17 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!114 &1028621351 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2284356716242147545, guid: e0a153dda5ab97ce5901642bf4c47852, type: 3}
+  m_PrefabInstance: {fileID: 751397526}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67db9e8f0e2ae9c40bc1e2b64352a6b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Slider
 --- !u!1 &1487207601
 GameObject:
   m_ObjectHideFlags: 0
@@ -1545,10 +1612,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MenuController
   useSavedValues: 0
   mainScene: MainScene
-  volumeValueText: {fileID: 0}
-  volumeSlider: {fileID: 0}
+  volumeValueText: {fileID: 467936222}
+  volumeSlider: {fileID: 1028621351}
   defaultVolume: 1
-  audioEventChannel: {fileID: 0}
+  audioEventChannel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
