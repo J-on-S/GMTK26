@@ -30,7 +30,8 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
 
     private void Update()
     {
-        health = Math.Clamp(health - Time.deltaTime, 0, maxHealth);
+        var multiplier = fridge == null ? 1.0f : 0.5f;
+        health = Math.Clamp(health - Time.deltaTime * multiplier, 0, maxHealth);
         var c = _material.color;
         _material.color = new Color(c.r, c.g, c.b, health / maxHealth);
         if (health <= 0)
