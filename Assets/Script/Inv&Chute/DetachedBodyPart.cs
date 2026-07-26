@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [DisallowMultipleComponent]
-public class DetachedBodyPart : GrabbableObject
+public class DetachedBodyPart : GrabbableObject, IHoverable
 {
     [SerializeField] public BodyPart bodyPart;
     [SerializeField] public float maxHealth = 100.0f;
@@ -39,16 +39,6 @@ public class DetachedBodyPart : GrabbableObject
         }
     }
 
-    private void OnMouseEnter()
-    {
-        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
-    }
-    
-    private void OnMouseExit()
-    {
-        _bodyPartDescriptionHUD.HideBodyPartDescription();
-    }
-
     /// <summary>Takes the part out of the fridge, if it is in one, then grabs it like any other object.</summary>
     /// <remarks>Invariant: the fridge is left alone when the player's hands are full. The base grab is a
     /// no-op in that case, so evicting first would strand the part loose in the room with nobody holding it.</remarks>
@@ -63,6 +53,24 @@ public class DetachedBodyPart : GrabbableObject
         }
 
         base.Interact(player);
+    }
+    
+    private bool hovering;
+
+    public void HoverOver(Interactor player)
+    {
+        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
+        hovering = true;
+    }
+
+    private void LateUpdate()
+    {
+        if (!hovering)
+        {
+            _bodyPartDescriptionHUD.HideBodyPartDescription(this);
+        }
+
+        hovering = false;
     }
 
     /// <param name="preset">Grab/drop sounds for the piece. Added here rather than left to the inspector because

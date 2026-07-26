@@ -3106,28 +3106,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 921735047}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
---- !u!64 &811677952
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8758288444896576998}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 1
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 6762960454324579334, guid: 5428c23d9ea3e25408d9ef6f344a540e, type: 3}
 --- !u!1 &826281313
 GameObject:
   m_ObjectHideFlags: 0
@@ -3528,10 +3506,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6878925314053301928, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1147442672}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
 --- !u!1 &975702050
 GameObject:
@@ -4303,48 +4278,13 @@ MonoBehaviour:
   scalpelAngleLead: 0
   finisher: {fileID: 0}
   soundPreset: {fileID: 0}
+  severedPieceAudioPreset: {fileID: 0}
+  SeveredPieceHealth: 60
 --- !u!4 &1147442667 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
   m_PrefabInstance: {fileID: 974695388}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1147442668 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 9081844400141631352, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-  m_PrefabInstance: {fileID: 974695388}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 54785003}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c83b58baa05a94286afb268943ac1900, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Interactor
---- !u!114 &1147442669 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2163062960582052215, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-  m_PrefabInstance: {fileID: 974695388}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 54785003}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1519704388d714237922de4a9f0df439, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
---- !u!114 &1147442672
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 54785003}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1e53b23234c50549a00131ee08cead4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DisabledDuringMinigame
-  ToDeactivate:
-  - {fileID: 1147442668}
-  - {fileID: 1147442669}
 --- !u!1001 &1200048961
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7178,6 +7118,7 @@ MonoBehaviour:
   itemType: 1
   bodyPartType: 3
   respawnTime: 3
+  audioPreset: {fileID: 0}
   channel: {fileID: 0}
   metalPickupAudio: {fileID: 0}
   clothPickupAudio: {fileID: 0}
@@ -7300,6 +7241,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4103cbf403dc6f258a3b6e31327cd57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DetachedBodyPart
+  itemName: 
+  itemType: 0
+  bodyPartType: 0
+  respawnTime: 3
+  audioPreset: {fileID: 0}
+  channel: {fileID: 0}
+  metalPickupAudio: {fileID: 0}
+  clothPickupAudio: {fileID: 0}
+  metalDropAudio: {fileID: 0}
+  clothDropAudio: {fileID: 0}
   bodyPart: {fileID: 0}
   maxHealth: 100
   health: 100
@@ -11720,8 +11671,8 @@ GameObject:
   - component: {fileID: 4762074255361596144}
   - component: {fileID: 8030545926328711869}
   - component: {fileID: 5539875731157726303}
-  - component: {fileID: 811677952}
   - component: {fileID: 8758288444896576999}
+  - component: {fileID: 8758288444896577000}
   m_Layer: 0
   m_Name: Prop_Oven1
   m_TagString: Untagged
@@ -11747,6 +11698,27 @@ MonoBehaviour:
   - {fileID: 1942723845}
   - {fileID: 787170561}
   - {fileID: 1811117080}
+--- !u!65 &8758288444896577000
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8758288444896576998}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.63923216, y: 0.81009305, z: 0.78384215}
+  m_Center: {x: -0.00000047683716, y: 0, z: 0.000000014901161}
 --- !u!23 &8912401348286351036
 MeshRenderer:
   m_ObjectHideFlags: 0
