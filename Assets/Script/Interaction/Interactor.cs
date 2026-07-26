@@ -10,7 +10,11 @@ public class Interactor : MonoBehaviour
   void Awake(){ //search for camera once
     cam = Camera.main; 
   }
-  
+  public void ResetHeldObj()
+  {
+    Destroy(heldObject.gameObject);
+    heldObject = null;
+  }
   
   void Update() {
     if (heldObject != null && Input.GetKeyDown(KeyCode.E)){
