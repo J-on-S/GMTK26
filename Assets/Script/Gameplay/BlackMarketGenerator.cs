@@ -36,17 +36,15 @@ public class BlackMarketGenerator :
     [SerializeField] private BodyPartType bodyPartTypeFound;
     public void Start()
     {
-        foreach (Transform bodyPartsPosChild in bodyPartsPosParent)
-        {
-            bodyPartsPos.Add(bodyPartsPosChild);
-        }
+        CacheBodyPartPositions();
     }
+
     [ContextMenu("Generate Black Market")]
     public void GenerateTask()
     {
-        currentBlackMarketTask = GenerateTask(1);
-        GenerateBodyPartContains();
+        GenerateTask(1);
     }
+
     public BlackMarketTask GenerateTask(int dayNumber)
     {
         List<BodyPartType> choices = GetUniqueParts();
@@ -54,7 +52,10 @@ public class BlackMarketGenerator :
         if (choices.Count == 0)
         {
             Debug.LogWarning("No black-market body parts are configured.", this);
-            return new BlackMarketTask(Array.Empty<BodyPartRequest>());
+            currentBlackMarketTask =
+                new BlackMarketTask(Array.Empty<BodyPartRequest>());
+            bodyPartsContainByType.Clear();
+            return currentBlackMarketTask;
         }
 
         Shuffle(choices);
@@ -88,22 +89,37 @@ public class BlackMarketGenerator :
             Debug.Log("currentNbParts: "+currentNbParts);
         }
 
-        return new BlackMarketTask(requests);
+        currentBlackMarketTask = new BlackMarketTask(requests);
+        GenerateBodyPartContains();
+        return currentBlackMarketTask;
     }
+
     public bool IsSucceedBlackMarket()
     {
-        foreach (KeyValuePair<BodyPartType, List<BodyPartContain>> pair in bodyPartsContainByType)
+        if (currentBlackMarketTask == null ||
+            currentBlackMarketTask.RequestedParts.Count == 0)
         {
-            BodyPartType type = pair.Key;
-            List<BodyPartContain> bodyPartsContain = pair.Value;
-            foreach(BodyPartContain bodyPartContain in bodyPartsContain)
+            return false;
+        }
+
+        foreach (BodyPartRequest request in
+                 currentBlackMarketTask.RequestedParts)
+        {
+            if (!bodyPartsContainByType.TryGetValue(
+                    request.BodyPart,
+                    out List<BodyPartContain> containers) ||
+                containers.Count < request.Amount)
             {
-                if (!bodyPartContain.HasBodyPart)
-                {
+                return false;
+            }
+
+            for (int i = 0; i < request.Amount; i++)
+            {
+                if (!containers[i].HasBodyPart)
                     return false;
-                }
             }
         }
+
         return true;
     }
 
@@ -130,8 +146,26 @@ public class BlackMarketGenerator :
     }
     public void GenerateBodyPartContains()
     {
+        CacheBodyPartPositions();
         int pos_index = 0;
         bodyPartsContainByType = new Dictionary<BodyPartType, List<BodyPartContain>>();
+
+        if (currentBlackMarketTask == null)
+        {
+            Debug.LogError(
+                "Generate a black-market task before creating its slots.",
+                this);
+            return;
+        }
+
+        if (bodyParts == null)
+        {
+            Debug.LogError(
+                "BlackMarketGenerator needs a BodyParts asset.",
+                this);
+            return;
+        }
+
         foreach (BodyPartRequest bodyPartRequest in currentBlackMarketTask.RequestedParts)
         {
             BodyPartType bodyPartType = bodyPartRequest.BodyPart;
@@ -142,6 +176,15 @@ public class BlackMarketGenerator :
 
             for(int i=0; i < amountBodyPartOfThisType; i++)
             {
+                if (pos_index >= bodyPartsPos.Count)
+                {
+                    Debug.LogError(
+                        "BlackMarketGenerator does not have enough body-part " +
+                        "display positions for the generated task.",
+                        this);
+                    break;
+                }
+
                 //TODO: rotation of bodypart in black market
                 Debug.Log("pos_index: "+pos_index);
                 Transform bodyPartsTransform = bodyPartsPos[pos_index];
@@ -161,7 +204,8 @@ public class BlackMarketGenerator :
                     renderer = newBodyPartObj.GetComponent<Renderer>();
                 }
                  
-                Material originalMat = renderer.material;
+                Material originalMat =
+                    renderer != null ? renderer.material : null;
                 if (renderer != null)
                 {
                     renderer.material = notFoundMat;
@@ -172,6 +216,22 @@ public class BlackMarketGenerator :
             }
             bodyPartsContainByType.Add(bodyPartType, currentBodyPartTypeContains);
         }
+    }
+
+    private void CacheBodyPartPositions()
+    {
+        bodyPartsPos.Clear();
+
+        if (bodyPartsPosParent == null)
+        {
+            Debug.LogError(
+                "BlackMarketGenerator needs a body-parts position parent.",
+                this);
+            return;
+        }
+
+        foreach (Transform child in bodyPartsPosParent)
+            bodyPartsPos.Add(child);
     }
     [ContextMenu("Add BodyPart in test")]
     public void TestAddBodyPartInBlackMarket()

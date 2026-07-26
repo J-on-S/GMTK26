@@ -9,7 +9,11 @@ public class OpenClients : MonoBehaviour, IInteractable
 
   public AudioEventChannel channel;
   public Audio paperAudio;
-
+  private GenerateClientInfoUI generateClientInfoUI;
+  public void Start()
+  {
+      generateClientInfoUI = GetComponent<GenerateClientInfoUI>();
+  }
   public void Interact(Interactor player){
     Debug.Log("Book Interact called"); 
     page1.SetActive(true);
@@ -17,6 +21,7 @@ public class OpenClients : MonoBehaviour, IInteractable
     Time.timeScale = 0f;
     mouseMov.Pause();
     channel.Play(paperAudio);
+    generateClientInfoUI.GenerateUI();
   }
   public void notVisible(){
     page1.SetActive(false);

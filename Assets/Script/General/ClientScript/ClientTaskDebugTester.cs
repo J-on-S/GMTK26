@@ -9,7 +9,7 @@ public class ClientTaskDebugTester : MonoBehaviour
 {
     [Header("Required references")]
     [SerializeField] private ClientTaskList taskList;
-    [SerializeField] private Transform operationChair;
+    [SerializeField] private OperationChair operationChair;
 
     [Header("Runtime debug data")]
     [SerializeField] private GameObject currentClient;

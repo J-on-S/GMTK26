@@ -16,3 +16,4 @@ MonoBehaviour:
   bodyPartPrefab: {fileID: 4358254717175673081, guid: bdf648154d0c44c4caeadd999749dd4f, type: 3}
   rotation: {x: 0, y: 0, z: 0}
   size: 20
+  bodyPartImg: {fileID: 1356591612, guid: 2079b316a07c2c0419c1cc66d17dff5b, type: 3}

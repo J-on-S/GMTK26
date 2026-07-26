@@ -8,10 +8,14 @@ public class ClientTaskQueueEntry
     [SerializeField] private GameObject clientPrefab;
     [SerializeField] private ClientTask task;
     [SerializeField] private GameObject spawnedClient;
+    [SerializeField] private OperationChair assignedChair;
 
     public GameObject ClientPrefab => clientPrefab;
     public ClientTask Task => task;
     public GameObject SpawnedClient => spawnedClient;
+    public OperationChair AssignedChair => assignedChair;
+    public string AssignedChairName =>
+        assignedChair != null ? assignedChair.name : "Unassigned";
     public bool IsSpawned => spawnedClient != null;
 
     public ClientTaskQueueEntry(GameObject clientPrefab, ClientTask task)
@@ -20,9 +24,12 @@ public class ClientTaskQueueEntry
         this.task = task;
     }
 
-    public void SetSpawnedClient(GameObject client)
+    public void SetSpawnedClient(
+        GameObject client,
+        OperationChair chair = null)
     {
         spawnedClient = client;
+        assignedChair = chair;
     }
 }
 
@@ -36,9 +43,10 @@ public class RandomizedClientList : MonoBehaviour
 {
     public static RandomizedClientList Instance { get; private set; }
 
-    [Header("Client prefabs")]
-    [SerializeField] private List<GameObject> clientPrefabs = new();
-    [SerializeField] private bool reshuffleWhenEmpty = true;
+    [Header("Customer source")]
+    [Tooltip(
+        "Provides the random customer prefab used for each generated queue entry.")]
+    [SerializeField] private CustomersAsset customersAsset;
 
     [Header("Pre-generated task list")]
     [SerializeField] private ClientTaskList taskGenerator;
@@ -49,10 +57,6 @@ public class RandomizedClientList : MonoBehaviour
 
     [Header("Runtime")]
     [SerializeField] private List<GameObject> activeClients = new();
-
-    private readonly List<GameObject> randomizedClients = new();
-    private int nextClientIndex;
-    private GameObject lastClientPrefab;
 
     public IReadOnlyList<ClientTaskQueueEntry> GeneratedTaskList => generatedTaskList;
     public IReadOnlyList<GameObject> ActiveClients => activeClients;
@@ -75,6 +79,7 @@ public class RandomizedClientList : MonoBehaviour
 
     public event Action<GameObject> ClientSelected;
     public event Action<GameObject> ClientSpawned;
+    public event Action<OperationChair, GameObject> ClientSpawnedOnChair;
     public event Action<GameObject> ClientRemoved;
     public event Action<ClientTaskQueueEntry> TaskListEntryCreated;
     public event Action<ClientTaskQueueEntry> TaskListEntryRemoved;
@@ -100,6 +105,15 @@ public class RandomizedClientList : MonoBehaviour
             : string.Empty;
     }
 
+    /// <summary>
+    /// Returns the name of the bed assigned when this entry was spawned.
+    /// Pending entries return "Unassigned".
+    /// </summary>
+    public string GetAssignedChairName(ClientTaskQueueEntry entry)
+    {
+        return entry?.AssignedChairName ?? "Unassigned";
+    }
+
     /// <summary>Returns display-ready request text for a generated entry.</summary>
     public string GetTaskString(ClientTaskQueueEntry entry)
     {
@@ -123,6 +137,72 @@ public class RandomizedClientList : MonoBehaviour
         return entry?.Task != null
             ? entry.Task.GetRemainingAmount(bodyPart)
             : 0;
+    }
+
+    /// <summary>
+    /// Debug shortcut that completes every generated client task through the
+    /// normal delivery API. This preserves completion, removal, chair-refill,
+    /// and TaskListEmptied events.
+    /// </summary>
+    [ContextMenu("Debug/Complete All Client Tasks")]
+    public void CompleteAllClientTasks()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning(
+                "Enter Play Mode before completing all client tasks.",
+                this);
+            return;
+        }
+
+        if (generatedTaskList.Count == 0)
+        {
+            Debug.LogWarning(
+                "There are no generated client tasks to complete.",
+                this);
+            return;
+        }
+
+        // Completing an entry removes it and may make a chair spawn another
+        // pending entry, so iterate over a stable snapshot of the same entries.
+        List<ClientTaskQueueEntry> entries =
+            new(generatedTaskList);
+
+        foreach (ClientTaskQueueEntry entry in entries)
+        {
+            if (entry?.Task == null ||
+                !generatedTaskList.Contains(entry))
+            {
+                continue;
+            }
+
+            HashSet<BodyPartType> completedBodyParts = new();
+
+            foreach (BodyPartRequest request in entry.Task.Requests)
+            {
+                BodyPartType bodyPart = request.BodyPart;
+                if (!completedBodyParts.Add(bodyPart))
+                    continue;
+
+                while (generatedTaskList.Contains(entry) &&
+                       entry.Task.GetRemainingAmount(bodyPart) > 0)
+                {
+                    if (RemoveOneFromTask(entry, bodyPart))
+                        continue;
+
+                    Debug.LogError(
+                        $"Could not debug-complete {bodyPart} for " +
+                        $"{GetPersonName(entry)}.",
+                        this);
+                    return;
+                }
+            }
+        }
+
+        Debug.Log(
+            $"Debug-completed all client tasks. " +
+            $"Remaining entries: {generatedTaskList.Count}.",
+            this);
     }
 
     /// <summary>
@@ -320,11 +400,37 @@ public class RandomizedClientList : MonoBehaviour
     /// Spawns the first pending pre-generated entry and assigns its existing task.
     /// No task generation happens here.
     /// </summary>
-    public GameObject SpawnNextClient(Transform chair)
+    public GameObject SpawnNextClient(Transform spawnPose)
+    {
+        return SpawnNextClientInternal(spawnPose, null);
+    }
+
+    /// <summary>
+    /// Spawns the next client using a chair's pose proxy and records that chair
+    /// on the queue entry.
+    /// </summary>
+    public GameObject SpawnNextClient(OperationChair chair)
     {
         if (chair == null)
         {
-            Debug.LogWarning("Cannot spawn a client without an operation chair.", this);
+            Debug.LogWarning(
+                "Cannot spawn a client without an operation chair.",
+                this);
+            return null;
+        }
+
+        return SpawnNextClientInternal(chair.ClientPoseProxy, chair);
+    }
+
+    private GameObject SpawnNextClientInternal(
+        Transform spawnPose,
+        OperationChair assignedChair)
+    {
+        if (spawnPose == null)
+        {
+            Debug.LogWarning(
+                "Cannot spawn a client without a spawn-pose transform.",
+                this);
             return null;
         }
 
@@ -337,28 +443,34 @@ public class RandomizedClientList : MonoBehaviour
             return null;
         }
 
-        // The chair supplies position and rotation only. Keeping the client
-        // unparented prevents a scaled chair hierarchy from changing its size.
-        GameObject clientObject = Instantiate(
-            entry.ClientPrefab,
-            chair.position,
-            chair.rotation);
+        // Keep the client unparented, then copy the proxy's complete world
+        // pose. Because the clone has no parent, localScale is its world scale.
+        GameObject clientObject = Instantiate(entry.ClientPrefab);
+        customersAsset?.ApplyRandomMaterial(clientObject);
+        Transform clientTransform = clientObject.transform;
+        clientTransform.SetPositionAndRotation(
+            spawnPose.position,
+            spawnPose.rotation);
+        clientTransform.localScale = spawnPose.lossyScale;
 
-        ClientTaskHolder taskHolder = clientObject.GetComponent<ClientTaskHolder>();
+        ClientTaskHolder taskHolder =
+            clientObject.GetComponent<ClientTaskHolder>();
         if (taskHolder == null)
         {
-            Debug.LogError(
-                $"{clientObject.name} needs a ClientTaskHolder component.",
+            taskHolder = clientObject.AddComponent<ClientTaskHolder>();
+            Debug.Log(
+                $"Added ClientTaskHolder to spawned customer " +
+                $"{clientObject.name}.",
                 clientObject);
-            Destroy(clientObject);
-            return null;
         }
 
-        entry.SetSpawnedClient(clientObject);
+        entry.SetSpawnedClient(clientObject, assignedChair);
         activeClients.Add(clientObject);
         taskHolder.AssignTask(entry.Task);
         taskHolder.TaskCompletedWithOwner += HandleClientTaskCompleted;
         ClientSpawned?.Invoke(clientObject);
+        if (assignedChair != null)
+            ClientSpawnedOnChair?.Invoke(assignedChair, clientObject);
         return clientObject;
     }
 
@@ -366,12 +478,14 @@ public class RandomizedClientList : MonoBehaviour
     /// Backwards-compatible overload. The generator must be used to pre-generate
     /// the list before this function is called.
     /// </summary>
-    public GameObject SpawnNextClient(Transform chair, ClientTaskList generator)
+    public GameObject SpawnNextClient(
+        Transform spawnPose,
+        ClientTaskList generator)
     {
         if (taskGenerator == null)
             taskGenerator = generator;
 
-        return SpawnNextClient(chair);
+        return SpawnNextClientInternal(spawnPose, null);
     }
 
     /// <summary>
@@ -443,49 +557,32 @@ public class RandomizedClientList : MonoBehaviour
 
     private GameObject GetNextClientPrefab()
     {
-        if (nextClientIndex >= randomizedClients.Count)
+        if (customersAsset == null)
         {
-            if (!reshuffleWhenEmpty)
-                return null;
-
-            ShuffleClients();
+            Debug.LogError(
+                "RandomizedClientList needs a CustomersAsset.",
+                this);
+            return null;
         }
 
-        if (randomizedClients.Count == 0)
+        GameObject client = customersAsset.GetRandomCustomerAsset();
+        if (client == null)
             return null;
 
-        GameObject client = randomizedClients[nextClientIndex++];
-        lastClientPrefab = client;
         ClientSelected?.Invoke(client);
         return client;
     }
 
-    [ContextMenu("Shuffle Client Prefabs")]
+    // Kept for compatibility with existing callers. CustomersAsset now makes
+    // an independent random selection for every generated queue entry.
+    [ContextMenu("Validate Random Customer Source")]
     public void ShuffleClients()
     {
-        randomizedClients.Clear();
-
-        foreach (GameObject client in clientPrefabs)
+        if (customersAsset == null)
         {
-            if (client != null)
-                randomizedClients.Add(client);
+            Debug.LogWarning(
+                "Assign a CustomersAsset to RandomizedClientList.",
+                this);
         }
-
-        for (int i = randomizedClients.Count - 1; i > 0; i--)
-        {
-            int randomIndex = UnityEngine.Random.Range(0, i + 1);
-            (randomizedClients[i], randomizedClients[randomIndex]) =
-                (randomizedClients[randomIndex], randomizedClients[i]);
-        }
-
-        if (randomizedClients.Count > 1 &&
-            randomizedClients[0] == lastClientPrefab)
-        {
-            int swapIndex = UnityEngine.Random.Range(1, randomizedClients.Count);
-            (randomizedClients[0], randomizedClients[swapIndex]) =
-                (randomizedClients[swapIndex], randomizedClients[0]);
-        }
-
-        nextClientIndex = 0;
     }
 }

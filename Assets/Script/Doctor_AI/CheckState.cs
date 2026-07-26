@@ -12,10 +12,13 @@ public class CheckState : State
     private float waitCheckTime;
     private bool checkIsLooping = false;
     private bool isFinishCheck = false;
-    
+    public AudioEventChannel channel;
+    public Audio startCheckHintAudio;
+
     public override void EnterState()
     {
         checkTime = 0f;
+        channel.Play(startCheckHintAudio);
         isFinishCheck = false;
         checkIsLooping = false;
         waitCheckTime = Random.Range(minCheckTime, maxCheckTime);

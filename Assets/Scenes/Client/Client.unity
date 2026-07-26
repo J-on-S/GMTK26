@@ -566,9 +566,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 296a9a79b58f887469d37ceddaaeb9b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RandomizedClientList
-  clientPrefabs:
-  - {fileID: 937386959906664927, guid: 67333f2328bc12e438b11fbdaf9eff59, type: 3}
-  reshuffleWhenEmpty: 1
+  customersAsset: {fileID: 11400000, guid: 69151259b6c29c146b067a136ecd1da4, type: 2}
   taskGenerator: {fileID: 0}
   clientsToPrepare: 6
   useHandMadeTasks: 1
