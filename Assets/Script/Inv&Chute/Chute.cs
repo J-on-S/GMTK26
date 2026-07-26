@@ -21,6 +21,17 @@ public class Chute : MonoBehaviour, IInteractable
     //[SerializeField] private BodyPartType
     public PartSoldEvent OnPartSold => onPartSold;
 
+    [Header("Trapdoor debug")]
+    [Tooltip("Print every object that enters this chute to the Console.")]
+    [SerializeField] private bool logTrapdoorEntries = true;
+    [ReadOnly, SerializeField] private int debugEntryCount;
+    [ReadOnly, SerializeField] private string debugLastObject = "None";
+    [ReadOnly, SerializeField] private string debugLastBodyPart = "Unknown";
+
+    public int DebugEntryCount => debugEntryCount;
+    public string DebugLastObject => debugLastObject;
+    public string DebugLastBodyPart => debugLastBodyPart;
+
     private void Awake()
     {
         if (enterPosition == null)
@@ -95,6 +106,9 @@ public class Chute : MonoBehaviour, IInteractable
         DetachedBodyPart detachedBodyPart = grabbableGO.GetComponent<DetachedBodyPart>();
 
         if (detachedBodyPart == null) {
+            RecordTrapdoorEntry(
+                grabbableGO,
+                grabbableObject.bodyPartType.ToString());
             AddToBlackMarket(grabbableObject.bodyPartType);
             CheckBlackMarket();
             grabbableObject.ReleaseFromHolder();
@@ -104,10 +118,14 @@ public class Chute : MonoBehaviour, IInteractable
 
         if (detachedBodyPart.bodyPart == null)
         {
+            RecordTrapdoorEntry(grabbableGO, "Unknown");
             Debug.LogError($"{name}: {detachedBodyPart.name} has no BodyPart assigned; it cannot be registered on the black market.", this);
         }
         else
         {
+            RecordTrapdoorEntry(
+                grabbableGO,
+                detachedBodyPart.GetBodyPartType().ToString());
             AddToBlackMarket(detachedBodyPart.GetBodyPartType());
         }
 
@@ -142,5 +160,43 @@ public class Chute : MonoBehaviour, IInteractable
         }
 
         returnMain.enabled = true;
+    }
+
+    private void RecordTrapdoorEntry(
+        GameObject enteredObject,
+        string bodyPartName)
+    {
+        debugEntryCount++;
+        debugLastObject =
+            enteredObject != null ? enteredObject.name : "Missing object";
+        debugLastBodyPart =
+            string.IsNullOrWhiteSpace(bodyPartName)
+                ? "Unknown"
+                : bodyPartName;
+
+        if (!logTrapdoorEntries)
+            return;
+
+        Debug.Log(
+            $"[Trapdoor Debug] Entry #{debugEntryCount}: " +
+            $"{debugLastObject} ({debugLastBodyPart}) entered {name}.",
+            enteredObject != null ? enteredObject : this);
+    }
+
+    [ContextMenu("Debug/Print Trapdoor Entry Status")]
+    private void DebugPrintTrapdoorEntryStatus()
+    {
+        if (debugEntryCount == 0)
+        {
+            Debug.Log(
+                $"[Trapdoor Debug] Nothing has entered {name} yet.",
+                this);
+            return;
+        }
+
+        Debug.Log(
+            $"[Trapdoor Debug] {debugEntryCount} object(s) entered {name}. " +
+            $"Last entry: {debugLastObject} ({debugLastBodyPart}).",
+            this);
     }
 }
