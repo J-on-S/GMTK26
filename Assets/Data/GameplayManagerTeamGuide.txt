@@ -140,6 +140,17 @@ greater than or equal to 0.
 
 The final countdown API should replace the temporary value in GameplayManager.
 
+Fridge/storage information can be read with:
+
+fridge.StoredItemCount
+fridge.Capacity
+fridge.StoredItemStatuses
+
+Each StoredBodyPartStatus provides its slot number, occupied state, body-part
+type, current health, and maximum health. During Play Mode, the same
+information appears under Runtime Storage Information in the Fridge
+Inspector. Use "Debug/Print Stored Body Parts" to print it to the Console.
+
 
 ============================================================
 6. WHAT THE BLACK-MARKET SCRIPT MUST IMPLEMENT
@@ -163,6 +174,13 @@ blackMarketGenerator.IsSucceedBlackMarket();
 The result is stored in LastBlackMarketTaskSucceeded and published through
 BlackMarketTaskResolved. After resolving that result, GameplayManager enters
 the Ended state and invokes the black-market entry event.
+
+The scene's FinishDayTest object listens to BlackMarketTaskResolved:
+
+- true loads Scenes/Menu/Win
+- false loads Scenes/Menu/Lost
+
+The load waits one frame so GameplayManager can finish all end-of-day events.
 
 
 ============================================================
