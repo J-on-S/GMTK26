@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [DisallowMultipleComponent]
-public class DetachedBodyPart : MonoBehaviour, IInteractable
+public class DetachedBodyPart : GrabbableObject
 {
     [SerializeField] public BodyPart bodyPart;
     [SerializeField] public float maxHealth = 100.0f;
@@ -53,18 +53,22 @@ public class DetachedBodyPart : MonoBehaviour, IInteractable
         }
     }
 
-    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject)
+    /// <param name="preset">Grab/drop sounds for the piece. Added here rather than left to the inspector because
+    /// the component is created at runtime on a mesh the slicer just made, so there is nobody to author it on.</param>
+    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset)
     {
         var detachedBodyPart = gameObject.GetComponent<DetachedBodyPart>();
-        
+
         if (detachedBodyPart == null)
         {
             detachedBodyPart = gameObject.AddComponent<DetachedBodyPart>();
         }
-        
+
         detachedBodyPart.health = startingHealth;
         detachedBodyPart.maxHealth = maxHealth;
         detachedBodyPart.bodyPart = bodyPart;
+        detachedBodyPart.itemType = ItemType.BodyPart;
+        detachedBodyPart.audioPreset = preset;
         return detachedBodyPart;
     }
 }

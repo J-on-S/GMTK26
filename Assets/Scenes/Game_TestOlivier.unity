@@ -3341,7 +3341,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a63d7e1232f008a41b7376e445fe386d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  temporaryBlackMarketTaskGenerator: {fileID: 338945033}
+  blackMarketGenerator: {fileID: 338945033}
 --- !u!4 &1062407667
 Transform:
   m_ObjectHideFlags: 0
@@ -3808,6 +3808,7 @@ MonoBehaviour:
   scalpelAngleLead: 0
   finisher: {fileID: 1046858921}
   soundPreset: {fileID: 11400000, guid: 9e556d84e36fa4f43ad0df07e2786660, type: 2}
+  severedPieceAudioPreset: {fileID: 11400000, guid: 63490d4edcff78340b3193fadbfb1738, type: 2}
 --- !u!1001 &1280588475
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3816,18 +3817,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1910695550}
     m_Modifications:
-    - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1.355
-      objectReference: {fileID: 0}
-    - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -3868,137 +3857,20 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1530801955803110900, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1.25
-      objectReference: {fileID: 0}
     - target: {fileID: 6878925314053301928, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 298168916838078114, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6878925314053301928, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1280588482}
-    - targetCorrespondingSourceObject: {fileID: 7098176738416348241, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1280588478}
-    - targetCorrespondingSourceObject: {fileID: 7098176738416348241, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1280588487}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
 --- !u!4 &1280588476 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
   m_PrefabInstance: {fileID: 1280588475}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1280588477 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7098176738416348241, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-  m_PrefabInstance: {fileID: 1280588475}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1280588478
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280588477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 838800996ef1e46d692f4e4ddb284612, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MouseMovement
-  mouseSensitivity: 5
---- !u!1 &1280588479 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6878925314053301928, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-  m_PrefabInstance: {fileID: 1280588475}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1280588480 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 9081844400141631352, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-  m_PrefabInstance: {fileID: 1280588475}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280588479}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c83b58baa05a94286afb268943ac1900, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Interactor
---- !u!114 &1280588481 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2163062960582052215, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-  m_PrefabInstance: {fileID: 1280588475}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280588479}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1519704388d714237922de4a9f0df439, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
---- !u!114 &1280588482
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280588479}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1e53b23234c50549a00131ee08cead4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DisabledDuringMinigame
-  ToDeactivate:
-  - {fileID: 1280588480}
-  - {fileID: 1280588481}
---- !u!114 &1280588487
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280588477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa1d517b4c66f91469b52eaa37caf414, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
-  preset: {fileID: 0}
-  loopGuide: {fileID: 0}
-  loopSource: 0
-  scale: 1
-  height: 0.5
-  controlRotation: 1
-  controlPosition: 1
-  rollDegrees: 0
-  rollAmplitude: 0
-  rollSpeed: 0.5
-  pivotAffectsPosition: 1
-  pivotAffectsLook: 0
-  pivotOffset: {x: 0, y: 0}
-  pivotMoves: 0
-  pivotMoveRadius: 0.2
-  pivotMoveSpeed: 0.5
-  lookMode: 0
-  moveMode: 0
-  rotationSpeed: 30
-  speedSourceBehaviour: {fileID: 0}
-  lookSpeed: 5
-  moveSpeed: 5
-  loopTowardTop: 0
-  upMode: 1
-  angleOffset: 0
-  startAngle: 0
-  positionOffset: {x: 0, y: 0, z: 0}
-  maxHorizontalDerive: 1
-  DerivePerSecondEvaluate: 4
-  DeriveSpeed: 0.1
-  deriveCenterBias: 3
 --- !u!65 &1302377507
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5825,7 +5697,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec76aebaab458e4468243ddd073d2a97, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutPlane
-  drawLoop: 1
+  drawLoop: 0
   target: {fileID: 8757348572635722194}
   previewScale: -0.03
 --- !u!65 &2012213150
@@ -5856,7 +5728,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2012213148}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1

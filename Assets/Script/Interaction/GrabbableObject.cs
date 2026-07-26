@@ -6,7 +6,10 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
   public ItemType itemType;
   public float respawnTime = 3f;
 
-  public AudioEventChannel channel;
+  [Tooltip("Channel and clips this object plays on grab and drop. When set, it wins over the four fields below; they stay as the fallback so objects placed before presets existed keep sounding the same.")]
+  public AudioGrappablePreset audioPreset;
+
+  public  AudioEventChannel channel;
   public Audio metalPickupAudio;
   public Audio clothPickupAudio;
   public Audio metalDropAudio;
@@ -26,11 +29,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     if (player.heldObject == null){ 
       // make an object as a child for holdPoint
       Debug.Log("player holdp"+player.holdPoint);
-      if (itemType == ItemType.Tool){
-        channel.Play(metalPickupAudio);
-      } else {
-        channel.Play(clothPickupAudio);
-      }
+      PlayPickupSound();
       transform.SetParent(player.holdPoint, true);
 
       // local means relative to the parent
@@ -42,13 +41,29 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
       player.heldObject = this;
     }
   }
+  /// <summary>Plays the grab sound off the preset, or off the inline clips when no preset is assigned.</summary>
+  private void PlayPickupSound(){
+    if (audioPreset != null){
+      audioPreset.PlayPickup(itemType);
+      return;
+    }
+    if (channel == null) return;
+    channel.Play(itemType == ItemType.Tool ? metalPickupAudio : clothPickupAudio);
+  }
+
+  /// <summary>Plays the drop sound off the preset, or off the inline clips when no preset is assigned.</summary>
+  private void PlayDropSound(){
+    if (audioPreset != null){
+      audioPreset.PlayDrop(itemType);
+      return;
+    }
+    if (channel == null) return;
+    channel.Play(itemType == ItemType.Tool ? metalDropAudio : clothDropAudio);
+  }
+
   // DROP
   public void Drop(){
-    if (itemType == ItemType.Tool){
-      channel.Play(metalDropAudio);
-    } else {
-      channel.Play(clothDropAudio);
-    }
+    PlayDropSound();
     // remove parenting
     transform.parent = null;
     rb.isKinematic = false; // no physics for object;

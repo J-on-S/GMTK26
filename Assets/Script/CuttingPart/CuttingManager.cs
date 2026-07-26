@@ -209,6 +209,9 @@ public enum CuttingState
     [Tooltip("Channel and clips this cut plays. Shared across cuts, so one asset normally serves them all.")]
     public CutSoundPreset soundPreset;
 
+    [Tooltip("Grab/drop sounds handed to the severed piece. The piece is built at runtime, so its audio can only come from here.")]
+    public AudioGrappablePreset severedPieceAudioPreset;
+
     /// <summary>The looping cut sound while it is playing, so exactly that instance can be stopped again.</summary>
     private AudioMaster.PlayingClip cutLoop;
 
@@ -992,14 +995,8 @@ public enum CuttingState
 
     void InstantiateBodyPart(GameObject bodyPart)
     {
-        GrabbableObject grabbableObject =bodyPart.AddComponent<GrabbableObject>();
-        grabbableObject.itemName = bodyPartName;
-        grabbableObject.itemType = ItemType.BodyPart;
-        DetachedBodyPart.MakeDetachedBodyPart(60 , 60 , bodyPartType , bodyPart);
+        DetachedBodyPart.MakeDetachedBodyPart(60 , 60 , bodyPartType , bodyPart , severedPieceAudioPreset);
         KickSeveredPiece(bodyPart);
-       
-
-
     }
 
     private void KickSeveredPiece(GameObject bodyPart)
