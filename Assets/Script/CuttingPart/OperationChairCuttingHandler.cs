@@ -7,14 +7,9 @@ using UnityEngine;
 /// the scene: nothing exists to author against until a chair spawns one. This listens for that moment
 /// and copies the cuts in from a prefab, through <see cref="CutCopier"/>.
 /// <para>
-/// One template per body shape. A client is matched to a template by the <b>mesh</b> its body wears,
-/// because a cut is placement against a specific mesh -- the same plane on a different shape severs a
-/// different piece, or nothing. When nothing matches, the first template is used and the mismatch is
-/// logged: a client with a wrong-but-present set of cuts is a visible bug, while a client with none is
-/// a dead client that the day loop then waits on forever.
+/// No matching: every placed client takes the cuts of the first assigned template, whatever mesh its
+/// body wears. This assumes the clients share the shape the template's cuts were authored against.
 /// </para>
-/// <para>A client with several cuttable parts gets each part matched on its own mesh, so one chair can
-/// place a body whose arm and leg come from different templates.</para>
 /// </remarks>
 [DisallowMultipleComponent]
 public class OperationChairCuttingHandler : MonoBehaviour
@@ -22,7 +17,7 @@ public class OperationChairCuttingHandler : MonoBehaviour
     [Tooltip("Chairs to watch. Left empty, every OperationChair in the scene is watched.")]
     public List<OperationChair> chairs = new();
 
-    [Tooltip("Prefabs holding authored cuts, one per body shape. A placed client takes the cuts of the prefab whose body wears the same mesh; with no match the first is used and the mismatch is logged.")]
+    [Tooltip("Prefabs holding authored cuts. Every placed client takes the cuts of the first assigned prefab -- no mesh matching.")]
     public List<GameObject> cutTemplates = new();
 
     [Tooltip("Delete the cuts a client already carries before copying. On, since a client that arrives with cuts of its own would otherwise end up with both sets over each other.")]
@@ -93,50 +88,16 @@ public class OperationChairCuttingHandler : MonoBehaviour
         }
     }
 
-    /// <summary>The template authored for this body's mesh, or the first one when none matches.</summary>
+    /// <summary>The template to copy cuts from: the first assigned one. No mesh matching -- every body takes the same template's cuts.</summary>
     /// <returns><c>null</c> only when there are no templates at all.</returns>
     private GameObject TemplateFor(CuttableObject body)
     {
-        if (cutTemplates.Count == 0)
-        {
-            Debug.LogError($"{name}: {body.name} was placed with no cut templates assigned; it will have nothing to cut.", this);
-            return null;
-        }
-
-        Mesh wanted = MeshOf(body);
-
         for (int i = 0; i < cutTemplates.Count; i++)
         {
-            GameObject template = cutTemplates[i];
-            if (template == null) continue;
-
-            // every cuttable part of the template counts, so one prefab can serve a body whose parts
-            // are separate CuttableObjects.
-            CuttableObject[] candidates = template.GetComponentsInChildren<CuttableObject>(true);
-            for (int j = 0; j < candidates.Length; j++)
-            {
-                if (wanted != null && MeshOf(candidates[j]) == wanted)
-                {
-                    return template;
-                }
-            }
+            if (cutTemplates[i] != null) return cutTemplates[i];
         }
 
-        Debug.LogError(
-            $"{name}: no cut template matches {body.name}'s mesh ({(wanted != null ? wanted.name : "none")}). " +
-            $"Falling back to {cutTemplates[0].name}, whose cuts were placed against a different shape -- expect them to sever the wrong piece or nothing at all.",
-            body);
-
-        return cutTemplates[0];
-    }
-
-    /// <summary>The mesh a body wears, or <c>null</c> when it has none.</summary>
-    /// <remarks>The same asset the slicer reads (<c>MeshFilter.sharedMesh</c>), compared by reference:
-    /// two bodies match when they are literally the same mesh, which is the only case where one cut's
-    /// placement is guaranteed to mean the same thing on both.</remarks>
-    private static Mesh MeshOf(CuttableObject body)
-    {
-        if (body == null) return null;
-        return body.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
+        Debug.LogError($"{name}: {body.name} was placed with no cut templates assigned; it will have nothing to cut.", this);
+        return null;
     }
 }
