@@ -3,6 +3,8 @@ using UnityEngine.UI;
 using System;
 using TMPro;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 
 public class MenuController : MonoBehaviour
 {
@@ -50,6 +52,8 @@ public class MenuController : MonoBehaviour
 
     void Awake()
     {
+        EnsureEventSystem();
+
         if (useSavedValues)
         {
             if (PlayerPrefs.HasKey("masterVolume"))
@@ -99,6 +103,19 @@ public class MenuController : MonoBehaviour
         }
     }
 
+    // Some menu scenes (Tutorial, Credits, ...) were authored without an EventSystem, so their Canvas
+    // raycaster had nothing to dispatch clicks through and every button was dead. This makes one when the
+    // scene has none, matching StartScreen's InputSystemUIInputModule. Guarded on EventSystem.current so a
+    // scene that already has one (or a persistent one from another scene) is left alone.
+    private static void EnsureEventSystem()
+    {
+        if (EventSystem.current != null) return;
+
+        GameObject go = new GameObject("EventSystem");
+        go.AddComponent<EventSystem>();
+        go.AddComponent<InputSystemUIInputModule>();
+    }
+
     void Start()
     {
         SetVolume();
@@ -140,7 +157,7 @@ public class MenuController : MonoBehaviour
     // play button -- forces the player to see credits first
     public void PlayButton()
     {
-        SceneManager.LoadScene("Credits");
+        SceneManager.LoadScene("Game");
     }
 
     // exits the game
@@ -158,7 +175,7 @@ public class MenuController : MonoBehaviour
     // takes player to the tutorial scene (comes after credits)
     public void GoToTutorial()
     {
-        SceneManager.LoadScene("Tutorial");
+        SceneManager.LoadScene("Game");
     }
 
 
