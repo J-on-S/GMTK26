@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [DisallowMultipleComponent]
-public class DetachedBodyPart : MonoBehaviour
+public class DetachedBodyPart : MonoBehaviour, IInteractable
 {
     [SerializeField] public BodyPart bodyPart;
     [SerializeField] public float maxHealth = 100.0f;
@@ -43,6 +43,14 @@ public class DetachedBodyPart : MonoBehaviour
     private void OnMouseExit()
     {
         _bodyPartDescriptionHUD.HideBodyPartDescription();
+    }
+
+    public void Interact(Interactor player)
+    {
+        if (fridge != null && !fridge.TryEvictItemFromFridge(this))
+        {
+            Debug.LogWarning("Failed to eject self from fridge: Am I not in a fridge?");
+        }
     }
 
     public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, GameObject gameObject)
