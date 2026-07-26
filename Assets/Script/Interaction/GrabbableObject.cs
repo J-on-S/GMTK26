@@ -4,6 +4,7 @@ using System.Collections;
 public class GrabbableObject : MonoBehaviour, IInteractable{
   public string itemName;
   public ItemType itemType;
+  public BodyPartType bodyPartType;
   public float respawnTime = 3f;
 
   [Tooltip("Channel and clips this object plays on grab and drop. When set, it wins over the four fields below; they stay as the fallback so objects placed before presets existed keep sounding the same.")]
