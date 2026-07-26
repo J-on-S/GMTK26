@@ -8,7 +8,6 @@ using UnityEngine;
 public class ClientTaskDebugTester : MonoBehaviour
 {
     [Header("Required references")]
-    [SerializeField] private RandomizedClientList clientList;
     [SerializeField] private ClientTaskList taskList;
     [SerializeField] private Transform operationChair;
 
@@ -18,6 +17,7 @@ public class ClientTaskDebugTester : MonoBehaviour
 
     public GameObject CurrentClient => currentClient;
     public string GeneratedTaskData => generatedTaskData;
+    private RandomizedClientList ClientList => RandomizedClientList.Instance;
 
     [ContextMenu("1. Pregenerate Client Task List")]
     public void PregenerateClientTaskList()
@@ -25,29 +25,29 @@ public class ClientTaskDebugTester : MonoBehaviour
         if (!RequirePlayMode())
             return;
 
-        if (clientList == null || taskList == null)
+        if (ClientList == null || taskList == null)
         {
             Debug.LogError(
-                "Assign Client List and Task List before testing.",
+                "Add a RandomizedClientList singleton and assign Task List before testing.",
                 this);
             return;
         }
 
-        clientList.PregenerateClientTasks(taskList);
+        ClientList.PregenerateClientTasks(taskList);
         LogPregeneratedTaskList();
     }
 
     [ContextMenu("2. Log Pregenerated Task List")]
     public void LogPregeneratedTaskList()
     {
-        if (clientList == null)
+        if (ClientList == null)
             return;
 
         StringBuilder data = new();
-        data.AppendLine($"Pre-generated entries: {clientList.TaskListCount}");
+        data.AppendLine($"Pre-generated entries: {ClientList.TaskListCount}");
 
         int number = 1;
-        foreach (ClientTaskQueueEntry entry in clientList.GeneratedTaskList)
+        foreach (ClientTaskQueueEntry entry in ClientList.GeneratedTaskList)
         {
             data.AppendLine(
                 $"{number}. {entry.ClientPrefab.name}: " +
@@ -65,10 +65,10 @@ public class ClientTaskDebugTester : MonoBehaviour
         if (!RequirePlayMode())
             return;
 
-        if (clientList == null || operationChair == null)
+        if (ClientList == null || operationChair == null)
         {
             Debug.LogError(
-                "Assign Client List and Operation Chair before testing.",
+                "Add a RandomizedClientList singleton and assign Operation Chair before testing.",
                 this);
             return;
         }
@@ -81,7 +81,7 @@ public class ClientTaskDebugTester : MonoBehaviour
             return;
         }
 
-        currentClient = clientList.SpawnNextClient(operationChair);
+        currentClient = ClientList.SpawnNextClient(operationChair);
         if (currentClient == null)
         {
             Debug.LogWarning("No client could be spawned.", this);
@@ -94,7 +94,7 @@ public class ClientTaskDebugTester : MonoBehaviour
             Debug.LogError(
                 "The spawned client needs ClientTaskHolder and an assigned task.",
                 currentClient);
-            clientList.RemoveActiveClient(currentClient);
+            ClientList.RemoveActiveClient(currentClient);
             currentClient = null;
             return;
         }
@@ -144,7 +144,7 @@ public class ClientTaskDebugTester : MonoBehaviour
         if (holder != null)
             holder.TaskCompletedWithOwner -= HandleTaskCompleted;
 
-        clientList.RemoveActiveClient(currentClient);
+        ClientList.RemoveActiveClient(currentClient);
         currentClient = null;
         generatedTaskData = "No active debug client.";
     }
@@ -190,7 +190,7 @@ public class ClientTaskDebugTester : MonoBehaviour
         }
 
         data.AppendLine($"Complete: {task.IsComplete}");
-        data.AppendLine($"Active clients: {clientList.ActiveClientCount}");
+        data.AppendLine($"Active clients: {ClientList.ActiveClientCount}");
 
         generatedTaskData = data.ToString();
         Debug.Log(generatedTaskData, holder);

@@ -50,8 +50,10 @@ public static class GizmoUtils
             Gizmos.DrawSphere(tf.TransformPoint(loop.points[count - 1]), 0.01f);
         }
     }
-    public static void DrawBoundsGizmo(Transform planeTransform , Vector2 boundsSize) {
-        
+    /// <summary>Draws the finite cut window as a wire rectangle on the plane.</summary>
+    /// <param name="boundsCenter">Window centre offset in the plane's local X/Z, matching the one the clip test uses.</param>
+    public static void DrawBoundsGizmo(Transform planeTransform , Vector2 boundsSize, Vector2 boundsCenter = default) {
+
 
         Color prev = Gizmos.color;
         Matrix4x4 prevMat = Gizmos.matrix;
@@ -59,7 +61,9 @@ public static class GizmoUtils
         Gizmos.matrix = Matrix4x4.TRS(planeTransform.position, planeTransform.rotation, planeTransform.lossyScale);
         Gizmos.color = Color.cyan;
         // plane spans right(X)/forward(Z); normal is up(Y)
-        Gizmos.DrawWireCube(Vector3.zero, new Vector3(boundsSize.x, 0.0f, boundsSize.y));
+        Gizmos.DrawWireCube(
+            new Vector3(boundsCenter.x, 0.0f, boundsCenter.y),
+            new Vector3(boundsSize.x, 0.0f, boundsSize.y));
 
         Gizmos.color = prev;
         Gizmos.matrix = prevMat;

@@ -31,8 +31,11 @@ public class ClientTaskQueueEntry
 /// Client GameObjects are only instantiated when a chair requests the next entry.
 /// Completed clients are removed from both the active list and task list.
 /// </summary>
+[DefaultExecutionOrder(-1000)]
 public class RandomizedClientList : MonoBehaviour
 {
+    public static RandomizedClientList Instance { get; private set; }
+
     [Header("Client prefabs")]
     [SerializeField] private List<GameObject> clientPrefabs = new();
     [SerializeField] private bool reshuffleWhenEmpty = true;
@@ -235,7 +238,24 @@ public class RandomizedClientList : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogError(
+                "Only one RandomizedClientList may exist in a scene. " +
+                $"Keeping {Instance.name} and removing {name}.",
+                this);
+            Destroy(this);
+            return;
+        }
+
+        Instance = this;
         ShuffleClients();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     private void Start()
