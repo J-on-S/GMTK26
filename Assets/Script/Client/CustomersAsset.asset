@@ -13,13 +13,14 @@ MonoBehaviour:
   m_Name: CustomersAsset
   m_EditorClassIdentifier: Assembly-CSharp::CustomersAsset
   customersPrefab:
-  - {fileID: 919132149155446097, guid: e231afade4be5864fae91418bbd58f75, type: 3}
-  - {fileID: 919132149155446097, guid: 56ad916f55bcde0479b581efc6e224ee, type: 3}
-  - {fileID: 919132149155446097, guid: 63b2e26c989827a4e9ac913f30ed646b, type: 3}
-  - {fileID: 919132149155446097, guid: 9dd2836159556cf4fb9093b3b280a313, type: 3}
-  - {fileID: 919132149155446097, guid: 8e13d4e9165dc284db5fc5c9fefc6b15, type: 3}
-  - {fileID: 919132149155446097, guid: e09005356b3a2e542bf3d401556e3eab, type: 3}
-  - {fileID: 919132149155446097, guid: 09c4f591f37fc6941a181c12f7d3b912, type: 3}
+  - {fileID: 891889828009974434, guid: fecff275f963a7d488f8259cf3bf7bfa, type: 3}
+  - {fileID: 6584522938404549995, guid: 95802d38f0dd8bc47a8674766e15adb2, type: 3}
+  - {fileID: 345268175625567848, guid: 8c35be8675fa7b942b3624245a585a59, type: 3}
+  - {fileID: 7519316788551829705, guid: 5b3911968ce3f4e4e9a5b29c2feae66e, type: 3}
+  - {fileID: 8097868018903137069, guid: f6e618044541afe4294bb4c683ba7c22, type: 3}
+  - {fileID: 7614813933254351859, guid: 8d0609cb9af22994e891070c39479b8d, type: 3}
+  - {fileID: 6252563501712821300, guid: 2edf036b41de92b45bec616966e75450, type: 3}
+  - {fileID: 4057611996250940699, guid: b01d9a93674d1784489e6ab7cbfdf1d2, type: 3}
   materials:
   - {fileID: 2100000, guid: 1dd8b431d0e93ad42a636bf1b14a2cde, type: 2}
   - {fileID: 2100000, guid: 939243d3380838e4dae8fbe00aca5100, type: 2}

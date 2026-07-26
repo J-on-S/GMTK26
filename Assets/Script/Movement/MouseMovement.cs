@@ -24,7 +24,7 @@ public class MouseMovement : MonoBehaviour
     if(!active || CuttingManager.mouseDelta == null) return;
 
     Vector2 move = CuttingManager.mouseDelta.ReadValue<Vector2>();
-
+    
     
     float mouseX = move.x * mouseSensitivity * 0.01f;
     float mouseY = move.y * mouseSensitivity * 0.01f;
