@@ -11,7 +11,8 @@ public enum BodyPartType
     Arm,
     Ear,
     Hand,
-    Nose
+    Nose,
+    Mouth
 }
 
 [Serializable]

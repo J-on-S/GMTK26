@@ -147,6 +147,14 @@ public class Fridge : MonoBehaviour, IInteractable
 
         item.SetCollidersEnabled(true);
         item.fridge = this;
+
+        if (item.bodyPart != null)
+        {
+            BodyPartRunSummary.Instance
+                .RecordFridgeBodyPartAdded(
+                    item.bodyPart.BodyPartType);
+        }
+
         RefreshStoredItemInformation();
         return true;
     }
@@ -161,6 +169,13 @@ public class Fridge : MonoBehaviour, IInteractable
             if (item.TryGetComponent<Rigidbody>(out var itemRigidbody))
             {
                 itemRigidbody.constraints = RigidbodyConstraints.None;
+            }
+
+            if (item.bodyPart != null)
+            {
+                BodyPartRunSummary.Instance
+                    .RecordFridgeBodyPartRemoved(
+                        item.bodyPart.BodyPartType);
             }
 
             item.fridge = null;
