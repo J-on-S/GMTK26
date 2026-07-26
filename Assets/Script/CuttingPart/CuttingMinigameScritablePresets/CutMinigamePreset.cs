@@ -31,13 +31,13 @@ public class CutMinigamePreset : ScriptableObject
     [Tooltip("Shape of the wavy target loop. Read by the LoopGuideBuilder.")]
     public CurvePreset curvePreset;
 
-    [Tooltip("Along-limb input, speeds and smoothing. Read by the scalpel's LoopFollowingObject.")]
-    public FollowLoopPresets scalpelFollowPreset;
+    [Tooltip("Along-limb input, speeds and smoothing. Read by the scalpel's ScalpelSurfaceDriver.")]
+    public ScalpelSurfacePreset scalpelFollowPreset;
 
     [Tooltip("How the camera frames this cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts can frame differently without each owning a camera.")]
     public CameraFollowPreset cameraOrbitPreset;
 
-    [Tooltip("The same, for the scalpel's CameraFollow. Normally has controlPosition off, since the LoopFollowingObject owns the scalpel's position.")]
+    [Tooltip("The same, for the scalpel's CameraFollow. Normally has controlPosition off, since the ScalpelSurfaceDriver owns the scalpel's position.")]
     public CameraFollowPreset scalpelOrbitPreset;
 
     // Sound is deliberately absent: the clips are wired on the CuttingManager itself.
@@ -48,4 +48,7 @@ public class CutMinigamePreset : ScriptableObject
 
     [Tooltip("How far the drawn loop is lifted off the surface so it doesn't z-fight, in world units. Drawing only; scoring uses the unlifted loop.")]
     public float curveHoverLength = 0.01f;
+
+    [Tooltip("Smallest number of points the loop is warped and drawn with. The cross-section of a low-poly body is only a handful of points, and curving those few makes a zigzag instead of a wave. 0 keeps the raw extraction.")]
+    public int curveResolution = 64;
 }

@@ -25,6 +25,15 @@ public class LoopGuideBuilder : MonoBehaviour {
     [HideInInspector] public float curveWidth = 0.005f;
     [HideInInspector] public float curveHoverLength = 0.01f;
 
+    /// <summary>Smallest number of points the loop is warped and drawn with; 0 leaves the extraction as it came.</summary>
+    /// <remarks>
+    /// The cross-section has exactly one point per triangle edge the plane crosses, so a low-poly body
+    /// gives a ring of eight or ten. That is enough for a flat loop, and not nearly enough once each
+    /// point is pushed up or down by the curve: neighbouring points land far apart and the ring reads as
+    /// a zigzag rather than a wave. Subdividing first gives the warp something to shape.
+    /// </remarks>
+    [HideInInspector] public int curveResolution = 0;
+
 
     [Header("Loop guide")]
     [Tooltip("Draw the curved target loop into loopLine.")]
@@ -38,6 +47,9 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     [Tooltip("Optional LineRenderer for the flat cut loop (raw cross-section).")]
     public LineRenderer flatLine;
+
+    [Tooltip("Draw the lines in play mode too. Off, they are an authoring aid and only appear in edit mode. The curved target loop always draws either way. Pushed down by the CuttingManager that owns this guide.")]
+    public bool showInPlayMode = true;
 
     [Tooltip("Rub the curved guide out behind the scalpel as it passes, so the drawn line is what is left to cut. Off, the whole ring stays drawn for the run.")]
     public bool eraseTraced = true;
@@ -69,6 +81,12 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <summary>Mesh instance at the last extraction; a slice swaps the sharedMesh without moving the transform, so pose checks alone would serve a stale loop.</summary>
     private Mesh lastSharedMesh;
 
+    /// <summary>Cut window at the last extraction. Part of the signature because resizing the window changes which loops survive it without moving a single transform -- and dragging a window box is exactly how the window gets tuned.</summary>
+    private Vector2 lastWindowSize;
+
+    /// <summary>Cut window centre at the last extraction, for the same reason as <c>lastWindowSize</c>.</summary>
+    private Vector2 lastWindowCenter;
+
     /// <summary>Whether <c>cachedLocal</c> holds a result from a completed extraction.</summary>
     private bool cacheValid;
 
@@ -90,23 +108,26 @@ public class LoopGuideBuilder : MonoBehaviour {
     private int gSeed;
     private bool gRandom;
     private float gHoverLength;
+    private int gResolution = -1;
 
     private void Update() {
-        bool drawCurved = showCurvedLoop && loopLine != null;
-        bool drawFlat = showFlatLoop && flatLine != null;
+        // edit mode draws both loops whatever the toggles say: they are the authoring view of this cut,
+        // and an author who cannot see the loop cannot place the plane. The toggles govern play only.
+        bool editMode = !Application.isPlaying;
+
+        // curved is exempt from showInPlayMode: it is the loop the player cuts along.
+        bool drawCurved = loopLine != null && (editMode || showCurvedLoop);
+        bool drawFlat = flatLine != null && (editMode || (showFlatLoop && showInPlayMode));
         if (!drawCurved && !drawFlat) {
+            // turning a loop off mid-run has to take its line with it, or the last frame drawn stays up
+            HideLines();
             return;
         }
 
         // draw in edit mode too, so the loops are visible while authoring.
         if (!TryGetLoop(out Vector3 center, out List<Vector3> loopPoints)) {
             // no closed loop right now: clear the lines instead of freezing the last drawn one
-            if (loopLine != null) {
-                loopLine.enabled = false;
-            }
-            if (flatLine != null) {
-                flatLine.enabled = false;
-            }
+            HideLines();
             return;
         }
 
@@ -126,11 +147,21 @@ public class LoopGuideBuilder : MonoBehaviour {
     public Vector3 PlaneForward => plane != null ? plane.transform.forward : Vector3.forward;
 
     void OnValidate() {
+        ApplyLineWidth();
+    }
+
+    /// <summary>Writes <see cref="curveWidth"/> onto both line renderers.</summary>
+    /// <remarks>Public so the <see cref="CuttingManager"/> that owns the width can land it the moment it
+    /// pushes: this component's own OnValidate does not fire when another script writes its fields, so
+    /// without this the new width waits for the next frame that happens to draw.</remarks>
+    public void ApplyLineWidth() {
         if (loopLine != null) {
             loopLine.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
+            loopLine.widthMultiplier = 1f;
         }
         if (flatLine != null) {
             flatLine.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
+            flatLine.widthMultiplier = 1f;
         }
     }
 
@@ -154,15 +185,18 @@ public class LoopGuideBuilder : MonoBehaviour {
         // the last extraction (a slice swaps the sharedMesh in place); the world loop, centre
         // and arc length are all cached in the same block, so every frame in between just
         // returns them.
-        if (!cacheValid || planePose != lastPlane || meshPose != lastMesh || sharedMesh != lastSharedMesh) {
-            // match the slice window and weld when the target is a CuttableObject, so the
-            // guide shows exactly the loop the cut will use
-            Vector2 window = plane.boundsSize;
+        // match the slice window and weld when the target is a CuttableObject, so the
+        // guide shows exactly the loop the cut will use
+        Vector2 window = plane.WindowSize;
+        Vector2 windowCenter = plane.WindowCenter;
+
+        if (!cacheValid || planePose != lastPlane || meshPose != lastMesh || sharedMesh != lastSharedMesh
+            || window != lastWindowSize || windowCenter != lastWindowCenter) {
             float weld = meshFollow != null ? meshFollow.weld : 1e-4f;
 
             // the guide must be a full ring the player can trace: take the largest CLOSED
             // loop and ignore open chains the window clipped (they come first in the list)
-            var loops = CuttableObject.GetLoops(meshFollow.gameObject, plane.transform, weld, window);
+            var loops = CuttableObject.GetLoops(meshFollow.gameObject, plane.transform, weld, window, windowCenter);
             cachedLocal = null;
             for (int i = 0; i < loops.Count; i++) {
                 if (loops[i].closed && (cachedLocal == null || loops[i].points.Count > cachedLocal.Count)) {
@@ -172,6 +206,8 @@ public class LoopGuideBuilder : MonoBehaviour {
             lastPlane = planePose;
             lastMesh = meshPose;
             lastSharedMesh = sharedMesh;
+            lastWindowSize = window;
+            lastWindowCenter = windowCenter;
             cacheValid = true;
             extractVersion++; // invalidate the curved-guide cache
 
@@ -224,6 +260,23 @@ public class LoopGuideBuilder : MonoBehaviour {
         return loopPoints != null;
     }
 
+    /// <summary>The curved loop as it is drawn: lifted off the surface by <c>curveHoverLength</c>.</summary>
+    /// <remarks>
+    /// Not the same list as <see cref="TryGetCurvedLoop"/>, which hands back the loop sitting exactly on
+    /// the mesh -- right for scoring, wrong for drawing. A line rendered on the surface z-fights it and
+    /// dips through it triangle by triangle, which looks like a tangle rather than a ring. Anything that
+    /// draws the loop wants this one.
+    /// </remarks>
+    public bool TryGetDrawnCurvedLoop(out List<Vector3> loopPoints) {
+        if (!TryGetCurvedLoop(out _, out List<Vector3> curved)) {
+            loopPoints = null;
+            return false;
+        }
+
+        loopPoints = curvedDraw ?? curved;
+        return loopPoints != null;
+    }
+
     /// <summary>Rebuilds <c>curvedGuide</c> only when the extraction or any curve param changed since the last build.</summary>
     private void MaybeRebuildGuide(Vector3 center, List<Vector3> flatWorld) {
         // no curve preset yet (a freshly created cut): leave curvedGuide null so the flat loop
@@ -235,12 +288,13 @@ public class LoopGuideBuilder : MonoBehaviour {
         bool dirty = curvedGuide == null
             || guideVersion != extractVersion
             || gAmp != preset.curveAmplitude || gWaves != preset.curveWaves || gPhase != preset.curvePhase
-            || gSeed != preset.curveSeed || gRandom != preset.curveRandom || gHoverLength != curveHoverLength;
+            || gSeed != preset.curveSeed || gRandom != preset.curveRandom || gHoverLength != curveHoverLength
+            || gResolution != curveResolution;
         if (!dirty) {
             return;
         }
 
-        curvedGuide = BuildCurvedGuide(center, flatWorld);
+        curvedGuide = BuildCurvedGuide(center, Densify(flatWorld, curveResolution));
         curvedDraw = BuildHoverLift(center, curvedGuide);
         curvedLength = LoopScorer.SampledLength(curvedGuide);
 
@@ -251,6 +305,36 @@ public class LoopGuideBuilder : MonoBehaviour {
         gSeed = preset.curveSeed;
         gRandom = preset.curveRandom;
         gHoverLength = curveHoverLength;
+        gResolution = curveResolution;
+    }
+
+    /// <summary>Subdivides a closed loop until it has at least <paramref name="minPoints"/> points, keeping every original point.</summary>
+    /// <remarks>
+    /// Splits each segment evenly rather than resampling by arc length: the extracted points sit exactly
+    /// on the cut, and keeping them means the denser loop still passes through the real cross-section
+    /// instead of cutting its corners. The inserted points are pulled onto the surface by the raycast in
+    /// <see cref="BuildCurvedGuide"/>, so they follow the body rather than chording across it.
+    /// </remarks>
+    private static List<Vector3> Densify(List<Vector3> loop, int minPoints) {
+        if (loop == null || loop.Count < 2 || minPoints <= loop.Count) {
+            return loop;
+        }
+
+        // segments of a closed loop: every point joins the next, and the last joins the first
+        int cuts = Mathf.CeilToInt((float)minPoints / loop.Count);
+        var dense = new List<Vector3>(loop.Count * cuts);
+
+        for (int i = 0; i < loop.Count; i++) {
+            Vector3 a = loop[i];
+            Vector3 b = loop[(i + 1) % loop.Count];
+
+            dense.Add(a);
+            for (int k = 1; k < cuts; k++) {
+                dense.Add(Vector3.Lerp(a, b, (float)k / cuts));
+            }
+        }
+
+        return dense;
     }
 
     /// <summary>Warps the flat loop into a wavy ring that rides the mesh surface: each point's cross-section is slid up/down the body axis by CurveHeight, then raycast back onto the collider.</summary>
@@ -297,7 +381,14 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     /// <summary>Copies a loop and lifts each point off the surface by <c>curveHoverLength</c> along its outward radial (plane-normal component removed), for drawing only.</summary>
     private List<Vector3> BuildHoverLift(Vector3 center, List<Vector3> pts) {
-        if (curveHoverLength == 0f || pts == null) {
+        return BuildHoverLift(center, pts, curveHoverLength);
+    }
+
+    /// <summary>The same lift at a caller's own distance, for anything that draws this loop with its own hover.</summary>
+    /// <remarks>Public so a second line over the same ring -- the scalpel's trace -- can sit at its own
+    /// height instead of inheriting the guide's, which is preset-owned and not the trace's to set.</remarks>
+    public List<Vector3> BuildHoverLift(Vector3 center, List<Vector3> pts, float distance) {
+        if (distance == 0f || pts == null || PlaneTransform == null) {
             return pts;
         }
         Vector3 up = PlaneTransform.up;
@@ -306,7 +397,7 @@ public class LoopGuideBuilder : MonoBehaviour {
             Vector3 flat = pts[i] - center;
             Vector3 radial = flat - up * Vector3.Dot(flat, up);
             Vector3 dir = radial.sqrMagnitude > 1e-8f ? radial.normalized : Vector3.zero;
-            lifted.Add(pts[i] + dir * curveHoverLength);
+            lifted.Add(pts[i] + dir * distance);
         }
         return lifted;
     }
@@ -488,6 +579,12 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <summary>Puts the whole ring back, for when no cut is running.</summary>
     public void ClearTrace() {
         tracedFraction = -1f;
+    }
+
+    /// <summary>Takes both lines off screen, leaving their points alone.</summary>
+    private void HideLines() {
+        if (loopLine != null) loopLine.enabled = false;
+        if (flatLine != null) flatLine.enabled = false;
     }
 
     /// <summary>Pushes a loop of points into a LineRenderer at the guide width.</summary>

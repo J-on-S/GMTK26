@@ -21,7 +21,7 @@ public class MouseMovement : MonoBehaviour
 
   void Update(){
     // the action is static and built by CuttingManager.Start, so it is null in a scene with no cut
-    if(!active || CuttingManager.mouseDelta == null) return;
+    if(!active || CuttingManager.mouseDelta == null  || PauseMenu.isPaused) return;
 
     Vector2 move = CuttingManager.mouseDelta.ReadValue<Vector2>();
     
@@ -60,8 +60,10 @@ public class MouseMovement : MonoBehaviour
 
     void Resume(CuttingManager cm)
     {
-        AdjustCamera();
-        active = true;
+      //AdjustCamera();
+      // reapply our own stored rotation instead of reading it back from the transform
+      transform.localRotation = Quaternion.Euler(xRotation, YRotation, 0f);
+      active = true;
     }
 
     void AdjustCamera()
@@ -71,4 +73,11 @@ public class MouseMovement : MonoBehaviour
         xRotation = Mathf.Clamp(euler.x > 180f ? euler.x - 360f : euler.x, -90f, 90f);
         YRotation = euler.y;
     }
+    // for making freeze during clients menu
+    public void Pause(){ active = false; Debug.Log("MouseMovement Pause called, active = " + active); }
+    
+    public void Unpause() {
+      transform.localRotation = Quaternion.Euler(xRotation, YRotation, 0f);
+      active = true;
+    } 
 }

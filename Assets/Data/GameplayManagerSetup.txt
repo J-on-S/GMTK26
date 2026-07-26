@@ -15,23 +15,27 @@ UNITY SETUP
 
 1. Create an empty GameObject named GameplayManager.
 2. Add GameplayManager.
-3. Add GameplayAssetChecker.
-4. Add TemporaryBlackMarketTaskGenerator.
-5. Assign the RandomizedClientList component to Client List.
-6. Drag TemporaryBlackMarketTaskGenerator into Black Market Task Generator.
+3. Add GameplayAssetChecker only if Require Asset Validation will be enabled.
+4. Add BlackMarketGenerator.
+5. Add exactly one RandomizedClientList to the scene. It becomes the shared
+   singleton automatically.
+6. Drag BlackMarketGenerator into Black Market Task Generator.
 7. Assign exactly two distinct OperationChair components to GameplayAssetChecker.
 8. Assign one Trapdoor, one Storage, and at least one Cutting Tool.
 9. Optionally assign the world-space Client List Poster.
-10. On RandomizedClientList, assign its Task Generator and client prefabs.
+10. On the single RandomizedClientList, assign its Task Generator and
+    Customers Asset.
 11. Disable Prepare On Start on RandomizedClientList because GameplayManager
    now owns beginning-of-day generation.
 12. Leave Begin First Day On Start enabled, or call BeginDay() manually.
 
-GameplayManager refuses to begin a day if:
+When Require Asset Validation is disabled, GameplayAssetChecker is not needed.
+
+When Require Asset Validation is enabled, GameplayManager refuses to begin if:
 - GameplayAssetChecker is missing.
 - There are not exactly two assigned beds.
 - A bed reference is null or duplicated.
-- A bed is missing Client List, Gameplay Manager, or Client Spawn Point.
+- A bed is missing its Gameplay Manager or Client Pose Proxy.
 - A bed references a different manager or client list.
 - Trapdoor is missing.
 - Storage is missing.
@@ -75,10 +79,15 @@ End and advance the day:
 gameplayManager.EndDay();
 gameplayManager.AdvanceToNextDay();
 
+EndDay checks BlackMarketGenerator.IsSucceedBlackMarket() before changing the
+day state. Read the latest result with:
+
+bool succeeded = gameplayManager.LastBlackMarketTaskSucceeded;
+
 
 FUTURE BLACK-MARKET INTEGRATION
 
-TemporaryBlackMarketTaskGenerator is a placeholder.
+BlackMarketGenerator provides the current black-market task generation.
 
 The final BlackMarketManager should implement:
 
@@ -96,6 +105,7 @@ EVENTS
 
 gameplayManager.DayStarted
 gameplayManager.BlackMarketTaskGenerated
+gameplayManager.BlackMarketTaskResolved
 gameplayManager.DayEnded
 
 These events can later update the world-space task board, countdown,
@@ -107,7 +117,8 @@ TEMPORARY AUTOMATIC END CONDITION
 RandomizedClientList raises TaskListEmptied when its last entry is removed.
 GameplayManager then ends the day only when:
 
-- Number Of Lives is greater than 3.
+- HealthScript.Instance reports more than 0 HP. If the scene has no
+  HealthScript, Number Of Lives is used as a temporary fallback.
 - Countdown Remaining is greater than or equal to 0.
 - The current state is InProgress.
 
@@ -119,8 +130,9 @@ Until the final systems exist, tests can update the placeholder values with:
 gameplayManager.SetTemporaryLives(lives);
 gameplayManager.SetTemporaryCountdown(secondsRemaining);
 
-These temporary variables should be replaced by the final lives and countdown
-APIs rather than becoming permanent ownership inside GameplayManager.
+The temporary lives variable is only a fallback for scenes without the
+HealthScript singleton. The countdown value should be replaced by the final
+countdown API.
 
 
 OPERATION CHAIRS / BEDS
@@ -128,9 +140,15 @@ OPERATION CHAIRS / BEDS
 Add OperationChair to each bed.
 
 Assign:
-- Client List: the shared RandomizedClientList.
 - Gameplay Manager: the shared GameplayManager.
-- Client Spawn Point: an empty Transform positioned where the patient lies.
+- Client Pose Proxy: a preset character/proxy positioned, rotated, and scaled
+  exactly as the spawned patient should appear.
+
+The chairs automatically use RandomizedClientList.Instance.
+
+When Hide Pose Proxy At Runtime is enabled, the proxy remains visible for
+scene editing but is hidden in Play Mode. The spawned client is unparented and
+copies the proxy's world position, world rotation, and world scale.
 
 When DayStarted fires, every empty chair requests one pending client.
 When a chair's specific client completes their task and is removed, that chair

@@ -12,7 +12,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
         [Tooltip("Weld distance for merging cut points (mesh-local units). A property of this mesh, so it is shared by every cut on it.")]
         public float weld = 1e-4f;
 
-        [Tooltip("Material for the exposed cut face. Must differ from the skin materials so the cap lands in its own submesh and can be culled outside the bounds window.")]
+        [Tooltip("Material for the exposed cut face. May be the same as a skin material: the slice is made with a null cross material so the cap always lands in its own submesh, and this is applied to it afterwards.")]
         public Material crossSectionMaterial;
 
         [Tooltip("Master switch for every CutPlane's scene-view loop on this body. Off stops the per-frame re-extraction, which is the expensive part of authoring; turn it off once the planes are placed.")]
@@ -67,7 +67,15 @@ public class CuttableObject : MonoBehaviour , IInteractable
             return;
         }
 
-        pendingHull = gameObject.Slice(plane.Origin, plane.Normal, crossSectionMaterial);
+        // sliced with a null cross material, never crossSectionMaterial: the slicer uses the
+        // material only to pick the cap's submesh, and a material it finds among the renderer's
+        // own merges the cap INTO that skin submesh. The windowed split tells cap from skin by
+        // submesh index alone, so a merged cap reads as skin, bridges every lower chunk through
+        // the slicer's plane-wide convex cap, and the whole lower half comes off as if the plane
+        // were infinite. Null forces the cap into its own trailing submesh; the real material is
+        // applied afterwards by ApplyMaterials, so the cap still renders with crossSectionMaterial
+        // even when that equals the skin's.
+        pendingHull = gameObject.Slice(plane.Origin, plane.Normal, null);
         if (pendingHull == null) {
             Debug.LogError("CuttableObject: slice produced no geometry.", this);
         }
@@ -160,7 +168,69 @@ public class CuttableObject : MonoBehaviour , IInteractable
         ApplyMaterials(go.AddComponent<MeshRenderer>(), mesh, skinMats);
         go.AddComponent<MeshCollider>().sharedMesh = mesh;
 
+        CenterPivot(go, mesh);
+
         return go;
+    }
+
+    /// <summary>Moves a piece's origin to the middle of its own mesh, without moving the piece.</summary>
+    /// <remarks>
+    /// A sliced piece keeps the whole body's local space, so its vertices sit wherever that part of the
+    /// body was and the object's origin stays at the body's. The piece then looks detached from its own
+    /// handle: the gizmo is off in the chest while the mesh is an arm, rotation swings it around a point
+    /// it does not contain, and physics is given a centre of mass nowhere near the geometry.
+    /// <para>Invariant: nothing moves on screen. The vertices go back by the same offset the transform
+    /// goes forward, so the world pose of every vertex is unchanged.</para>
+    /// </remarks>
+    public static void CenterPivot(GameObject piece, Mesh mesh)
+    {
+        if (piece == null || mesh == null) {
+            return;
+        }
+
+        Vector3 center = mesh.bounds.center;
+        if (center == Vector3.zero) {
+            return;
+        }
+
+        Vector3[] vertices = mesh.vertices;
+        for (int i = 0; i < vertices.Length; i++) {
+            vertices[i] -= center;
+        }
+        mesh.vertices = vertices;
+        mesh.RecalculateBounds();
+
+        // TransformVector, not TransformPoint: this is a displacement, and it has to carry the piece's
+        // own rotation and scale so the mesh lands back exactly where it was.
+        piece.transform.position += piece.transform.TransformVector(center);
+
+        // a MeshCollider caches the mesh it cooked; re-assigning is what makes it read the new vertices
+        if (piece.TryGetComponent(out MeshCollider collider)) {
+            Recook(collider, mesh);
+        }
+    }
+
+    /// <summary>Makes a MeshCollider throw away its cooked shape and build it again from the mesh as it is now.</summary>
+    /// <remarks>
+    /// The cook is cached against the collider, not the mesh, so editing the vertices under it leaves the
+    /// old shape in place -- the collider sits where the mesh used to be, and only ticking Convex off and
+    /// on in the inspector puts it right. This is that toggle, done in code.
+    /// <para>Both steps are needed: re-assigning the mesh re-reads the vertices, and re-setting Convex is
+    /// what rebuilds the hull, which is the shape a dynamic piece actually collides with.</para>
+    /// </remarks>
+    public static void Recook(MeshCollider collider, Mesh mesh)
+    {
+        if (collider == null) {
+            return;
+        }
+
+        collider.sharedMesh = null;
+        collider.sharedMesh = mesh;
+
+        if (collider.convex) {
+            collider.convex = false;
+            collider.convex = true;
+        }
     }
 
     /// <summary>Assigns the skin materials in order, appending the cross-section material last when the mesh carries a cap submesh.</summary>
@@ -202,7 +272,9 @@ public class CuttableObject : MonoBehaviour , IInteractable
             return pieces;
         }
 
-        SlicedHull hull = gameObject.Slice(plane.Origin, plane.Normal, crossSectionMaterial);
+        // null cross material for the same reason Splice passes it: the cap must land in its own
+        // trailing submesh for the windowed split to recognise it, whatever crossSectionMaterial is.
+        SlicedHull hull = gameObject.Slice(plane.Origin, plane.Normal, null);
         if (hull == null) {
             return pieces;
         }
@@ -235,7 +307,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
     public void Interact(Interactor player)
     {
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        if(player.heldObject == null) return;
+        if(player.heldObject == null && false) return;
 
         if (!Physics.Raycast(ray, out RaycastHit hit)) Debug.LogError("Should not happen: raycast on interact hit. Check layers");
         Debug.Log("successfully interacted");
@@ -244,7 +316,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
         CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
         if(aimed == null) return;
 
-        bool hasTool = aimed.HasRequiredTool(player.heldObject.itemName);
+        bool hasTool = true || aimed.HasRequiredTool(player.heldObject.itemName);
         if(aimed.canEnterMinigame() && hasTool){
             aimed.EnterMinigame();
         }
@@ -289,15 +361,19 @@ public class CuttableObject : MonoBehaviour , IInteractable
         private CutContour.PlaneBounds? BuildBounds(CutPlane plane) {
             if (plane == null) return null;
 
-            return CutContour.BuildBounds(plane.transform, plane.boundsSize, gameObject);
+            // through the plane's WindowSize/WindowCenter, never its raw boundsSize: those are what
+            // resolve the window box, and the slice has to use the same rectangle the guide and the
+            // gizmo do or the cut disagrees with what was authored.
+            return CutContour.BuildBounds(plane.transform, plane.WindowSize, gameObject, plane.WindowCenter);
         }
 
         /// <summary>Extracts every cut loop of an object against the finite quad the plane transform defines.</summary>
         /// <param name="meshObj">Object being cut; supplies the mesh and the mesh-local frame of the result.</param>
         /// <param name="plane">Cutting plane; its position + up give the cut and its scale gives the finite window.</param>
-        /// <param name="windowSize">Window rectangle in the plane's local units (the plane's own scale multiplies it); defaults to a unit rectangle. Pass the cuttable's <c>boundsSize</c> to match the slice window.</param>
+        /// <param name="windowSize">Window rectangle in the plane's local units (the plane's own scale multiplies it); defaults to a unit rectangle. Pass <c>CutPlane.WindowSize</c> to match the slice window.</param>
+        /// <param name="windowCenter">Window centre offset in the plane's local X/Z. Pass <c>CutPlane.WindowCenter</c> alongside the size; a size taken from a box with an offset centre is only half of that window.</param>
         /// <returns>Mesh-local loops of <paramref name="meshObj"/>; empty when it has no <c>MeshFilter</c> with a shared mesh.</returns>
-        public static List<SavedLoop> GetLoops(GameObject meshObj, Transform plane, float weld = 1e-4f, Vector2? windowSize = null) {
+        public static List<SavedLoop> GetLoops(GameObject meshObj, Transform plane, float weld = 1e-4f, Vector2? windowSize = null, Vector2 windowCenter = default) {
             var result = new List<SavedLoop>();
 
             if (meshObj == null || plane == null ||
@@ -314,7 +390,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
                 mt.InverseTransformPoint(plane.position),
                 inv.MultiplyVector(plane.up).normalized);
 
-            CutContour.PlaneBounds? bounds = CutContour.BuildBounds(plane, windowSize ?? Vector2.one, meshObj);
+            CutContour.PlaneBounds? bounds = CutContour.BuildBounds(plane, windowSize ?? Vector2.one, meshObj, windowCenter);
 
             ToSavedLoops(CutContour.ExtractLoops(filter.sharedMesh, pl, weld, bounds), result);
             return result;

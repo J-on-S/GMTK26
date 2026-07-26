@@ -1,6 +1,9 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class ToolRequestManager : MonoBehaviour
 {
@@ -10,32 +13,99 @@ public class ToolRequestManager : MonoBehaviour
         public string itemName;
         public ItemType itemType;
         public float timeLimit;
+        public GameObject targetClient;
+        public OperationChair targetChair;
     }
 
     // request stuff
     public List<ToolRequest> availableRequests = new List<ToolRequest>();   // this contains the active doctor's requests
     public List<ToolRequest> allTools = new List<ToolRequest>();            // this contains the list of ALL TOOLS that will be used to randomly select items for the doctor's requests
     public float timeBetweenRequests = 5f; // oooldown before next order from doctor
-    public float numberOfRequests = 5;  // number of total requests that the doctor will ask for
+    public float numberOfRequests = 5;  // minimum size of the focused client's batch
+
+    [Header("Client processing order")]
+    [Tooltip("Assign Bed A first, then Bed B. If empty, chairs are found and sorted by name.")]
+    [SerializeField] private List<OperationChair> operationChairs = new();
 
     // states
     private enum State{Idle, ActiveRequest, Cooldown}
-    private State currentState = State.Idle;
 
-    private ToolRequest currentRequest;
-    private float remainingTime;
-    private float remainingCooldown;
-    private SpawnBodyPartCustomer spawnBodyPartCustomer;
+    [Header("Runtime debug")]
+    [SerializeField] private State currentState = State.Idle;
+
+    [SerializeField] private ToolRequest currentRequest;
+    [SerializeField] private float remainingTime;
+    [SerializeField] private float remainingCooldown;
+    [SerializeField] private OperationChair focusedChair;
+    [SerializeField] private GameObject focusedClient;
+    [SerializeField] private int focusedChairIndex = -1;
+    private RandomizedClientList subscribedClientList;
+    private bool isCompletingFocusedClient;
+
+    public event Action<ToolRequest> RequestStarted;
+    public event Action<ToolRequest> RequestCompleted;
+    public event Action<ToolRequest> RequestFailed;
+    public event Action RequestQueueEmptied;
+    public OperationChair FocusedChair => focusedChair;
+    public GameObject FocusedClient => focusedClient;
+    [Tooltip("Where a delivered body part gets stuck onto the customer. Found in the scene when left empty.")]
+    [SerializeField] private SpawnBodyPartCustomer spawnBodyPartCustomer;
 
 
     // stuff for doctor request UI
     public TextMeshProUGUI myTextLabel;
 
+    private void OnEnable()
+    {
+        SubscribeToClientList();
+    }
+
+    // request sound
+    public PlayerHitSound confusedDoctor;
+
+    private void Awake()
+    {
+        InitializeChairOrder();
+        availableRequests.Clear();
+        currentRequest = default;
+    }
+
     private void Start()
     {
-        // start a request immediately
-        StartCooldown();
-        FinishDoctorRequestList(); // add random assortment of tools to doctor request list -- this will probably need to be called after the client commands are in
+        // the field is serialized, so a scene can wire it; found here only when it was left empty.
+        if (spawnBodyPartCustomer == null)
+        {
+            spawnBodyPartCustomer = FindFirstObjectByType<SpawnBodyPartCustomer>();
+            if (spawnBodyPartCustomer == null)
+            {
+                Debug.LogWarning($"{name}: no SpawnBodyPartCustomer in the scene, so delivered body parts will not be attached to the customer.", this);
+            }
+        }
+
+        if (myTextLabel == null)
+        {
+            Debug.LogError($"{name}: no myTextLabel assigned, so the doctor's requests cannot be shown.", this);
+        }
+
+        SubscribeToClientList();
+        RegisterAlreadySpawnedClients();
+    }
+
+    private void OnDisable()
+    {
+        if (subscribedClientList == null)
+            return;
+
+        subscribedClientList.ClientSpawnedOnChair -= HandleClientSpawned;
+        subscribedClientList.ClientRemoved -= HandleClientRemoved;
+        subscribedClientList = null;
+    }
+
+    /// <summary>Writes the doctor's line, when there is a label to write it on.</summary>
+    private void SetRequestText(string text)
+    {
+        if (myTextLabel == null) return;
+        myTextLabel.text = text;
     }
 
     // Update is called once per frame
@@ -58,30 +128,105 @@ public class ToolRequestManager : MonoBehaviour
         }
     }
 
-    // PHILIPPE CALLS THIS FUNCTION
-    // this can be called in the client request code (philippe's part) to add the body parts to the list
     public void AddToDoctorRequestList(string bodyPartName)
+    {
+        AddToDoctorRequestList(bodyPartName, null, null);
+    }
+    //Todo: Reverse the order. We must have the task before and then 5 second to read it and then after have the timer, and not at the same time. This presents a disadvantage to the player
+    public void AddToDoctorRequestList(
+        string bodyPartName,
+        GameObject targetClient,
+        OperationChair targetChair)
     {
         availableRequests.Add(new ToolRequest
         {
             itemName = bodyPartName,
             itemType = ItemType.BodyPart,
-            timeLimit = UnityEngine.Random.Range(6f, 9f)    // random time limit between 6-9 seconds
+            timeLimit = UnityEngine.Random.Range(20f, 25f),
+            targetClient = targetClient,
+            targetChair = targetChair
         });
     }
 
-    // PHILIPPE CALLS THIS FUNCTION PROBABLY ALSO -- after all body parts have been added to the list
     public void FinishDoctorRequestList()
     {
-        if (availableRequests.Count >= numberOfRequests) return; // request list already full no need to add anything else
-        
-        // fill up the available requests list with random tools from the list of all tools
-        while (availableRequests.Count < numberOfRequests)
+        int minimumQueueSize =
+            Mathf.Max(0, Mathf.RoundToInt(numberOfRequests));
+        if (availableRequests.Count >= minimumQueueSize)
+            return;
+
+        if (allTools.Count == 0)
         {
-            int choice = Random.Range(0, allTools.Count);       // random index of tool
-            availableRequests.Add(allTools[choice]);
+            Debug.LogError(
+                "ToolRequestManager cannot fill the queue because All Tools is empty.",
+                this);
+            return;
         }
 
+        while (availableRequests.Count < minimumQueueSize)
+        {
+            int choice = Random.Range(0, allTools.Count);
+            ToolRequest toolRequest = allTools[choice];
+            toolRequest.targetClient = focusedClient;
+            toolRequest.targetChair = focusedChair;
+            availableRequests.Add(toolRequest);
+        }
+    }
+
+    /// <summary>
+    /// Adds every remaining body-part requirement for one spawned client.
+    /// Requests retain the exact client and bed that they belong to.
+    /// </summary>
+    public void BuildRequestsForClient(
+        OperationChair chair,
+        GameObject client)
+    {
+        if (chair == null || client == null)
+        {
+            Debug.LogWarning(
+                "A chair and spawned client are required to build doctor requests.",
+                this);
+            return;
+        }
+
+        ClientTaskHolder holder = client.GetComponent<ClientTaskHolder>();
+        if (holder == null || holder.AssignedTask == null)
+        {
+            Debug.LogError(
+                $"{client.name} needs ClientTaskHolder with an assigned task.",
+                client);
+            return;
+        }
+
+        availableRequests.Clear();
+        focusedChair = chair;
+        focusedClient = client;
+
+        ClientTask task = holder.AssignedTask;
+        HashSet<BodyPartType> addedTypes = new();
+
+        foreach (BodyPartRequest request in task.Requests)
+        {
+            if (!addedTypes.Add(request.BodyPart))
+                continue;
+
+            int remaining = task.GetRemainingAmount(request.BodyPart);
+            for (int i = 0; i < remaining; i++)
+            {
+                AddToDoctorRequestList(
+                    request.BodyPart.ToString(),
+                    client,
+                    chair);
+            }
+        }
+
+        FinishDoctorRequestList();
+        Debug.Log(
+            $"Doctor is now processing {client.name} on {chair.name}. " +
+            $"Batch size: {availableRequests.Count}.",
+            this);
+
+        StartCooldown();
     }
 
     // countdown and then failure of request if not fulfilled within time
@@ -107,61 +252,149 @@ public class ToolRequestManager : MonoBehaviour
     // randomize the requests
     public void StartNewRandomRequest()
     {
-        if (availableRequests.Count == 0) return;   // this is the scenario when the doctor requests are done, something needs to happen here
+        if (availableRequests.Count == 0)
+        {
+            currentState = State.Idle;
+            remainingTime = 0f;
+            RequestQueueEmptied?.Invoke();
+            CompleteFocusedClientAndAdvance();
+            return;
+        }
 
-        // get a random item from the list
         int index = Random.Range(0, availableRequests.Count);
         currentRequest = availableRequests[index];
         remainingTime = availableRequests[index].timeLimit;
         currentState = State.ActiveRequest;
 
         string itemCategory = currentRequest.itemType.ToString();
-        Debug.Log($"Hey, hand me a {itemCategory}: [{currentRequest.itemName}] within {remainingTime:F1} seconds!");
-        myTextLabel.text = "Hey, hand me a " +  itemCategory + ":<color=\"red\"> " + currentRequest.itemName + "</color>"; //+ " within " + remainingTime + " seconds!";
+        string chairText = currentRequest.targetChair != null
+            ? $" for {currentRequest.targetChair.name}"
+            : string.Empty;
+        Debug.Log(
+            $"Hey, hand me a {itemCategory}: [{currentRequest.itemName}]" +
+            $"{chairText} within {remainingTime:F1} seconds!",
+            this);
 
+        if (myTextLabel != null)
+        {
+            myTextLabel.text =
+                "Hey, hand me a " + itemCategory +
+                ":<color=\"red\"> " + currentRequest.itemName + "</color>" +
+                chairText;
+        }
 
-        // remove request from the list immediately, doctor will not ask again regardless of if request is fulfilled or not
+       confusedDoctor?.playAudio();
         availableRequests.Remove(currentRequest);
-        Debug.Log($"This is how many items are in the list {availableRequests.Count}");
-
+        RequestStarted?.Invoke(currentRequest);
+        Debug.Log(
+            $"Doctor requests remaining in queue: {availableRequests.Count}.",
+            this);
     }
 
     // check if player submitted the tool correctly, returns true if correctly submitted
     public bool PlayerSubmittedTool(string submittedName, ItemType submittedType)
     {
-        if (currentState != State.ActiveRequest) return false;
+        if (currentState != State.ActiveRequest)
+            return false;
 
         if (submittedName == currentRequest.itemName && submittedType == currentRequest.itemType)
         {
             Debug.Log("Dude thanks for giving me that.");
-            myTextLabel.text = "Dude thanks for giving me that."; 
+            SetRequestText("Dude thanks for giving me that.");
+            if (myTextLabel != null)
+                myTextLabel.text = "Dude thanks for giving me that.";
 
-            StartCooldown();
-            //For now: Add the body on it
-            if (submittedType == ItemType.BodyPart)
-            {
-                spawnBodyPartCustomer?.AddBodyPart(submittedName);
-            }
-            return true;    // success
-
-            // some sort of score stuff
+            CompleteActiveRequest();
+            return true;
         }
         else
-        {
-            // maybe add penalty to score here for not fulfilling request?
-            // PUT SUBTRACTING A HEART HERE
+        {   
+            HealthScript.Instance.TakeDamage();
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
-            myTextLabel.text = "Nah man wrong tool.";
-            return false; // not success
+            if (myTextLabel != null)
+                SetRequestText("Nah man wrong tool.");
+            return false;
         }
     }
 
-    // fail message and restart cooldown
+#if UNITY_EDITOR
+    [ContextMenu("Debug/Force Complete Active Request")]
+    private void DebugForceCompleteActiveRequest()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning(
+                "Enter Play Mode before completing a doctor request.",
+                this);
+            return;
+        }
+
+        if (currentState != State.ActiveRequest)
+        {
+            Debug.LogWarning(
+                "The doctor has no active request to complete.",
+                this);
+            return;
+        }
+
+        Debug.Log(
+            $"Debug-completed doctor request: " +
+            $"{currentRequest.itemType} [{currentRequest.itemName}].",
+            this);
+
+        if (myTextLabel != null)
+            myTextLabel.text = "Debug-completed request.";
+
+        CompleteActiveRequest();
+    }
+#endif
+
+    private void CompleteActiveRequest()
+    {
+        ToolRequest completedRequest = currentRequest;
+
+        if (completedRequest.itemType == ItemType.BodyPart)
+        {
+            if (completedRequest.targetClient != null)
+            {
+                SpawnBodyPartCustomer bodyPartVisual =
+                    completedRequest.targetClient
+                        .GetComponent<SpawnBodyPartCustomer>();
+                if (bodyPartVisual == null)
+                    bodyPartVisual = spawnBodyPartCustomer;
+                bodyPartVisual?.AddBodyPart(completedRequest.itemName);
+            }
+        }
+
+        remainingTime = 0f;
+        RequestCompleted?.Invoke(completedRequest);
+
+        if (availableRequests.Count == 0)
+        {
+            currentState = State.Idle;
+            RequestQueueEmptied?.Invoke();
+            CompleteFocusedClientAndAdvance();
+            return;
+        }
+
+        StartCooldown();
+    }
+
     private void FailRequest()
     {
+        ToolRequest failedRequest = currentRequest;
         Debug.Log("Time is up! You failed the request.");
-        myTextLabel.text = "Ran out of time";
+        SetRequestText("Ran out of time");
         //TODO: LOOSE LIFE
+        if (myTextLabel != null)
+            myTextLabel.text = "Ran out of time";
+
+        // Every request stays in this client's batch until it succeeds.
+        availableRequests.Add(failedRequest);
+
+        remainingTime = 0f;
+        RequestFailed?.Invoke(failedRequest);
+        HealthScript.Instance.TakeDamage();
         StartCooldown();
     }
 
@@ -176,5 +409,249 @@ public class ToolRequestManager : MonoBehaviour
     public float timeRemaining()
     {
         return remainingTime;
+    }
+
+    private void SubscribeToClientList()
+    {
+        RandomizedClientList clientList = RandomizedClientList.Instance;
+        if (clientList == null || subscribedClientList == clientList)
+            return;
+
+        if (subscribedClientList != null)
+        {
+            subscribedClientList.ClientSpawnedOnChair -= HandleClientSpawned;
+            subscribedClientList.ClientRemoved -= HandleClientRemoved;
+        }
+
+        subscribedClientList = clientList;
+        subscribedClientList.ClientSpawnedOnChair += HandleClientSpawned;
+        subscribedClientList.ClientRemoved += HandleClientRemoved;
+    }
+
+    private void RegisterAlreadySpawnedClients()
+    {
+        TryStartNextClientBatch();
+    }
+
+    private void HandleClientSpawned(
+        OperationChair chair,
+        GameObject client)
+    {
+        InitializeChairOrder();
+
+        if (focusedClient != null)
+            return;
+
+        int spawnedChairIndex = operationChairs.IndexOf(chair);
+        if (spawnedChairIndex < 0)
+            return;
+
+        if (focusedChairIndex < 0)
+        {
+            if (spawnedChairIndex != 0)
+                return;
+
+            focusedChairIndex = 0;
+            BuildRequestsForClient(chair, client);
+            return;
+        }
+
+        int expectedChairIndex =
+            (focusedChairIndex + 1) % operationChairs.Count;
+        if (spawnedChairIndex == expectedChairIndex)
+        {
+            focusedChairIndex = spawnedChairIndex;
+            BuildRequestsForClient(chair, client);
+            return;
+        }
+
+        TryStartNextClientBatch();
+    }
+
+    private void HandleClientRemoved(GameObject client)
+    {
+        availableRequests.RemoveAll(
+            request => request.targetClient == client);
+
+        if (client != focusedClient || isCompletingFocusedClient)
+            return;
+
+        if (currentState == State.ActiveRequest)
+        {
+            Debug.LogWarning(
+                $"Cancelled the active doctor request because " +
+                $"{client.name} left.",
+                this);
+            remainingTime = 0f;
+        }
+
+        focusedClient = null;
+        focusedChair = null;
+        currentRequest = default;
+        currentState = State.Idle;
+        StartCoroutine(StartNextClientBatchNextFrame());
+    }
+
+    private void InitializeChairOrder()
+    {
+        operationChairs.RemoveAll(chair => chair == null);
+
+        for (int i = operationChairs.Count - 1; i >= 0; i--)
+        {
+            if (operationChairs.IndexOf(operationChairs[i]) != i)
+                operationChairs.RemoveAt(i);
+        }
+
+        if (operationChairs.Count > 0)
+            return;
+
+        OperationChair[] discoveredChairs =
+            FindObjectsByType<OperationChair>(
+                FindObjectsSortMode.None);
+        operationChairs.AddRange(discoveredChairs);
+        operationChairs.Sort(
+            (left, right) => string.Compare(
+                left.name,
+                right.name,
+                StringComparison.Ordinal));
+    }
+
+    private bool TryStartNextClientBatch()
+    {
+        if (focusedClient != null)
+            return false;
+
+        InitializeChairOrder();
+        if (operationChairs.Count == 0)
+        {
+            Debug.LogWarning(
+                "ToolRequestManager cannot find any OperationChair.",
+                this);
+            return false;
+        }
+
+        // The first batch strictly waits for the first configured chair
+        // (Bed A). Later batches skip empty chairs while preserving rotation.
+        if (focusedChairIndex < 0)
+        {
+            OperationChair firstChair = operationChairs[0];
+            if (firstChair == null || firstChair.CurrentClient == null)
+                return false;
+
+            focusedChairIndex = 0;
+            BuildRequestsForClient(
+                firstChair,
+                firstChair.CurrentClient);
+            return true;
+        }
+
+        for (int offset = 1; offset <= operationChairs.Count; offset++)
+        {
+            int chairIndex =
+                (focusedChairIndex + offset) % operationChairs.Count;
+            OperationChair chair = operationChairs[chairIndex];
+            if (chair == null || chair.CurrentClient == null)
+                continue;
+
+            focusedChairIndex = chairIndex;
+            BuildRequestsForClient(chair, chair.CurrentClient);
+            return true;
+        }
+
+        Debug.Log(
+            "The doctor is idle because no bed currently has a client.",
+            this);
+        return false;
+    }
+
+    private void CompleteFocusedClientAndAdvance()
+    {
+        GameObject clientToComplete = focusedClient;
+        OperationChair completedChair = focusedChair;
+
+        if (clientToComplete == null || completedChair == null)
+        {
+            focusedClient = null;
+            focusedChair = null;
+            TryStartNextClientBatch();
+            return;
+        }
+
+        string completedClientName = clientToComplete.name;
+        ClientTaskHolder holder =
+            clientToComplete.GetComponent<ClientTaskHolder>();
+        if (holder == null || holder.AssignedTask == null)
+        {
+            Debug.LogError(
+                $"{clientToComplete.name} has no assigned client task.",
+                clientToComplete);
+            return;
+        }
+
+        isCompletingFocusedClient = true;
+        bool completed = CompleteAllClientRequirements(
+            clientToComplete,
+            holder.AssignedTask);
+        isCompletingFocusedClient = false;
+
+        if (!completed)
+        {
+            Debug.LogError(
+                $"Could not complete the focused client on " +
+                $"{completedChair.name}.",
+                this);
+            BuildRequestsForClient(
+                completedChair,
+                clientToComplete);
+            return;
+        }
+
+        Debug.Log(
+            $"Finished the doctor batch and completed " +
+            $"{completedClientName} on {completedChair.name}.",
+            this);
+
+        focusedClient = null;
+        focusedChair = null;
+        currentRequest = default;
+        currentState = State.Idle;
+        TryStartNextClientBatch();
+    }
+
+    private IEnumerator StartNextClientBatchNextFrame()
+    {
+        yield return null;
+        TryStartNextClientBatch();
+    }
+
+    private static bool CompleteAllClientRequirements(
+        GameObject client,
+        ClientTask task)
+    {
+        RandomizedClientList clientList =
+            RandomizedClientList.Instance;
+        if (clientList == null)
+            return false;
+
+        HashSet<BodyPartType> completedTypes = new();
+        foreach (BodyPartRequest request in task.Requests)
+        {
+            if (!completedTypes.Add(request.BodyPart))
+                continue;
+
+            int remaining =
+                task.GetRemainingAmount(request.BodyPart);
+            for (int i = 0; i < remaining; i++)
+            {
+                if (!clientList.RemoveOneFromTask(
+                        client,
+                        request.BodyPart))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return task.IsComplete;
     }
 }

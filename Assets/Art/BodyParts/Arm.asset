@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: Arm
   m_EditorClassIdentifier: Assembly-CSharp::BodyPart
   bodyPartType: 3
-  bodyPartPrefab: {fileID: 8299281299010459453, guid: 536cf915e8a77934283341166b7f4eaf, type: 3}
+  bodyPartPrefab: {fileID: 3250585146315528356, guid: d1160cdae102b184aa7e6157bbd86f95, type: 3}
+  rotation: {x: -90, y: 0, z: 0}
+  size: 20
+  bodyPartImg: {fileID: -795341396, guid: 31e668cb5db568d46a81897ee312fe0e, type: 3}

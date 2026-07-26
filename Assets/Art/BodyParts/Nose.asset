@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: Nose
   m_EditorClassIdentifier: Assembly-CSharp::BodyPart
   bodyPartType: 6
-  bodyPartPrefab: {fileID: 8299281299010459453, guid: 536cf915e8a77934283341166b7f4eaf, type: 3}
+  bodyPartPrefab: {fileID: 975667099521758749, guid: dfdbe9f5375a5c9468f20f79cf823f78, type: 3}
+  rotation: {x: -90, y: 0, z: 0}
+  size: 20
+  bodyPartImg: {fileID: -404541511, guid: dc7229e7cd780fc4cac6ea116893628d, type: 3}

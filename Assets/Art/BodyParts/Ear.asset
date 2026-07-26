@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: Ear
   m_EditorClassIdentifier: Assembly-CSharp::BodyPart
   bodyPartType: 4
-  bodyPartPrefab: {fileID: 8299281299010459453, guid: 536cf915e8a77934283341166b7f4eaf, type: 3}
+  bodyPartPrefab: {fileID: 4808031800649710372, guid: bc14e9a08ce674640b97dddafff3106d, type: 3}
+  rotation: {x: -90, y: 0, z: 0}
+  size: 20
+  bodyPartImg: {fileID: 1524335077, guid: a21385345aaddba48a1eb48b71fe69ad, type: 3}

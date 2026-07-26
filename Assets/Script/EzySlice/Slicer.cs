@@ -139,6 +139,7 @@ namespace EzySlice {
             Vector2[] uv = sharedMesh.uv;
             Vector3[] norm = sharedMesh.normals;
             Vector4[] tan = sharedMesh.tangents;
+         
 
             int submeshCount = sharedMesh.subMeshCount;
 
@@ -479,3 +480,5 @@ namespace EzySlice {
         }
     }
 }
+
+

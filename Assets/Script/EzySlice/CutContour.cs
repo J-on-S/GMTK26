@@ -95,9 +95,16 @@ namespace EzySlice {
 
         /// <summary>Builds a window whose world size is the plane transform's scale times <paramref name="boundsSize"/>.</summary>
         /// <param name="boundsSize">Rectangle size in the plane's local units, before the plane's own scale.</param>
-        public static PlaneBounds? BuildBounds(Transform planeTransform, Vector2 boundsSize, GameObject meshCut) {
+        /// <param name="boundsCenter">Rectangle centre offset in the plane's local units (X, Z), so the window need not be centred on the plane's origin. Its own scale applies the same way the size's does.</param>
+        public static PlaneBounds? BuildBounds(Transform planeTransform, Vector2 boundsSize, GameObject meshCut, Vector2 boundsCenter = default) {
+            // the offset is applied in the plane's local frame, AFTER worldToLocal, so it is in the
+            // same units the half-extents are compared in. Baked into the matrix rather than stored
+            // beside it, so every clip test stays two subtractions with no extra term.
+            Matrix4x4 meshToPlane = planeTransform.worldToLocalMatrix * meshCut.transform.localToWorldMatrix;
+            Matrix4x4 recentre = Matrix4x4.Translate(new Vector3(-boundsCenter.x, 0.0f, -boundsCenter.y));
+
             return new PlaneBounds {
-                meshToBounds = planeTransform.worldToLocalMatrix * meshCut.transform.localToWorldMatrix,
+                meshToBounds = recentre * meshToPlane,
                 halfU = boundsSize.x * 0.5f,
                 halfV = boundsSize.y * 0.5f,
             };

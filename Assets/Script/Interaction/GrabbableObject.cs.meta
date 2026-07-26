@@ -1,2 +1,16 @@
 fileFormatVersion: 2
 guid: 9f4dc077de8d04df8ad5c617cc18a517
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  - metalPickupAudio: {instanceID: 0}
+  - clothPickupAudio: {instanceID: 0}
+  - metalDropAudio: {instanceID: 0}
+  - clothDropAudio: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

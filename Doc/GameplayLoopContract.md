@@ -27,9 +27,10 @@ Every integration must identify:
 
 Required sequence:
 
-1. Validate all required scene references: exactly two distinct beds, one
-   trapdoor/chute, one storage object, and at least one cutting tool.
-2. Stop immediately and log an error if validation fails.
+1. If `Require Asset Validation` is enabled, validate all required scene
+   references: exactly two distinct beds, one trapdoor/chute, one storage
+   object, and at least one cutting tool.
+2. When validation is enabled, stop immediately and log an error if it fails.
 3. Enter `Preparing`.
 4. Generate the client/task queue without spawning clients.
 5. Generate the black-market body-part order.
@@ -51,9 +52,9 @@ gameplayManager.DayStarted += HandleDayStarted;
 
 Current implementation:
 
-- Required two-bed validation before day startup: implemented.
+- Optional asset validation before day startup: implemented.
 - Client/task queue generation: implemented.
-- Temporary black-market task generation: implemented.
+- Black-market task generation: implemented.
 - `GameplayManager` phase/state changes: implemented.
 - Operation chairs filling on `DayStarted`: implemented.
 - Client-list world-space UI: planned.
@@ -63,14 +64,26 @@ Current implementation:
 
 Important configuration:
 
-- `GameplayAssetChecker` must contain exactly two distinct `OperationChair`
-  references. Missing or incorrectly wired beds prevent the day from starting.
+- `GameplayAssetChecker` is optional when `Require Asset Validation` is off.
+- When `Require Asset Validation` is on, the checker must contain exactly two
+  distinct `OperationChair` references. Missing or incorrectly wired beds
+  prevent the day from starting.
 - `GameplayAssetChecker` also requires trapdoor, storage, and at least one
   cutting-tool reference. A missing client-list poster only produces a warning.
-- `GameplayManager` owns beginning-of-day generation.
+- `GameplayManager` owns beginning-of-day generation and requires a
+  `BlackMarketGenerator` reference.
+- Exactly one scene-scoped `RandomizedClientList` owns the shared queue.
+  GameplayManager and both chairs access it through
+  `RandomizedClientList.Instance`.
 - Disable `Prepare On Start` on `RandomizedClientList`.
 - Pre-generated clients are data only; no client GameObject exists until an
   operation chair calls `SpawnNextClient`.
+- `RandomizedClientList` obtains each queue entry's prefab from
+  `CustomersAsset.GetRandomCustomerAsset()` and stores the returned prefab on
+  that entry before spawning.
+- When a spawned customer prefab has no `ClientTaskHolder`,
+  `RandomizedClientList` adds the component to the runtime instance before
+  assigning its task.
 
 ## During the Day
 
@@ -92,11 +105,14 @@ Expected loop:
 Current APIs:
 
 ```csharp
-GameObject client = clientList.SpawnNextClient(chairTransform);
+GameObject client = clientList.SpawnNextClient(operationChair);
 bool accepted = clientTaskHolder.GiveBodyPart(bodyPart);
 bool updated = clientList.RemoveOneFromTask(targetClient, bodyPart);
 bool removed = clientList.DespawnPerson(client);
 bool spawned = operationChair.TrySpawnNextClient();
+toolRequestManager.BuildRequestsForClient(operationChair, client);
+bool doctorAccepted =
+    toolRequestManager.PlayerSubmittedTool(itemName, itemType);
 ```
 
 Current events:
@@ -106,31 +122,61 @@ clientTaskHolder.TaskAssigned
 clientTaskHolder.TaskCompleted
 clientTaskHolder.TaskCompletedWithOwner
 clientList.ClientSpawned
+clientList.ClientSpawnedOnChair
 clientList.ClientRemoved
 clientList.TaskListEmptied
 clientList.TaskRequirementChanged
 operationChair.ClientPlaced
 operationChair.ClientLeft
 clientDialogueEventChannel.DialogueRequested
+toolRequestManager.RequestStarted
+toolRequestManager.RequestCompleted
+toolRequestManager.RequestFailed
+toolRequestManager.RequestQueueEmptied
 ```
 
 Current implementation:
 
 - Independent tasks and progress per client: implemented.
+- Spawned queue entries record their assigned `OperationChair`, allowing
+  systems to distinguish Bed A from Bed B: implemented.
 - Automatic removal on client-task completion: implemented.
 - Automatic chair refill: implemented.
+- Operation chairs spawn clients using a character pose proxy's world
+  position, rotation, and scale: implemented.
 - Client task dialogue requests through a decoupled event channel: implemented.
 - Queued client dialogue UI receiver: implemented.
 - Empty client list triggers end-of-day validation: implemented.
-- Accepted doctor body parts can decrement a targeted client task: implemented.
+- A doctor-request batch completes its focused client task when the batch
+  reaches zero: implemented.
 - Inspector gameplay-loop debug harness for accepted-order and fast-forward
   testing: implemented.
-- Doctor item requests: exists separately; integration not confirmed.
+- `RandomizedClientList` provides an editor context command that completes
+  every generated task through the normal delivery API and consequently
+  raises `TaskListEmptied`: implemented.
+- Occupied chairs provide an editor-only context command that completes their
+  current client's remaining requirements through the normal task API:
+  implemented.
+- `ToolRequestManager` provides an editor-only context command that
+  force-completes its active request and starts the normal cooldown:
+  implemented.
+- The doctor processes one client batch at a time in configured chair order:
+  Bed A, Bed B, then back to Bed A: implemented.
+- `WalkState` reads `ToolRequestManager.FocusedChair`, selects that bed's
+  navigation waypoints, and faces its current client after arriving:
+  implemented.
+- Only the focused client's requirements populate the doctor queue. All
+  requests in that batch retain the focused client and chair: implemented.
+- When the focused batch reaches zero, the manager completes that client's
+  remaining `ClientTask`, allowing the normal removal and chair-refill events
+  to run before focus advances: implemented.
+- Failed requests return to the current batch and must succeed before the
+  focused client completes: implemented.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
 - Doctor detection and heart penalty: planned.
 - Countdown and timeout penalty: planned.
-- Physical body-part item registration: planned.
+- Chute registration and per-chute debug entry counting: implemented.
 - Freezer/storage/decay integration: planned.
 
 ## End of Day
@@ -158,17 +204,26 @@ Current APIs:
 gameplayManager.EndDay();
 gameplayManager.AdvanceToNextDay();
 gameplayManager.DayEnded += HandleDayEnded;
+gameplayManager.BlackMarketTaskResolved +=
+    HandleBlackMarketTaskResolved;
+gameplayManager.EnterBlackMarketRequested.AddListener(
+    HandleEnterBlackMarket);
 ```
 
 Current implementation:
 
 - `Ended` state and `DayEnded` event: implemented.
+- Inspector-configurable enter-black-market request invoked by `EndDay`:
+  implemented.
+- `EndDay` resolves the generated black-market order first and publishes its
+  success/failure through `BlackMarketTaskResolved`: implemented.
 - Advancing the day number: implemented.
-- Automatic ending when the client list reaches zero, temporary lives are
-  greater than three, and temporary countdown remaining is nonnegative:
+- Automatic ending when the client list reaches zero, the player has health
+  remaining, and the temporary countdown remaining is nonnegative:
   implemented.
 - Body-part counting: planned.
-- Black-market order resolution and scoring: planned.
+- Black-market requirement-slot completion check: implemented.
+- Black-market scoring: planned.
 - Extra-part scoring: planned.
 - Room/storage/freezer separation: planned.
 - Decay processing: planned.
@@ -177,17 +232,20 @@ Current implementation:
 
 Temporary integration:
 
-- `GameplayManager.NumberOfLives` and `CountdownRemaining` are placeholder
-  values until the final lives and countdown systems expose their APIs.
+- `GameplayManager` reads health through `HealthScript.Instance`. Its
+  serialized temporary lives value is only a fallback for scenes without a
+  `HealthScript`.
+- `CountdownRemaining` remains a placeholder until the final countdown system
+  exposes its API.
 - If the client list reaches zero without the expected lives/countdown state,
   the manager logs a warning because that path should not normally be reachable.
 
 ## Black-market integration boundary
 
-The temporary generator exists only so the beginning-of-day loop can run
-before the final black-market system is ready.
+`BlackMarketGenerator` is the current implementation used by the
+beginning-of-day loop.
 
-The final implementation must implement:
+The generator implements:
 
 ```csharp
 public interface IBlackMarketTaskGenerator
@@ -196,8 +254,7 @@ public interface IBlackMarketTaskGenerator
 }
 ```
 
-Then assign that implementation to `GameplayManager`. The day coordinator
-should not require changes.
+Assign the `BlackMarketGenerator` component to `GameplayManager`.
 
 ## Change checklist
 

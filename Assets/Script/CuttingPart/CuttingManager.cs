@@ -44,7 +44,9 @@ public enum CuttingState
         Exiting,
     }
 
-    [Header("Camera travel")]
+    // No [Header] anywhere in this class: CuttingManagerEditor draws every field under its own
+    // sections, and an attribute header would be drawn a second time inside the section that already
+    // says the same thing. The editor is the one place that decides how this component is laid out.
     [Tooltip("Seconds the camera takes to fly from free-look to the orbit position. 0 = snap.")]
     public float enterTravelTime = 0.6f;
 
@@ -95,12 +97,12 @@ public enum CuttingState
 
     public CuttableObject GameObjectBeingCut;
 
-    [Header("Identity")]
-    [Tooltip("Which body part this cut takes off, e.g. \"Left Arm\". Names the piece for the rest of the game; not used by the cut itself.")]
-    public string bodyPartName;
+    [Tooltip("What the piece this cut takes off is called, e.g. \"Left Arm\". Becomes the severed object's name and its GrabbableObject.itemName, so the rest of the game can ask for it by name.")]
+    public string itemName;
 
     [Tooltip("ToolPickup.itemName the player must be holding to start this cut. Leave empty for a cut that needs no particular tool.")]
     public string requiredToolName;
+    [SerializeField] public BodyPart bodyPartType;
 
     // Snapshot of the free-look camera pose, by value: holding the Transform itself would just
     // alias the live camera, so restoring would assign every field to itself.
@@ -143,12 +145,33 @@ public enum CuttingState
 
     public CameraMovesPreset cameraPreset;
 
-    public FollowLoopPresets ScalpelFollowLoopPreset;
+    public ScalpelSurfacePreset scalpelSurfacePreset;
 
     public CurvePreset curvePreset;
 
     [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane + curvePreset.")]
     public LoopGuideBuilder loopGuide;
+
+    [Tooltip("Draw this cut's guide lines in play mode as well as in edit mode. Off, they are an authoring aid only. The curved target loop ignores this and always draws -- it is what the player aims at.")]
+    public bool showGuideLinesInPlay = true;
+
+    [Tooltip("Drawn width of every guide line this cut owns, in world units. The scalpel's own trace keeps its own width.")]
+    public float guideLineWidth = 0.005f;
+
+    [Tooltip("How far the guide lines float off the body, in world units. Drawing only -- scoring uses the unlifted loop. Too low and the line z-fights the mesh.")]
+    public float guideHoverLength = 0.01f;
+
+    [Tooltip("Smallest number of points the loop is warped and drawn with. A low-poly body gives a cross-section of only a handful, and curving those few makes a zigzag instead of a wave. 0 keeps the raw extraction.")]
+    public int guideResolution = 64;
+
+    /// <summary>Width every guide line of this cut is drawn at, from the preset when there is one.</summary>
+    public float GuideLineWidth => minigamePreset != null ? minigamePreset.curveWidth : guideLineWidth;
+
+    /// <summary>Hover the guide lines are drawn at, from the preset when there is one.</summary>
+    public float GuideHoverLength => minigamePreset != null ? minigamePreset.curveHoverLength : guideHoverLength;
+
+    /// <summary>Point count the loop is warped and drawn at, from the preset when there is one.</summary>
+    public int GuideResolution => minigamePreset != null ? minigamePreset.curveResolution : guideResolution;
 
     public static InputAction move;
 
@@ -159,8 +182,6 @@ public enum CuttingState
     public static InputAction mouseDelta;
 
     public MoveCamera moveCamera;
-
-    [Header("Scalpel sync")]
 
     /// <summary>The camera's orbit -- the live angle that IS the cut progress, and that the scalpel slaves to.</summary>
     /// <remarks>
@@ -197,22 +218,38 @@ public enum CuttingState
     [Tooltip("Fixed angular gap (deg) the scalpel keeps ahead of the camera.")]
     public float scalpelAngleLead;
 
-    [Header("Finisher")]
     [Tooltip("The close-up chop that ends this cut. Left empty -- or with its own Enable Finisher off -- the cut splices and quits the instant progress hits 1.")]
     public CutFinisher finisher;
 
     /// <summary>The piece the last completed cut took off, or <c>null</c> when the slice produced none.</summary>
     public GameObject LastSeveredPiece { get; private set; }
 
-    [Header("Sound")]
     [Tooltip("Channel and clips this cut plays. Shared across cuts, so one asset normally serves them all.")]
     public CutSoundPreset soundPreset;
+
+    [Tooltip("Grab/drop sounds handed to the severed piece. The piece is built at runtime, so its audio can only come from here.")]
+    public AudioGrappablePreset severedPieceAudioPreset;
+
+    [Tooltip("Health the severed piece starts and caps at, in seconds of freshness before it is spoiled.")]
+    public float SeveredPieceHealth = 60f;
+
+    [Tooltip("Where the severed piece is put once it comes away, as an offset from the body it was cut from, in the body's own space. Zero leaves it exactly where the slice left it.")]
+    public Vector3 severedPiecePositionOffset = Vector3.zero;
+
+    [Tooltip("Rotation given to the severed piece once it comes away, in degrees, on top of the pose the slice left it in.")]
+    public Vector3 severedPieceRotationOffset = Vector3.zero;
 
     /// <summary>The looping cut sound while it is playing, so exactly that instance can be stopped again.</summary>
     private AudioMaster.PlayingClip cutLoop;
 
     /// <summary>Whether the cut loop is currently meant to be sounding. Edge-triggers the play/stop so a frame where the channel returns nothing doesn't retry forever.</summary>
     private bool cutSoundOn;
+
+    /// <summary>Whether the cut loop is held mid-clip for an open menu. Separate from <c>cutSoundOn</c>: the loop is still the one the cut wants, it is only suspended, so unpausing puts it back rather than starting a new one.</summary>
+    private bool cutSoundPaused;
+
+    /// <summary>Whether this cut has already sounded its tear, so the finisher's early play and the splice's own cannot both land.</summary>
+    private bool tearPlayed;
 
     /// <summary>The shared speed driver, provisioned on demand. Not a serialized slot: one driver serves every cut, and its per-cut tuning arrives with the CameraMovesPreset.</summary>
     public CutSpeedDriver speedDriver => CutSpeedDriver.Shared;
@@ -260,10 +297,10 @@ public enum CuttingState
         ? minigamePreset.curvePreset
         : curvePreset;
 
-    /// <summary>Along-limb tuning handed to the scalpel's follower.</summary>
-    public FollowLoopPresets ScalpelPreset => minigamePreset != null && minigamePreset.scalpelFollowPreset != null
+    /// <summary>Along-limb tuning handed to the scalpel's surface driver.</summary>
+    public ScalpelSurfacePreset ScalpelPreset => minigamePreset != null && minigamePreset.scalpelFollowPreset != null
         ? minigamePreset.scalpelFollowPreset
-        : ScalpelFollowLoopPreset;
+        : scalpelSurfacePreset;
 
     /// <summary>Framing pushed onto the shared camera orbit on entry. Preset-only: there is no inline fallback, since the follow keeps its own hand-tuned values when none is given.</summary>
     public CameraFollowPreset CameraOrbitPreset => minigamePreset != null ? minigamePreset.cameraOrbitPreset : null;
@@ -301,9 +338,40 @@ public enum CuttingState
         if (moveCamera == null) missing.Add("Free-look MoveCamera");
         if (cameraFollow == null) missing.Add("A CameraFollow on the scene camera");
         if (scalpelFollow == null) missing.Add("Scalpel CameraFollow");
+        else if (!scalpelFollow.TryGetComponent<ScalpelSurfaceDriver>(out _)) missing.Add("A ScalpelSurfaceDriver on the scalpel");
         // no speed-driver entry: it is provisioned on demand, so it can never be "missing".
         if (SpeedPreset == null) missing.Add("Camera moves preset");
         if (Curve == null) missing.Add("Curve preset");
+
+        // ---- per-cut authoring, not wiring: the data a cut needs to mean something ----
+
+        // the severed piece is named and requested by this, so an empty one leaves a piece the rest
+        // of the game cannot ask for by name.
+        if (string.IsNullOrWhiteSpace(itemName)) missing.Add("Item name (what the severed piece is called)");
+
+        // the BodyPart asset the detached piece is built from; without it the piece has no identity.
+        if (bodyPartType == null) missing.Add("Body part (a BodyPart asset)");
+
+        // start and end must span an arc. Equal angles are a zero-length cut: progress divides by
+        // (End - Start) and the ring never opens.
+        if (Mathf.Approximately(startAngle, endAngle)) missing.Add("Start/End angle span (they are equal, so the cut has no length)");
+
+        // the finisher is mandatory: every cut ends on the close-up chop, so a missing, disabled,
+        // unframed or tool-less one is not a runnable cut. Each state names its own fix.
+        if (finisher == null)
+        {
+            missing.Add("Finisher (a CutFinisher on the cut)");
+        }
+        else if (!finisher.enableFinisher)
+        {
+            missing.Add("Finisher enabled (its Enable Finisher is off)");
+        }
+        else
+        {
+            if (!finisher.hasShot) missing.Add("Finisher camera shot (frame it, then Set Shot From Camera)");
+            if (finisher.ToolPrefab == null) missing.Add("Finisher tool (a scalpel/saw for the finisher to swing)");
+        }
+
         return missing;
     }
 
@@ -338,6 +406,25 @@ public enum CuttingState
         if (finisher == null)
         {
             finisher = GetComponentInChildren<CutFinisher>(true);
+        }
+
+        // the scalpel is per-cut, not scene-wide: its driver snaps the transform it sits on and draws
+        // this cut's trail into its own line. Resolved from this cut's own children only -- a scalpel
+        // found anywhere else in the scene belongs to another cut, and taking it would leave both cuts
+        // fighting over one transform and one trace.
+        if (scalpelFollow == null)
+        {
+            ScalpelSurfaceDriver own = GetComponentInChildren<ScalpelSurfaceDriver>(true);
+            if (own != null) own.TryGetComponent(out scalpelFollow);
+        }
+
+        // free-look is one scene-wide component, not a per-cut one, so every cut points at the same
+        // instance. Found, never created: AutoWire also runs from Reset, and spawning a GameObject
+        // from there would litter the scene each time the component is added. The setup menu makes
+        // one when the scene has none.
+        if (moveCamera == null)
+        {
+            moveCamera = FindFirstObjectByType<MoveCamera>(FindObjectsInactive.Include);
         }
 
         PushParameters();
@@ -603,6 +690,7 @@ public enum CuttingState
         Debug.LogWarning("entering minigame");
 
         state = CuttingState.PROGRESSING;
+        tearPlayed = false;
 
         SetupRig();
     }
@@ -755,7 +843,7 @@ public enum CuttingState
         if (loopGuide != null) loopGuide.ClearTrace();
 
         if (scalpelFollow != null
-            && scalpelFollow.TryGetComponent<LoopFollowingObject>(out var scalpelLoop))
+            && scalpelFollow.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
         {
             scalpelLoop.ResetTrace();
         }
@@ -802,14 +890,39 @@ public enum CuttingState
     }
 
     /// <summary>Turns the scalpel's surface trail on or off, if it has a follower.</summary>
+    /// <remarks>Invariant: off stops the trail growing but leaves the drawn line standing. The line is
+    /// the cut the player made, so it stays on the body through the quit and the fly-out; only the tear
+    /// takes it down, in <see cref="PlayTearSound"/>.</remarks>
     void SetScalpelTrace(bool on)
     {
         CameraFollow scalpel = scalpelFollow;
         if (scalpel == null) return;
-        if (scalpel.TryGetComponent<LoopFollowingObject>(out var scalpelLoop))
+        if (!scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop)) return;
+
+        scalpelLoop.drawTrace = on;
+
+        // edit mode keeps both: the driver is the authoring preview, and the line it drew is what the
+        // author is looking at. Only a running game takes them down.
+        if (!Application.isPlaying)
         {
-            scalpelLoop.enabled = on;
-            scalpelLoop.drawTrace = on;
+            scalpelLoop.enabled = true;
+            scalpelLoop.ShowTrace();
+            return;
+        }
+
+        scalpelLoop.enabled = on;
+    }
+
+    /// <summary>Wipes the scalpel's drawn trail, if it has a follower. Play mode only: in edit mode the line is the authoring preview.</summary>
+    void ClearScalpelTrace()
+    {
+        if (!Application.isPlaying) return;
+
+        CameraFollow scalpel = scalpelFollow;
+        if (scalpel == null) return;
+        if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
+        {
+            scalpelLoop.ResetTrace();
         }
     }
 
@@ -821,6 +934,32 @@ public enum CuttingState
     /// </remarks>
     void UpdateCutSound()
     {
+        // Menu open: suspend the loop where it is and decide nothing else. Update still runs at
+        // timeScale 0, so without this the speed test below keeps its own verdict and the blade
+        // goes on sawing behind the pause screen.
+        if (PauseMenu.isPaused)
+        {
+            if (cutSoundOn && !cutSoundPaused && cutLoop != null && Channel != null)
+            {
+                // the immediate pause, not FadePause: a fade is a coroutine on scaled time, and at
+                // timeScale 0 it would never reach the pause it was on its way to.
+                Channel.Pause(cutLoop);
+                cutSoundPaused = true;
+            }
+            return;
+        }
+
+        // Back from the menu: put the held loop back before the speed test gets a say, so the cut
+        // resumes mid-clip instead of restarting from the top of the saw.
+        if (cutSoundPaused)
+        {
+            cutSoundPaused = false;
+            if (cutLoop != null && Channel != null)
+            {
+                Channel.Resume(cutLoop);
+            }
+        }
+
         bool wants = isPlaying
             && CutSound != null
             && Channel != null
@@ -840,10 +979,36 @@ public enum CuttingState
         }
     }
 
+    /// <summary>Sounds the tear, once per cut.</summary>
+    /// <remarks>
+    /// The finisher calls this as the swing starts rather than on the impact frame: the splice
+    /// between them -- the mesh slice and the convex cook -- stalls the main thread, so a tear fired
+    /// next to the kick is already heard late. Firing it on the swing puts the sound where the player
+    /// reads the blade landing.
+    /// <para>Invariant: guarded, so the direct no-finisher path in <see cref="ApplySplice"/> can call
+    /// it unconditionally without doubling the one the finisher already played.</para>
+    /// </remarks>
+    public void PlayTearSound()
+    {
+        if (tearPlayed || Channel == null || TearSound == null)
+        {
+            return;
+        }
+
+        tearPlayed = true;
+        Channel.Play(TearSound);
+
+        // the trail is the cut the player drew; it stops meaning anything the moment the piece tears off.
+        ClearScalpelTrace();
+    }
+
     /// <summary>Silences the cut loop, if it is sounding. Safe to call when it isn't.</summary>
     void StopCutSound()
     {
         cutSoundOn = false;
+        // cleared with the clip it referred to: a stopped loop has nothing left to resume, and a
+        // stale flag would make the next unpause resume a PlayingClip the AudioMaster has released.
+        cutSoundPaused = false;
         if (cutLoop != null && Channel != null)
         {
             Channel.Stop(cutLoop);
@@ -907,15 +1072,13 @@ public enum CuttingState
     {
         state = CuttingState.COMPLETED;
 
-        // the loop stops and the tear lands together, on the frame the part comes away
         StopCutSound();
-        if (Channel != null && TearSound != null)
-        {
-            Channel.Play(TearSound);
-        }
+
+        // no-op when a finisher already sounded it as the swing started
+        PlayTearSound();
 
         LastSeveredPiece = SliceOffPart();
-        InstantiateBodyPart(LastSeveredPiece);
+        OutfitSeveredPiece(LastSeveredPiece);
     }
 
     /// <summary>Hands the camera back and reports the cut done, after the follow-through when there is a finisher.</summary>
@@ -926,39 +1089,63 @@ public enum CuttingState
         OnMinigameCompleted?.Invoke(this, LastSeveredPiece);
     }
 
-    void InstantiateBodyPart(GameObject bodyPart)
+    
+    void OutfitSeveredPiece(GameObject piece)
     {
-        GrabbableObject grabbableObject =bodyPart.AddComponent<GrabbableObject>();
-        grabbableObject.itemName = bodyPartName;
-        grabbableObject.itemType = ItemType.BodyPart;
-        
-        KickSeveredPiece(bodyPart);
-       
+        if (piece == null) return;
 
+        MakeCollidersDynamic(piece);
 
+        DetachedBodyPart part = DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset, itemName);
+
+        PlaceSeveredPiece(part);
+
+        KickSeveredPiece(piece);
     }
 
-    private void KickSeveredPiece(GameObject bodyPart)
+    /// <summary>Moves the freshly severed piece to where this cut wants it, by the offsets above.</summary>
+    /// <remarks>
+    /// The slice hands the piece back sitting exactly inside the body it came from, which is right for
+    /// the frame it comes away and wrong for a part that should fall clear, sit on a tray, or face the
+    /// camera. The offset is read in the body's own space, so it follows a client who is turned around.
+    /// <para>The home pose is re-taken afterwards: <see cref="GrabbableObject"/> snapshots it in Awake,
+    /// which ran when the component was added -- before this moved it -- so without this a respawn would
+    /// send the part back inside the body.</para>
+    /// </remarks>
+    private void PlaceSeveredPiece(DetachedBodyPart part)
     {
-        float force = finisher.kick;
-        if (force <= 0f)
+        if (part == null) return;
+
+        Transform piece = part.transform;
+
+        if (severedPieceRotationOffset != Vector3.zero)
         {
-            return;
+            piece.rotation *= Quaternion.Euler(severedPieceRotationOffset);
         }
 
-      
-        if (bodyPart == null)
+        if (severedPiecePositionOffset != Vector3.zero)
         {
-            // a slice that severed nothing is already reported by the cut
-            return;
+            Transform body = GameObjectBeingCut != null ? GameObjectBeingCut.transform : null;
+            piece.position += body != null
+                ? body.TransformVector(severedPiecePositionOffset)
+                : severedPiecePositionOffset;
         }
 
-        MakeCollidersDynamic(bodyPart);
+        part.SetStartPose(piece.position, piece.rotation);
+    }
 
-        if (!bodyPart.TryGetComponent(out Rigidbody body))
-        {
-            body = bodyPart.AddComponent<Rigidbody>();
-        }
+    private void KickSeveredPiece(GameObject piece)
+    {
+        // nothing to throw a piece with in edit mode: physics is not stepping, and the authoring copy
+        // wants to stay where it was put.
+        if (!Application.isPlaying) return;
+
+        if (finisher == null) return;
+
+        float force = finisher.Kick;
+        if (force <= 0f) return;
+
+        if (!piece.TryGetComponent(out Rigidbody body)) return;
 
         body.AddForce(-finisher.ApproachAxis * force, ForceMode.Impulse);
     }
@@ -1024,11 +1211,18 @@ public enum CuttingState
         {
             if (GameObjectBeingCut != null) loopGuide.meshFollow = GameObjectBeingCut;
             if (Curve != null) loopGuide.preset = Curve;
-            if (minigamePreset != null)
-            {
-                loopGuide.curveWidth = minigamePreset.curveWidth;
-                loopGuide.curveHoverLength = minigamePreset.curveHoverLength;
-            }
+
+            // width and hover both go down every push, preset first and the inline field otherwise.
+            // Never conditional on there being a preset: the guide's own copies are outputs, hidden in
+            // its inspector, so a push that skips them leaves numbers nobody can reach or correct.
+            loopGuide.curveWidth = GuideLineWidth;
+            loopGuide.curveHoverLength = GuideHoverLength;
+            loopGuide.curveResolution = GuideResolution;
+
+            // applied here and not left to the next draw: OnValidate calls this, and an author dragging
+            // the width wants the line to change under the cursor.
+            loopGuide.ApplyLineWidth();
+            loopGuide.showInPlayMode = showGuideLinesInPlay;
         }
 
         // cutting speed driver reads the camera-moves preset.
@@ -1068,11 +1262,18 @@ public enum CuttingState
                 scalpel.ApplyPreset();
             }
 
-            if (ScalpelPreset != null
-                && scalpel.TryGetComponent<LoopFollowingObject>(out var scalpelLoop))
+            if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
             {
-                scalpelLoop.preset = ScalpelPreset;
+                // NOT gated on there being a preset. The builder is which loop this scalpel rides --
+                // its centre, its plane and the surface it projects onto -- and it is hidden in the
+                // driver's inspector, so a cut that never pushed it keeps whichever guide the driver
+                // was last handed. On a copied cut that is the ORIGINAL cut's guide: the scalpel snaps
+                // onto the body it came from and its trace draws there, shifted off the body being cut.
                 if (loopGuide != null) scalpelLoop.builder = loopGuide;
+
+                // tuning, unlike the builder, is optional: with no preset the driver keeps its own
+                // inline values, which is what a scalpel authored before presets existed relies on.
+                if (ScalpelPreset != null) scalpelLoop.preset = ScalpelPreset;
             }
         }
     }
@@ -1174,7 +1375,112 @@ public enum CuttingState
     private Matrix4x4 previewBodyPose;
     private Mesh previewSourceMesh;
     private Vector2 previewWindow;
+    private Vector2 previewWindowCenter;
     private bool previewBuilt;
+
+    /// <summary>Spawns a standalone copy of the piece this cut would take off, leaving the body whole.</summary>
+    /// <remarks>
+    /// Authoring tool, not gameplay: it reads the same preview mesh the aim highlight uses, so what
+    /// lands in the scene is exactly what the cut would sever -- handy for checking a plane and a window
+    /// without running the cut, or for lifting the piece out to author a prefab from it.
+    /// <para>The mesh is copied rather than shared: the preview belongs to this manager and is rebuilt
+    /// whenever the plane or the body moves, which would silently reshape anything holding it.</para>
+    /// </remarks>
+    /// <returns>The spawned copy, or <c>null</c> when there is nothing to copy.</returns>
+    [ContextMenu("Copy the lower hull")]
+    public GameObject CopyLowerHull()
+    {
+        if (GameObjectBeingCut == null)
+        {
+            Debug.LogError($"{name}: no object being cut, so there is no piece to copy.", this);
+            return null;
+        }
+
+        Mesh piece = SeveredPreviewMesh;
+        if (piece == null)
+        {
+            Debug.LogError($"{name}: this cut severs nothing right now. Check the plane crosses the mesh and the window holds a closed loop.", this);
+            return null;
+        }
+
+        Mesh copy = Instantiate(piece);
+        string pieceName = string.IsNullOrWhiteSpace(itemName) ? $"{name} Lower Hull" : itemName;
+        copy.name = pieceName;
+
+        GameObject go = new GameObject(pieceName);
+
+        // the preview mesh is in the body's local space, so the copy only lines up when it wears the
+        // body's own transform -- the same pose CuttableObject.SpawnPiece gives a real severed piece.
+        Transform body = GameObjectBeingCut.transform;
+        go.transform.SetParent(body.parent, false);
+        go.transform.SetLocalPositionAndRotation(body.localPosition, body.localRotation);
+        go.transform.localScale = body.localScale;
+
+        go.AddComponent<MeshFilter>().sharedMesh = copy;
+        MeshRenderer renderer = go.AddComponent<MeshRenderer>();
+        if (body.TryGetComponent(out MeshRenderer bodyRenderer))
+        {
+            renderer.sharedMaterials = MaterialsForPiece(copy, bodyRenderer.sharedMaterials);
+        }
+
+        // the collider a real severed piece gets from CuttableObject.SpawnPiece, before the outfit
+        // below turns it convex for the Rigidbody.
+        go.AddComponent<MeshCollider>().sharedMesh = copy;
+
+        // origin onto the mesh, exactly as a real severed piece gets it
+        CuttableObject.CenterPivot(go, copy);
+
+        // same fit-out as a piece the cut actually severs, so a copy behaves like the real thing
+        OutfitSeveredPiece(go);
+
+        // the outfit turned the collider convex and the placement moved it; both leave the cook stale,
+        // which shows up as a collider sitting where the mesh used to be until Convex is toggled by hand.
+        RecookColliders(go);
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            UnityEditor.Undo.RegisterCreatedObjectUndo(go, "Copy Lower Hull");
+            UnityEditor.Selection.activeGameObject = go;
+        }
+#endif
+
+        return go;
+    }
+
+    /// <summary>Rebuilds every mesh collider on a piece from its mesh as it stands.</summary>
+    /// <remarks>For the authoring copy, where the mesh is re-centred and the piece moved after the
+    /// colliders were made: the cook is cached per collider, so it keeps the shape it was first given.</remarks>
+    private static void RecookColliders(GameObject piece)
+    {
+        MeshCollider[] colliders = piece.GetComponentsInChildren<MeshCollider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            CuttableObject.Recook(colliders[i], colliders[i].sharedMesh);
+        }
+    }
+
+    /// <summary>One material per submesh, padded from the body's own list.</summary>
+    /// <remarks>The severed piece carries the body's skin submeshes plus a cross-section cap, so it has
+    /// one submesh more than the body; a renderer short of materials drops the extra silently.</remarks>
+    private static Material[] MaterialsForPiece(Mesh piece, Material[] bodyMaterials)
+    {
+        int count = Mathf.Max(1, piece.subMeshCount);
+        var slots = new Material[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            if (bodyMaterials == null || bodyMaterials.Length == 0)
+            {
+                slots[i] = null;
+                continue;
+            }
+
+            slots[i] = i < bodyMaterials.Length ? bodyMaterials[i] : bodyMaterials[bodyMaterials.Length - 1];
+        }
+
+        return slots;
+    }
 
     /// <summary>The piece this cut would take off, as a mesh in the body's local space. Rebuilt only when the plane, the body or the window moves.</summary>
     /// <remarks>
@@ -1210,7 +1516,8 @@ public enum CuttingState
 
         Matrix4x4 planePose = plane.transform.localToWorldMatrix;
         Matrix4x4 bodyPose = GameObjectBeingCut.transform.localToWorldMatrix;
-        Vector2 window = plane.boundsSize;
+        Vector2 window = plane.WindowSize;
+        Vector2 windowCenter = plane.WindowCenter;
 
         // a slice swaps sharedMesh in place without moving anything, so the mesh identity has to
         // be part of the signature, not just the two poses.
@@ -1218,7 +1525,8 @@ public enum CuttingState
             && planePose == previewPlanePose
             && bodyPose == previewBodyPose
             && sourceMesh == previewSourceMesh
-            && window == previewWindow)
+            && window == previewWindow
+            && windowCenter == previewWindowCenter)
         {
             return;
         }
@@ -1242,6 +1550,7 @@ public enum CuttingState
         previewBodyPose = bodyPose;
         previewSourceMesh = sourceMesh;
         previewWindow = window;
+        previewWindowCenter = windowCenter;
         previewBuilt = true;
     }
 

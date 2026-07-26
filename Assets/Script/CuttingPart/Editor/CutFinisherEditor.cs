@@ -18,6 +18,21 @@ public class CutFinisherEditor : Editor
         "hoverHeight", "sweepDist", "slashTime", "slashEase", "holdAfter", "kick",
     };
 
+    /// <summary>Stops this finisher's preview when the inspector is torn down, so deselecting it puts the camera and tool back.</summary>
+    /// <remarks>
+    /// The preview is a static system on <c>EditorApplication.update</c>, not owned by this editor:
+    /// without this, selecting another object leaves it running with the game camera claimed at the
+    /// shot and the tool posed mid-swing, and nothing ever puts them back until a domain reload. Only
+    /// this finisher's own preview is stopped -- another finisher's is left alone.
+    /// </remarks>
+    private void OnDisable()
+    {
+        if (FinisherPreview.IsRunning && FinisherPreview.Active == target as CutFinisher)
+        {
+            FinisherPreview.Stop();
+        }
+    }
+
     public override void OnInspectorGUI()
     {
         serializedObject.Update();

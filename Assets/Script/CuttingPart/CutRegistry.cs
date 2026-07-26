@@ -37,6 +37,54 @@ public static class CutRegistry
         return byBody.TryGetValue(body, out List<CuttingManager> cuts) ? cuts : None;
     }
 
+    /// <summary>Switches every cut of one body on or off in a single call, e.g. to close a body to cutting while a minigame owns the camera.</summary>
+    /// <param name="body">Body whose cuts to switch. Cuts of every other body are left alone.</param>
+    /// <param name="enabled">What to set each cut's <c>enabled</c> to.</param>
+    /// <returns>How many cuts actually changed state.</returns>
+    /// <remarks>
+    /// Does its own scene sweep rather than going through <see cref="CutsOf"/>: that one answers
+    /// with the ENABLED cuts, by construction -- so re-enabling through it would only ever find the
+    /// cuts already on.
+    /// <para>
+    /// Toggles the component, not its GameObject. A cut whose GameObject is inactive stays inactive
+    /// and does not run, whatever this sets; and the <see cref="LoopGuideBuilder"/> beside it keeps
+    /// drawing its guide line, since that is a separate component with its own switch.
+    /// </para>
+    /// </remarks>
+    public static int SetCutsEnabled(CuttableObject body, bool enabled)
+    {
+        if (body == null)
+        {
+            return 0;
+        }
+
+        // Include: a disabled cut is exactly what an enable call is looking for, and the default
+        // sweep would skip it.
+        CuttingManager[] managers = Object.FindObjectsByType<CuttingManager>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+        int changed = 0;
+        for (int i = 0; i < managers.Length; i++)
+        {
+            if (managers[i].GameObjectBeingCut != body || managers[i].enabled == enabled)
+            {
+                continue;
+            }
+
+            managers[i].enabled = enabled;
+            changed++;
+        }
+
+        // The managers' own OnEnable/OnDisable already invalidate, but only for those on an active
+        // GameObject -- no callback fires for the rest. One explicit drop covers both.
+        if (changed > 0)
+        {
+            Invalidate();
+        }
+
+        return changed;
+    }
+
     /// <summary>Sweeps the scene once, unless a usable cache is already in hand.</summary>
     private static void Rebuild()
     {

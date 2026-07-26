@@ -20,17 +20,30 @@ At the beginning of the day it:
 
 During the day it waits for other systems to report what happened.
 
-At the end of the day it changes the state to Ended and sends DayEnded.
+At the end of the day it changes the state to Ended, invokes Enter Black
+Market Requested, and sends DayEnded.
+
+In the GameplayManager Inspector, connect Enter Black Market Requested to the
+camera or UI function that opens the black-market view. With the current
+camera system, drag the object containing CameraSwitch into the event and
+select CameraSwitch.SwitchToOtherCamera.
 
 GameplayManager does NOT perform cutting, move the doctor, manage tools, or
 decide whether the doctor accepted an item.
+
+ToolRequestManager processes one occupied bed at a time. It starts with Bed A,
+finishes that client's complete doctor-request batch, completes/removes that
+client, then moves to Bed B. It alternates A, B, A, B while clients remain.
 
 
 ============================================================
 2. REQUIRED UNITY OBJECTS
 ============================================================
 
-GameplayAssetChecker must have:
+GameplayAssetChecker is optional by default.
+
+Enable Require Asset Validation on GameplayManager when the complete gameplay
+scene should be checked before starting. When enabled, the checker must have:
 
 - Exactly 2 different OperationChair references.
 - 1 trapdoor or chute GameObject.
@@ -42,75 +55,67 @@ Optional:
 - A client-list poster.
 
 A missing optional poster only creates a warning.
-Missing any required object prevents the day from starting.
+Missing any required object prevents the day from starting only when
+Require Asset Validation is enabled.
 
 Each OperationChair must have:
 
-- The shared RandomizedClientList.
 - The shared GameplayManager.
-- A Client Spawn Point where the patient should lie.
+- A Client Pose Proxy positioned, rotated, and scaled exactly like the patient.
+
+The scene must contain exactly one RandomizedClientList. GameplayManager and
+both OperationChair components access it through RandomizedClientList.Instance.
+
+The proxy can be visible while arranging the chair in Edit Mode. Enable Hide
+Pose Proxy At Runtime so it disappears when the game starts. Spawned clients
+remain unparented and copy the proxy's complete world pose.
 
 RandomizedClientList must have:
 
-- Client prefabs.
+- A CustomersAsset containing the possible customer prefabs.
 - A ClientTaskList task generator.
 - Prepare On Start disabled.
 
 GameplayManager is responsible for generating the list.
+
+On ToolRequestManager, assign Operation Chairs in processing order:
+
+1. Bed A
+2. Bed B
+
+If this list is empty, chairs are discovered and sorted by GameObject name.
 
 
 ============================================================
 3. WHAT THE DOCTOR/ORDER SCRIPT MUST IMPLEMENT
 ============================================================
 
-The doctor system decides whether an item is correct.
+ToolRequestManager builds one request batch from the currently focused
+client. Every body-part and tool request in that batch records the focused
+client and chair.
 
-When the doctor accepts a body part, its event/function must provide:
+The doctor asks one request at a time. Successful requests leave the batch.
+Failed requests return to the batch and must be attempted again.
 
-- The exact patient GameObject.
-- The accepted body-part type or name.
-
-Then call:
-
-clientList.RemoveOneFromTask(
-    targetClient,
-    BodyPartType.Eye
-);
-
-The current string system may call:
-
-clientList.RemoveOneFromTask(
-    targetClient,
-    submittedName
-);
-
-Use singular names:
-
-Eye, Leg, Heart, Arm, Ear, Hand, or Nose.
-
-IMPORTANT:
-
-Do not update a task using only "Eye" without identifying the patient.
-Both beds may have patients requesting eyes.
-
-If the doctor rejects the item, do not call RemoveOneFromTask.
+When the batch reaches zero, ToolRequestManager completes every remaining
+requirement on the focused ClientTask through RandomizedClientList. The normal
+completion events remove the client and refill that bed. ToolRequestManager
+then advances to the next occupied bed.
 
 
 ============================================================
-4. WHAT THE LIVES SCRIPT MUST IMPLEMENT
+4. HEALTH ACCESS
 ============================================================
 
-The final lives system does not exist yet.
+GameplayManager accesses the existing singleton through:
 
-It must give GameplayManager the current number of lives.
-Until then, the temporary test API is:
+HealthScript.Instance
 
-gameplayManager.SetTemporaryLives(numberOfLives);
+and reads the current health from HealthScript.HP.
 
-The current successful end condition requires more than 3 lives.
-
-The final lives variable/API should replace the temporary value in
-GameplayManager.
+If a test scene has no HealthScript, GameplayManager falls back to its
+serialized Number Of Lives value. The player must have more than 0 health
+when the client list becomes empty.
 
 
 ============================================================
@@ -148,8 +153,16 @@ Required function:
 
 BlackMarketTask GenerateTask(int dayNumber);
 
-TemporaryBlackMarketTaskGenerator currently provides this function for tests.
+BlackMarketGenerator currently provides this function.
 Replace that component with the real black-market manager later. (or the temporary might be the final one)
+
+When GameplayManager ends the day, it first calls:
+
+blackMarketGenerator.IsSucceedBlackMarket();
+
+The result is stored in LastBlackMarketTaskSucceeded and published through
+BlackMarketTaskResolved. After resolving that result, GameplayManager enters
+the Ended state and invokes the black-market entry event.
 
 
 ============================================================
@@ -178,11 +191,13 @@ GameplayManager:
 
 - DayStarted
 - BlackMarketTaskGenerated
+- BlackMarketTaskResolved (provides true for success or false for failure)
 - DayEnded
 
 RandomizedClientList:
 
 - ClientSpawned
+- ClientSpawnedOnChair (provides the OperationChair and spawned client)
 - ClientRemoved
 - TaskRequirementChanged
 - TaskListEmptied
@@ -209,7 +224,8 @@ SETUP:
 
 1. Put GameplayLoopDebugTester on the same GameObject as GameplayManager.
 2. Assign Gameplay Manager if it is not filled automatically.
-3. Configure GameplayAssetChecker with every required object.
+3. If Require Asset Validation is enabled, configure GameplayAssetChecker
+   with every required object.
 4. Make sure both beds are configured.
 5. Make sure every client prefab has ClientTaskHolder.
 6. Enter Play Mode.
@@ -252,6 +268,17 @@ WARNING-PATH TEST:
 
 OTHER DEBUG ACTIONS:
 
+- Select RandomizedClientList and run
+  "Debug/Complete All Client Tasks".
+  This completes every pending and spawned client through the normal task
+  API. It removes the clients, empties the generated list, and triggers the
+  normal end-of-day check. Use this only in Play Mode.
+
+- Select an occupied OperationChair and run
+  "Debug/Complete Current Client Task".
+  This fulfills the current patient's remaining requirements through the
+  normal task API, so completion, removal, and bed-refill events still run.
+
 - "4. Doctor Accepts Selected Body Part"
   Uses the selected bed and selected body-part value.
 
@@ -259,6 +286,23 @@ OTHER DEBUG ACTIONS:
   Ends the active day without completing every task.
 
 The Runtime Debug List and Console show the current state after every action.
+
+To inspect doctor requests during Play Mode, select the GameObject containing
+ToolRequestManager:
+
+- Available Requests is the queue the doctor has not selected yet.
+- Current Request is the request currently being asked.
+- Current State shows Idle, ActiveRequest, or Cooldown.
+- Remaining Time and Remaining Cooldown show the runtime timers.
+
+To skip the active doctor request, open ToolRequestManager's component menu
+during Play Mode and choose:
+
+Debug > Force Complete Active Request
+
+This counts the active request as successful. If it empties the focused
+client's batch, that client is completed and the doctor advances to the next
+bed.
 
 
 ============================================================
@@ -269,16 +313,16 @@ Read the first red error in the Console.
 
 Most common causes:
 
-- GameplayAssetChecker is missing.
+- Require Asset Validation is enabled but GameplayAssetChecker is missing.
 - One of the two bed slots is empty.
 - Both slots reference the same bed.
 - Trapdoor is missing.
 - Storage is missing.
 - No cutting tool is assigned.
-- A bed has no Client Spawn Point.
+- A bed has no Client Pose Proxy.
 - A bed references the wrong GameplayManager or Client List.
 - ClientTaskDatabase is not assigned.
-- Client prefabs are missing ClientTaskHolder.
+- CustomersAsset is missing or contains no customer prefabs.
 - Black Market Task Generator is not assigned.
 
 Fix the missing reference and enter Play Mode again.
