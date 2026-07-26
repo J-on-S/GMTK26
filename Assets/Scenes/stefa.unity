@@ -725,6 +725,7 @@ MonoBehaviour:
     timeLimit: 30
   timeBetweenRequests: 5
   numberOfRequests: 5
+  myTextLabel: {fileID: 0}
 --- !u!4 &977149185
 Transform:
   m_ObjectHideFlags: 0
@@ -1082,8 +1083,8 @@ Transform:
   m_GameObject: {fileID: 1308002244}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 21.43, y: 2.23, z: 32.03}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 21.43, y: 3.74, z: 32.03}
+  m_LocalScale: {x: 1, y: 6.8971, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1158,8 +1159,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
   itemName: Knife
-  itemType: 0
+  itemType: 1
   respawnTime: 3
+  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  metalPickupAudio: {fileID: 0}
+  clothPickupAudio: {fileID: 11400000, guid: 8979acb1c662ac999aeb04e0e268e7a7, type: 2}
 --- !u!54 &1308002252
 Rigidbody:
   m_ObjectHideFlags: 0

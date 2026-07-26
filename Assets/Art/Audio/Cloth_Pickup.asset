@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60834d41c5f1b8846b0be01492d2c418, type: 3}
   m_Name: Cloth_Pickup
   m_EditorClassIdentifier: Assembly-CSharp::Audio
-  AudioClip: {fileID: 8300000, guid: bb62eca3c141f619eb6391c3f7fa92d1, type: 3}
+  AudioClip: {fileID: 8300000, guid: f5b31bc9950cfca94b3f1d5f1ee01847, type: 3}
   Volume: 1
   Loop: 0
   Pan: 0
   Pitch: 1
   PitchVariation: 0
+  RandomizePitchEachLoop: 0

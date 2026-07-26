@@ -6,6 +6,10 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
   public ItemType itemType;
   public float respawnTime = 3f;
 
+  public AudioEventChannel channel;
+  public Audio metalPickupAudio;
+  public Audio clothPickupAudio;
+
   private Vector3 initialPosition;
   private Quaternion initialRotation;
 
@@ -29,6 +33,11 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
       rb = gameObject.AddComponent<Rigidbody>();
       rb.isKinematic = true; // no physics for object;
       player.heldObject = this;
+      if (itemType == ItemType.Tool){
+        channel.Play(metalPickupAudio);
+      } else {
+        channel.Play(clothPickupAudio);
+      }
     }
   }
   // DROP
