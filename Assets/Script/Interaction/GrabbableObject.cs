@@ -25,8 +25,11 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     initialRotation = transform.rotation;
   }
   //GRAB
-  public void Interact(Interactor player){
-    if (player.heldObject == null){ 
+  // virtual so a subclass can run its own step first (see DetachedBodyPart leaving the fridge) and
+  // still hand off to this one grab. Overriding beats re-declaring: a `new` Interact would take over
+  // the IInteractable slot and the object would never actually reach the player's hands.
+  public virtual void Interact(Interactor player){
+    if (player.heldObject == null){
       // make an object as a child for holdPoint
       Debug.Log("player holdp"+player.holdPoint);
       PlayPickupSound();
@@ -35,8 +38,10 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
       // local means relative to the parent
       this.transform.localPosition = Vector3.zero; // centre of holdPoint
       this.transform.localRotation = Quaternion.identity; //without rotation
-    if (!TryGetComponent<Rigidbody>(out var rb))
-      rb = gameObject.AddComponent<Rigidbody>();
+      // fills the cached field, not a local: Awake finds nothing on an object whose body is added later,
+      // and Drop() would then throw on it.
+      if (rb == null && !TryGetComponent<Rigidbody>(out rb))
+        rb = gameObject.AddComponent<Rigidbody>();
       rb.isKinematic = true; // no physics for object;
       player.heldObject = this;
     }

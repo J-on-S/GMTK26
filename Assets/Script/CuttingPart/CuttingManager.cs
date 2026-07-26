@@ -212,6 +212,9 @@ public enum CuttingState
     [Tooltip("Grab/drop sounds handed to the severed piece. The piece is built at runtime, so its audio can only come from here.")]
     public AudioGrappablePreset severedPieceAudioPreset;
 
+    [Tooltip("Health the severed piece starts and caps at, in seconds of freshness before it is spoiled.")]
+    public float SeveredPieceHealth = 60f;
+
     /// <summary>The looping cut sound while it is playing, so exactly that instance can be stopped again.</summary>
     private AudioMaster.PlayingClip cutLoop;
 
@@ -982,7 +985,7 @@ public enum CuttingState
         PlayTearSound();
 
         LastSeveredPiece = SliceOffPart();
-        InstantiateBodyPart(LastSeveredPiece);
+        OutfitSeveredPiece(LastSeveredPiece);
     }
 
     /// <summary>Hands the camera back and reports the cut done, after the follow-through when there is a finisher.</summary>
@@ -993,33 +996,32 @@ public enum CuttingState
         OnMinigameCompleted?.Invoke(this, LastSeveredPiece);
     }
 
-    void InstantiateBodyPart(GameObject bodyPart)
+    
+    void OutfitSeveredPiece(GameObject piece)
     {
-        DetachedBodyPart.MakeDetachedBodyPart(60 , 60 , bodyPartType , bodyPart , severedPieceAudioPreset);
-        KickSeveredPiece(bodyPart);
+        // a slice that severed nothing is already reported by SliceOffPart
+        if (piece == null) return;
+
+        // convex first: a concave collider on the Rigidbody the next line adds warns and falls through the world.
+        MakeCollidersDynamic(piece);
+
+        // adds the Rigidbody too, so every component the loose part is made of comes from this one call
+        DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset);
+
+        KickSeveredPiece(piece);
     }
 
-    private void KickSeveredPiece(GameObject bodyPart)
+    /// <summary>Throws the piece off along the swing, when the finisher asks for it.</summary>
+    /// <remarks>Silent no-op without a finisher: the cut then splices with no close-up and no swing to be thrown by.</remarks>
+    private void KickSeveredPiece(GameObject piece)
     {
+        if (finisher == null) return;
+
         float force = finisher.Kick;
-        if (force <= 0f)
-        {
-            return;
-        }
+        if (force <= 0f) return;
 
-      
-        if (bodyPart == null)
-        {
-            // a slice that severed nothing is already reported by the cut
-            return;
-        }
-
-        MakeCollidersDynamic(bodyPart);
-
-        if (!bodyPart.TryGetComponent(out Rigidbody body))
-        {
-            body = bodyPart.AddComponent<Rigidbody>();
-        }
+        // MakeDetachedBodyPart guarantees one, but a piece fitted out some other way may not have it
+        if (!piece.TryGetComponent(out Rigidbody body)) return;
 
         body.AddForce(-finisher.ApproachAxis * force, ForceMode.Impulse);
     }

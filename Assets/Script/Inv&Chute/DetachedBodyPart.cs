@@ -45,18 +45,34 @@ public class DetachedBodyPart : GrabbableObject
         _bodyPartDescriptionHUD.HideBodyPartDescription();
     }
 
-    public void Interact(Interactor player)
+    /// <summary>Takes the part out of the fridge, if it is in one, then grabs it like any other object.</summary>
+    /// <remarks>Invariant: the fridge is left alone when the player's hands are full. The base grab is a
+    /// no-op in that case, so evicting first would strand the part loose in the room with nobody holding it.</remarks>
+    public override void Interact(Interactor player)
     {
+        if (player.heldObject != null) return;
+
         if (fridge != null && !fridge.TryEvictItemFromFridge(this))
         {
             Debug.LogWarning("Failed to eject self from fridge: Am I not in a fridge?");
+            return;
         }
+
+        base.Interact(player);
     }
 
     /// <param name="preset">Grab/drop sounds for the piece. Added here rather than left to the inspector because
     /// the component is created at runtime on a mesh the slicer just made, so there is nobody to author it on.</param>
+    /// <remarks>Invariant: the Rigidbody goes on first. AddComponent runs Awake right away and
+    /// <see cref="GrabbableObject"/> caches its Rigidbody there, so the other order caches null and
+    /// dropping the piece throws.</remarks>
     public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset)
     {
+        if (!gameObject.TryGetComponent<Rigidbody>(out _))
+        {
+            gameObject.AddComponent<Rigidbody>();
+        }
+
         var detachedBodyPart = gameObject.GetComponent<DetachedBodyPart>();
 
         if (detachedBodyPart == null)

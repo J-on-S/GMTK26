@@ -66,10 +66,18 @@ public class Fridge : MonoBehaviour, IInteractable
         return false;
     }
 
+    /// <summary>Stores the body part the player is carrying, and empties their hands when it lands in a slot.</summary>
+    /// <remarks>Hands are only cleared on success: a full fridge leaves the player still holding the part,
+    /// rather than dropping their claim on something that is still parented to them.</remarks>
     public void Interact(Interactor player)
     {
-        var bodyPart = player.heldObject.GetComponent<DetachedBodyPart>();
+        if (player.heldObject == null) return;
+
+        var bodyPart = player.heldObject as DetachedBodyPart;
         if (bodyPart == null) return;
-        TryAddItemToFreeSlot(bodyPart);
+
+        if (!TryAddItemToFreeSlot(bodyPart)) return;
+
+        player.heldObject = null;
     }
 }

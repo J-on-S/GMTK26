@@ -65,7 +65,11 @@ public class CuttingManagerEditor : Editor
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Sound", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("soundPreset"));
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Severed Piece", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("severedPieceAudioPreset"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("SeveredPieceHealth"));
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Finisher", EditorStyles.boldLabel);
