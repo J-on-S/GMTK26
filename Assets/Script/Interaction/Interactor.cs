@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class Interactor : MonoBehaviour
 {
@@ -29,6 +30,8 @@ public class Interactor : MonoBehaviour
   void Update() {
     if (cam == null) return;
 
+    if (Time.timeScale == 0f) return;
+    if (EventSystem.current.IsPointerOverGameObject()) return;
     if (heldObject != null && Input.GetKeyDown(KeyCode.E)){
       heldObject.Drop();
       heldObject = null;
@@ -39,9 +42,15 @@ public class Interactor : MonoBehaviour
       // GetComponent just get or null
       // TryGetComponent if there smth put in variable
       // check if transform of object that we look on is interactable
-      if (hit.transform.TryGetComponent<IInteractable>(out var interactable)
-        && Input.GetMouseButtonDown(0)){
-        interactable.Interact(this);
+      if (hit.transform.TryGetComponent<IInteractable>(out var interactable))
+      {
+        if (Input.GetMouseButtonDown(0)){
+          interactable.Interact(this);
+        }
+      }
+      if (hit.transform.TryGetComponent<IHoverable>(out var hoverable))
+      {
+          hoverable.HoverOver(this);
       }
     }
   }

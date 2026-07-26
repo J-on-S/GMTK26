@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [DisallowMultipleComponent]
-public class DetachedBodyPart : GrabbableObject
+public class DetachedBodyPart : GrabbableObject, IHoverable
 {
     [SerializeField] public BodyPart bodyPart;
     [SerializeField] public float maxHealth = 100.0f;
@@ -46,9 +46,8 @@ public class DetachedBodyPart : GrabbableObject
 
     private void Update()
     {
-        health = Math.Clamp(health - Time.deltaTime, 0, maxHealth);
-        if (_material == null) return;
-
+        var multiplier = fridge == null ? 1.0f : 0.5f;
+        health = Math.Clamp(health - Time.deltaTime * multiplier, 0, maxHealth);
         var c = _material.color;
         _material.color = new Color(c.r, c.g, c.b, health / maxHealth);
         if (health <= 0)
@@ -66,9 +65,12 @@ public class DetachedBodyPart : GrabbableObject
     private void OnMouseExit()
     {
         if (_bodyPartDescriptionHUD == null) return;
-        _bodyPartDescriptionHUD.HideBodyPartDescription();
+        _bodyPartDescriptionHUD.HideBodyPartDescription(this);
     }
 
+    /// <summary>Takes the part out of the fridge, if it is in one, then grabs it like any other object.</summary>
+    /// <remarks>Invariant: the fridge is left alone when the player's hands are full. The base grab is a
+    /// no-op in that case, so evicting first would strand the part loose in the room with nobody holding it.</remarks>
     public override void Interact(Interactor player)
     {
         if (player.heldObject != null) return;
@@ -80,6 +82,24 @@ public class DetachedBodyPart : GrabbableObject
         }
 
         base.Interact(player);
+    }
+    
+    private bool hovering;
+
+    public void HoverOver(Interactor player)
+    {
+        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
+        hovering = true;
+    }
+
+    private void LateUpdate()
+    {
+        if (!hovering)
+        {
+            _bodyPartDescriptionHUD.HideBodyPartDescription(this);
+        }
+
+        hovering = false;
     }
 
     public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset)
