@@ -38,6 +38,9 @@ public class ToolRequestManager : MonoBehaviour
     public event Action<ToolRequest> RequestCompleted;
     public event Action<ToolRequest> RequestFailed;
     public event Action RequestQueueEmptied;
+    [Tooltip("Where a delivered body part gets stuck onto the customer. Found in the scene when left empty.")]
+    [SerializeField] private SpawnBodyPartCustomer spawnBodyPartCustomer;
+
 
     // stuff for doctor request UI
     public TextMeshProUGUI myTextLabel;
@@ -52,6 +55,21 @@ public class ToolRequestManager : MonoBehaviour
 
     private void Start()
     {
+        // the field is serialized, so a scene can wire it; found here only when it was left empty.
+        if (spawnBodyPartCustomer == null)
+        {
+            spawnBodyPartCustomer = FindFirstObjectByType<SpawnBodyPartCustomer>();
+            if (spawnBodyPartCustomer == null)
+            {
+                Debug.LogWarning($"{name}: no SpawnBodyPartCustomer in the scene, so delivered body parts will not be attached to the customer.", this);
+            }
+        }
+
+        if (myTextLabel == null)
+        {
+            Debug.LogError($"{name}: no myTextLabel assigned, so the doctor's requests cannot be shown.", this);
+        }
+
         SubscribeToClientList();
         RegisterAlreadySpawnedClients();
         StartCooldown();
@@ -65,6 +83,13 @@ public class ToolRequestManager : MonoBehaviour
         subscribedClientList.ClientSpawnedOnChair -= HandleClientSpawned;
         subscribedClientList.ClientRemoved -= HandleClientRemoved;
         subscribedClientList = null;
+    }
+
+    /// <summary>Writes the doctor's line, when there is a label to write it on.</summary>
+    private void SetRequestText(string text)
+    {
+        if (myTextLabel == null) return;
+        myTextLabel.text = text;
     }
 
     // Update is called once per frame
@@ -257,6 +282,7 @@ public class ToolRequestManager : MonoBehaviour
         if (submittedName == currentRequest.itemName && submittedType == currentRequest.itemType)
         {
             Debug.Log("Dude thanks for giving me that.");
+            SetRequestText("Dude thanks for giving me that.");
             if (myTextLabel != null)
                 myTextLabel.text = "Dude thanks for giving me that.";
 
@@ -268,7 +294,7 @@ public class ToolRequestManager : MonoBehaviour
             HealthScript.Instance.TakeDamage();
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
             if (myTextLabel != null)
-                myTextLabel.text = "Nah man wrong tool.";
+                SetRequestText("Nah man wrong tool.");
             return false;
         }
     }
@@ -355,6 +381,8 @@ public class ToolRequestManager : MonoBehaviour
     {
         ToolRequest failedRequest = currentRequest;
         Debug.Log("Time is up! You failed the request.");
+        SetRequestText("Ran out of time");
+        //TODO: LOOSE LIFE
         if (myTextLabel != null)
             myTextLabel.text = "Ran out of time";
 

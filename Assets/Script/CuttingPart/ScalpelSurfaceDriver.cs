@@ -53,8 +53,14 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
     public LineRenderer traceRenderer;
 
+    [Tooltip("Material the trace line is drawn with. Assign it here rather than on the LineRenderer: the line's own settings are rewritten by this component, so a hand-made renderer is only worth adding for its material.")]
+    public Material traceMaterial;
+
     [Tooltip("Line width, in world units.")]
     public float traceWidth = 0.005f;
+
+    [Tooltip("How far the edit-mode preview line floats off the body, in world units. Drawing only. Too low and the line z-fights the mesh and looks tangled; in play the line rides the scalpel, so Object Hover sets its height instead.")]
+    public float traceHover = 0.01f;
 
     [Tooltip("Min world distance between stored points; skips near-duplicates so the list stays small.")]
     public float traceMinStep = 0.005f;
@@ -113,26 +119,81 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         if (!owned.TryGetComponent(out traceRenderer))
         {
             traceRenderer = owned.gameObject.AddComponent<LineRenderer>();
-            traceRenderer.useWorldSpace = true;
-            traceRenderer.loop = false;
             traceRenderer.positionCount = 0;
+
+            // starting point for a renderer nobody has authored yet. Set once, on creation only, so
+            // every one of these stays editable afterwards.
             traceRenderer.alignment = LineAlignment.View;
+            traceRenderer.textureMode = LineTextureMode.Stretch;
             traceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             traceRenderer.receiveShadows = false;
             ApplyTraceWidth();
         }
 
+        ConfigureTraceRenderer();
         return traceRenderer;
     }
 
-    /// <summary>Puts the trace line back on screen, without touching the points it holds.</summary>
-    /// <remarks>Authoring wants the line visible whatever the cut last did to it: a manager that ended a
-    /// run in play mode leaves the renderer disabled, and that state is what the next edit-mode session
-    /// comes up in. Never creates the renderer -- that is play-mode work, so edit mode cannot dirty the
-    /// scene just by having this component selected.</remarks>
+    /// <summary>Holds the one renderer setting the trace cannot work without, and the material when this component owns it.</summary>
+    /// <remarks>
+    /// Invariant: <c>useWorldSpace</c> is on. Every point handed to this line is a world-space surface
+    /// hit, while the object it sits on is moved and rotated every frame by the surface snap and the
+    /// orbit -- read as local space those points wind around the moving transform and the line comes out
+    /// tangled. Deliberately narrow: alignment, texture mode, shadows and the rest are presentation, set
+    /// once when this component creates the renderer and left to the author from then on.
+    /// </remarks>
+    private void ConfigureTraceRenderer()
+    {
+        if (traceRenderer == null) return;
+
+        traceRenderer.useWorldSpace = true;
+
+        // only when the slot above is filled: an empty slot means the material is the renderer's own.
+        if (traceMaterial != null && traceRenderer.sharedMaterial != traceMaterial)
+        {
+            traceRenderer.sharedMaterial = traceMaterial;
+        }
+    }
+
+    /// <summary>Puts the trace line back on screen, and in edit mode fills it with the whole loop the scalpel would walk.</summary>
+    /// <remarks>
+    /// A run only ever draws the stretch the player got through, and edit mode runs no cut at all, so
+    /// the honest authoring view is the finished line: the entire target loop, at the trace's own width
+    /// and material. That is what the cut is supposed to leave behind.
+    /// <para>Never creates the renderer -- that is play-mode work, so edit mode cannot dirty the scene
+    /// just by having this component selected.</para>
+    /// </remarks>
     public void ShowTrace()
     {
-        if (traceRenderer != null) traceRenderer.enabled = true;
+        LineRenderer line = traceRenderer;
+        if (line == null) return;
+
+        line.enabled = true;
+        ConfigureTraceRenderer();
+
+        // in play the points are the player's own cut, appended a frame at a time; leave them alone.
+        if (Application.isPlaying) return;
+
+        if (builder == null) return;
+
+        // the loop as it sits on the surface, then lifted by this line's own hover: drawn flush with the
+        // mesh it z-fights and dips through it, which reads as a tangle rather than a ring.
+        if (!builder.TryGetCurvedLoop(out Vector3 center, out List<Vector3> points)
+            && !builder.TryGetFlatLoop(out center, out points))
+        {
+            return;
+        }
+
+        if (points == null || points.Count < 2) return;
+
+        points = builder.BuildHoverLift(center, points, traceHover);
+        if (points == null || points.Count < 2) return;
+
+        // closed: the full line is the whole ring, not a ring with a gap where the run would have started
+        line.loop = true;
+        line.positionCount = points.Count;
+        line.SetPositions(points.ToArray());
+        ApplyTraceWidth();
     }
 
     void OnValidate()
@@ -256,7 +317,13 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
     void ApplyTraceWidth()
     {
-        if (traceRenderer != null) traceRenderer.widthCurve = AnimationCurve.Constant(0, 1, traceWidth);
+        if (traceRenderer == null) return;
+
+        traceRenderer.widthCurve = AnimationCurve.Constant(0, 1, traceWidth);
+
+        // the inspector's "Width" field is this multiplier, and the final width is curve x multiplier:
+        // left at anything but 1 it silently scales every value typed above.
+        traceRenderer.widthMultiplier = 1f;
     }
 
     /// <summary>Drops the trail and the along-limb offset, so a fresh run starts from a clean surface and a centred scalpel.</summary>
@@ -264,7 +331,13 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     public void ResetTrace()
     {
         tracePoints.Clear();
-        if (traceRenderer != null) traceRenderer.positionCount = 0;
+        if (traceRenderer != null)
+        {
+            // open again: the edit-mode preview closes the ring, and a run left closed would draw a
+            // chord across the body from the scalpel back to where the cut started.
+            traceRenderer.loop = false;
+            traceRenderer.positionCount = 0;
+        }
 
         offset = 0f;
         hasSurface = false;

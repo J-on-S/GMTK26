@@ -25,6 +25,15 @@ public class LoopGuideBuilder : MonoBehaviour {
     [HideInInspector] public float curveWidth = 0.005f;
     [HideInInspector] public float curveHoverLength = 0.01f;
 
+    /// <summary>Smallest number of points the loop is warped and drawn with; 0 leaves the extraction as it came.</summary>
+    /// <remarks>
+    /// The cross-section has exactly one point per triangle edge the plane crosses, so a low-poly body
+    /// gives a ring of eight or ten. That is enough for a flat loop, and not nearly enough once each
+    /// point is pushed up or down by the curve: neighbouring points land far apart and the ring reads as
+    /// a zigzag rather than a wave. Subdividing first gives the warp something to shape.
+    /// </remarks>
+    [HideInInspector] public int curveResolution = 0;
+
 
     [Header("Loop guide")]
     [Tooltip("Draw the curved target loop into loopLine.")]
@@ -99,6 +108,7 @@ public class LoopGuideBuilder : MonoBehaviour {
     private int gSeed;
     private bool gRandom;
     private float gHoverLength;
+    private int gResolution = -1;
 
     private void Update() {
         // edit mode draws both loops whatever the toggles say: they are the authoring view of this cut,
@@ -250,6 +260,23 @@ public class LoopGuideBuilder : MonoBehaviour {
         return loopPoints != null;
     }
 
+    /// <summary>The curved loop as it is drawn: lifted off the surface by <c>curveHoverLength</c>.</summary>
+    /// <remarks>
+    /// Not the same list as <see cref="TryGetCurvedLoop"/>, which hands back the loop sitting exactly on
+    /// the mesh -- right for scoring, wrong for drawing. A line rendered on the surface z-fights it and
+    /// dips through it triangle by triangle, which looks like a tangle rather than a ring. Anything that
+    /// draws the loop wants this one.
+    /// </remarks>
+    public bool TryGetDrawnCurvedLoop(out List<Vector3> loopPoints) {
+        if (!TryGetCurvedLoop(out _, out List<Vector3> curved)) {
+            loopPoints = null;
+            return false;
+        }
+
+        loopPoints = curvedDraw ?? curved;
+        return loopPoints != null;
+    }
+
     /// <summary>Rebuilds <c>curvedGuide</c> only when the extraction or any curve param changed since the last build.</summary>
     private void MaybeRebuildGuide(Vector3 center, List<Vector3> flatWorld) {
         // no curve preset yet (a freshly created cut): leave curvedGuide null so the flat loop
@@ -261,12 +288,13 @@ public class LoopGuideBuilder : MonoBehaviour {
         bool dirty = curvedGuide == null
             || guideVersion != extractVersion
             || gAmp != preset.curveAmplitude || gWaves != preset.curveWaves || gPhase != preset.curvePhase
-            || gSeed != preset.curveSeed || gRandom != preset.curveRandom || gHoverLength != curveHoverLength;
+            || gSeed != preset.curveSeed || gRandom != preset.curveRandom || gHoverLength != curveHoverLength
+            || gResolution != curveResolution;
         if (!dirty) {
             return;
         }
 
-        curvedGuide = BuildCurvedGuide(center, flatWorld);
+        curvedGuide = BuildCurvedGuide(center, Densify(flatWorld, curveResolution));
         curvedDraw = BuildHoverLift(center, curvedGuide);
         curvedLength = LoopScorer.SampledLength(curvedGuide);
 
@@ -277,6 +305,36 @@ public class LoopGuideBuilder : MonoBehaviour {
         gSeed = preset.curveSeed;
         gRandom = preset.curveRandom;
         gHoverLength = curveHoverLength;
+        gResolution = curveResolution;
+    }
+
+    /// <summary>Subdivides a closed loop until it has at least <paramref name="minPoints"/> points, keeping every original point.</summary>
+    /// <remarks>
+    /// Splits each segment evenly rather than resampling by arc length: the extracted points sit exactly
+    /// on the cut, and keeping them means the denser loop still passes through the real cross-section
+    /// instead of cutting its corners. The inserted points are pulled onto the surface by the raycast in
+    /// <see cref="BuildCurvedGuide"/>, so they follow the body rather than chording across it.
+    /// </remarks>
+    private static List<Vector3> Densify(List<Vector3> loop, int minPoints) {
+        if (loop == null || loop.Count < 2 || minPoints <= loop.Count) {
+            return loop;
+        }
+
+        // segments of a closed loop: every point joins the next, and the last joins the first
+        int cuts = Mathf.CeilToInt((float)minPoints / loop.Count);
+        var dense = new List<Vector3>(loop.Count * cuts);
+
+        for (int i = 0; i < loop.Count; i++) {
+            Vector3 a = loop[i];
+            Vector3 b = loop[(i + 1) % loop.Count];
+
+            dense.Add(a);
+            for (int k = 1; k < cuts; k++) {
+                dense.Add(Vector3.Lerp(a, b, (float)k / cuts));
+            }
+        }
+
+        return dense;
     }
 
     /// <summary>Warps the flat loop into a wavy ring that rides the mesh surface: each point's cross-section is slid up/down the body axis by CurveHeight, then raycast back onto the collider.</summary>
@@ -323,7 +381,14 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     /// <summary>Copies a loop and lifts each point off the surface by <c>curveHoverLength</c> along its outward radial (plane-normal component removed), for drawing only.</summary>
     private List<Vector3> BuildHoverLift(Vector3 center, List<Vector3> pts) {
-        if (curveHoverLength == 0f || pts == null) {
+        return BuildHoverLift(center, pts, curveHoverLength);
+    }
+
+    /// <summary>The same lift at a caller's own distance, for anything that draws this loop with its own hover.</summary>
+    /// <remarks>Public so a second line over the same ring -- the scalpel's trace -- can sit at its own
+    /// height instead of inheriting the guide's, which is preset-owned and not the trace's to set.</remarks>
+    public List<Vector3> BuildHoverLift(Vector3 center, List<Vector3> pts, float distance) {
+        if (distance == 0f || pts == null || PlaneTransform == null) {
             return pts;
         }
         Vector3 up = PlaneTransform.up;
@@ -332,7 +397,7 @@ public class LoopGuideBuilder : MonoBehaviour {
             Vector3 flat = pts[i] - center;
             Vector3 radial = flat - up * Vector3.Dot(flat, up);
             Vector3 dir = radial.sqrMagnitude > 1e-8f ? radial.normalized : Vector3.zero;
-            lifted.Add(pts[i] + dir * curveHoverLength);
+            lifted.Add(pts[i] + dir * distance);
         }
         return lifted;
     }
