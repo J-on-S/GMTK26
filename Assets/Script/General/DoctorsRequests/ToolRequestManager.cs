@@ -338,7 +338,6 @@ public class ToolRequestManager : MonoBehaviour
         }
         else
         {   
-            HealthScript.Instance.TakeDamage();
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
             if (myTextLabel != null)
                 SetRequestText("Nah man wrong tool.");

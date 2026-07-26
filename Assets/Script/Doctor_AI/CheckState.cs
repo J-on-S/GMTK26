@@ -38,6 +38,7 @@ public class CheckState : State
             if (DisabledDuringMinigame.IsMinigameActive)
             {
                 Debug.LogError("Loook?");
+                HealthScript.Instance.TakeDamage(1);
                 return stateManager.RandomState(states);
             }
 
