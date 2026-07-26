@@ -122,6 +122,7 @@ public class GameplayManager : MonoBehaviour
         }
 
         SetState(GameplayDayState.Preparing);
+        BodyPartRunSummary.Instance.ResetCounts();
         Debug.Log($"[Day {currentDay}] Generating client/task list.", this);
         ClientList.GenerateList();
 

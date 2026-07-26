@@ -110,7 +110,7 @@ public class Chute : MonoBehaviour, IInteractable
         if (detachedBodyPart == null) {
             RecordTrapdoorEntry(
                 grabbableGO,
-                grabbableObject.bodyPartType.ToString());
+                grabbableObject.bodyPartType);
             AddToBlackMarket(grabbableObject.bodyPartType, 100);
             CheckBlackMarket();
             grabbableObject.ReleaseFromHolder();
@@ -120,14 +120,14 @@ public class Chute : MonoBehaviour, IInteractable
 
         if (detachedBodyPart.bodyPart == null)
         {
-            RecordTrapdoorEntry(grabbableGO, "Unknown");
+            RecordTrapdoorEntry(grabbableGO, null);
             Debug.LogError($"{name}: {detachedBodyPart.name} has no BodyPart assigned; it cannot be registered on the black market.", this);
         }
         else
         {
             RecordTrapdoorEntry(
                 grabbableGO,
-                detachedBodyPart.GetBodyPartType().ToString());
+                detachedBodyPart.GetBodyPartType());
             AddToBlackMarket(detachedBodyPart.GetBodyPartType(), detachedBodyPart.GetCurrentHealth());
         }
         
@@ -170,15 +170,21 @@ public class Chute : MonoBehaviour, IInteractable
 
     private void RecordTrapdoorEntry(
         GameObject enteredObject,
-        string bodyPartName)
+        BodyPartType? bodyPartType)
     {
         debugEntryCount++;
         debugLastObject =
             enteredObject != null ? enteredObject.name : "Missing object";
         debugLastBodyPart =
-            string.IsNullOrWhiteSpace(bodyPartName)
-                ? "Unknown"
-                : bodyPartName;
+            bodyPartType.HasValue
+                ? bodyPartType.Value.ToString()
+                : "Unknown";
+
+        if (bodyPartType.HasValue)
+        {
+            BodyPartRunSummary.Instance.RecordChuteBodyPart(
+                bodyPartType.Value);
+        }
 
         if (!logTrapdoorEntries)
             return;
