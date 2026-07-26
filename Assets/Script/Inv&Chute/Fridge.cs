@@ -43,6 +43,7 @@ public class Fridge : MonoBehaviour, IInteractable
             itemRigidbody.constraints = RigidbodyConstraints.FreezeAll;
         }
 
+        item.SetCollidersEnabled(true);
         item.fridge = this;
         return true;
     }
@@ -78,6 +79,6 @@ public class Fridge : MonoBehaviour, IInteractable
 
         if (!TryAddItemToFreeSlot(bodyPart)) return;
 
-        player.heldObject = null;
+        bodyPart.ReleaseFromHolder();
     }
 }
