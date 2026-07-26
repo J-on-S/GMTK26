@@ -127,7 +127,7 @@ public class GameplayLoopDebugTester : MonoBehaviour
         if (!RequirePlayMode() || gameplayManager == null)
             return;
 
-        gameplayManager.SetTemporaryLives(4);
+        gameplayManager.SetTemporaryLives(1);
         gameplayManager.SetTemporaryCountdown(0f);
         RefreshDebugList();
     }
@@ -138,7 +138,7 @@ public class GameplayLoopDebugTester : MonoBehaviour
         if (!RequirePlayMode() || gameplayManager == null)
             return;
 
-        gameplayManager.SetTemporaryLives(3);
+        gameplayManager.SetTemporaryLives(0);
         gameplayManager.SetTemporaryCountdown(-1f);
         RefreshDebugList();
     }

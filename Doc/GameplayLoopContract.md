@@ -201,6 +201,8 @@ Current APIs:
 gameplayManager.EndDay();
 gameplayManager.AdvanceToNextDay();
 gameplayManager.DayEnded += HandleDayEnded;
+gameplayManager.BlackMarketTaskResolved +=
+    HandleBlackMarketTaskResolved;
 gameplayManager.EnterBlackMarketRequested.AddListener(
     HandleEnterBlackMarket);
 ```
@@ -210,12 +212,15 @@ Current implementation:
 - `Ended` state and `DayEnded` event: implemented.
 - Inspector-configurable enter-black-market request invoked by `EndDay`:
   implemented.
+- `EndDay` resolves the generated black-market order first and publishes its
+  success/failure through `BlackMarketTaskResolved`: implemented.
 - Advancing the day number: implemented.
-- Automatic ending when the client list reaches zero, temporary lives are
-  greater than three, and temporary countdown remaining is nonnegative:
+- Automatic ending when the client list reaches zero, the player has health
+  remaining, and the temporary countdown remaining is nonnegative:
   implemented.
 - Body-part counting: planned.
-- Black-market order resolution and scoring: planned.
+- Black-market requirement-slot completion check: implemented.
+- Black-market scoring: planned.
 - Extra-part scoring: planned.
 - Room/storage/freezer separation: planned.
 - Decay processing: planned.
@@ -224,8 +229,11 @@ Current implementation:
 
 Temporary integration:
 
-- `GameplayManager.NumberOfLives` and `CountdownRemaining` are placeholder
-  values until the final lives and countdown systems expose their APIs.
+- `GameplayManager` reads health through `HealthScript.Instance`. Its
+  serialized temporary lives value is only a fallback for scenes without a
+  `HealthScript`.
+- `CountdownRemaining` remains a placeholder until the final countdown system
+  exposes its API.
 - If the client list reaches zero without the expected lives/countdown state,
   the manager logs a warning because that path should not normally be reachable.
 

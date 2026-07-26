@@ -104,20 +104,18 @@ then advances to the next occupied bed.
 
 
 ============================================================
-4. WHAT THE LIVES SCRIPT MUST IMPLEMENT
+4. HEALTH ACCESS
 ============================================================
 
-The final lives system does not exist yet.
+GameplayManager accesses the existing singleton through:
 
-It must give GameplayManager the current number of lives.
-Until then, the temporary test API is:
+HealthScript.Instance
 
-gameplayManager.SetTemporaryLives(numberOfLives);
+and reads the current health from HealthScript.HP.
 
-The current successful end condition requires more than 3 lives.
-
-The final lives variable/API should replace the temporary value in
-GameplayManager.
+If a test scene has no HealthScript, GameplayManager falls back to its
+serialized Number Of Lives value. The player must have more than 0 health
+when the client list becomes empty.
 
 
 ============================================================
@@ -158,6 +156,14 @@ BlackMarketTask GenerateTask(int dayNumber);
 BlackMarketGenerator currently provides this function.
 Replace that component with the real black-market manager later. (or the temporary might be the final one)
 
+When GameplayManager ends the day, it first calls:
+
+blackMarketGenerator.IsSucceedBlackMarket();
+
+The result is stored in LastBlackMarketTaskSucceeded and published through
+BlackMarketTaskResolved. After resolving that result, GameplayManager enters
+the Ended state and invokes the black-market entry event.
+
 
 ============================================================
 7. WHAT THE CUTTING AND TOOL SCRIPTS MUST IMPLEMENT
@@ -185,6 +191,7 @@ GameplayManager:
 
 - DayStarted
 - BlackMarketTaskGenerated
+- BlackMarketTaskResolved (provides true for success or false for failure)
 - DayEnded
 
 RandomizedClientList:

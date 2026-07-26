@@ -79,6 +79,11 @@ End and advance the day:
 gameplayManager.EndDay();
 gameplayManager.AdvanceToNextDay();
 
+EndDay checks BlackMarketGenerator.IsSucceedBlackMarket() before changing the
+day state. Read the latest result with:
+
+bool succeeded = gameplayManager.LastBlackMarketTaskSucceeded;
+
 
 FUTURE BLACK-MARKET INTEGRATION
 
@@ -100,6 +105,7 @@ EVENTS
 
 gameplayManager.DayStarted
 gameplayManager.BlackMarketTaskGenerated
+gameplayManager.BlackMarketTaskResolved
 gameplayManager.DayEnded
 
 These events can later update the world-space task board, countdown,
@@ -111,7 +117,8 @@ TEMPORARY AUTOMATIC END CONDITION
 RandomizedClientList raises TaskListEmptied when its last entry is removed.
 GameplayManager then ends the day only when:
 
-- Number Of Lives is greater than 3.
+- HealthScript.Instance reports more than 0 HP. If the scene has no
+  HealthScript, Number Of Lives is used as a temporary fallback.
 - Countdown Remaining is greater than or equal to 0.
 - The current state is InProgress.
 
@@ -123,8 +130,9 @@ Until the final systems exist, tests can update the placeholder values with:
 gameplayManager.SetTemporaryLives(lives);
 gameplayManager.SetTemporaryCountdown(secondsRemaining);
 
-These temporary variables should be replaced by the final lives and countdown
-APIs rather than becoming permanent ownership inside GameplayManager.
+The temporary lives variable is only a fallback for scenes without the
+HealthScript singleton. The countdown value should be replaced by the final
+countdown API.
 
 
 OPERATION CHAIRS / BEDS
