@@ -133,6 +133,11 @@ public class PauseMenu : MonoBehaviour
         isSubMenuOpen = false;
     }
 
+    public void ExitGame()
+    {
+        Application.Quit();
+    }
+
     void OnDestroy()
     {
         SceneManager.activeSceneChanged -= OnChangeScene;
