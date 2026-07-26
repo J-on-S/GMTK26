@@ -44,7 +44,9 @@ public enum CuttingState
         Exiting,
     }
 
-    [Header("Camera travel")]
+    // No [Header] anywhere in this class: CuttingManagerEditor draws every field under its own
+    // sections, and an attribute header would be drawn a second time inside the section that already
+    // says the same thing. The editor is the one place that decides how this component is laid out.
     [Tooltip("Seconds the camera takes to fly from free-look to the orbit position. 0 = snap.")]
     public float enterTravelTime = 0.6f;
 
@@ -95,7 +97,6 @@ public enum CuttingState
 
     public CuttableObject GameObjectBeingCut;
 
-    [Header("Identity")]
     [Tooltip("What the piece this cut takes off is called, e.g. \"Left Arm\". Becomes the severed object's name and its GrabbableObject.itemName, so the rest of the game can ask for it by name.")]
     public string itemName;
 
@@ -151,7 +152,6 @@ public enum CuttingState
     [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane + curvePreset.")]
     public LoopGuideBuilder loopGuide;
 
-    [Header("Guide lines")]
     [Tooltip("Draw this cut's guide lines in play mode as well as in edit mode. Off, they are an authoring aid only. The curved target loop ignores this and always draws -- it is what the player aims at.")]
     public bool showGuideLinesInPlay = true;
 
@@ -182,8 +182,6 @@ public enum CuttingState
     public static InputAction mouseDelta;
 
     public MoveCamera moveCamera;
-
-    [Header("Scalpel sync")]
 
     /// <summary>The camera's orbit -- the live angle that IS the cut progress, and that the scalpel slaves to.</summary>
     /// <remarks>
@@ -220,14 +218,12 @@ public enum CuttingState
     [Tooltip("Fixed angular gap (deg) the scalpel keeps ahead of the camera.")]
     public float scalpelAngleLead;
 
-    [Header("Finisher")]
     [Tooltip("The close-up chop that ends this cut. Left empty -- or with its own Enable Finisher off -- the cut splices and quits the instant progress hits 1.")]
     public CutFinisher finisher;
 
     /// <summary>The piece the last completed cut took off, or <c>null</c> when the slice produced none.</summary>
     public GameObject LastSeveredPiece { get; private set; }
 
-    [Header("Sound")]
     [Tooltip("Channel and clips this cut plays. Shared across cuts, so one asset normally serves them all.")]
     public CutSoundPreset soundPreset;
 
@@ -236,6 +232,12 @@ public enum CuttingState
 
     [Tooltip("Health the severed piece starts and caps at, in seconds of freshness before it is spoiled.")]
     public float SeveredPieceHealth = 60f;
+
+    [Tooltip("Where the severed piece is put once it comes away, as an offset from the body it was cut from, in the body's own space. Zero leaves it exactly where the slice left it.")]
+    public Vector3 severedPiecePositionOffset = Vector3.zero;
+
+    [Tooltip("Rotation given to the severed piece once it comes away, in degrees, on top of the pose the slice left it in.")]
+    public Vector3 severedPieceRotationOffset = Vector3.zero;
 
     /// <summary>The looping cut sound while it is playing, so exactly that instance can be stopped again.</summary>
     private AudioMaster.PlayingClip cutLoop;
@@ -1054,13 +1056,50 @@ public enum CuttingState
 
         MakeCollidersDynamic(piece);
 
-        DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset, itemName);
+        DetachedBodyPart part = DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset, itemName);
+
+        PlaceSeveredPiece(part);
 
         KickSeveredPiece(piece);
     }
 
+    /// <summary>Moves the freshly severed piece to where this cut wants it, by the offsets above.</summary>
+    /// <remarks>
+    /// The slice hands the piece back sitting exactly inside the body it came from, which is right for
+    /// the frame it comes away and wrong for a part that should fall clear, sit on a tray, or face the
+    /// camera. The offset is read in the body's own space, so it follows a client who is turned around.
+    /// <para>The home pose is re-taken afterwards: <see cref="GrabbableObject"/> snapshots it in Awake,
+    /// which ran when the component was added -- before this moved it -- so without this a respawn would
+    /// send the part back inside the body.</para>
+    /// </remarks>
+    private void PlaceSeveredPiece(DetachedBodyPart part)
+    {
+        if (part == null) return;
+
+        Transform piece = part.transform;
+
+        if (severedPieceRotationOffset != Vector3.zero)
+        {
+            piece.rotation *= Quaternion.Euler(severedPieceRotationOffset);
+        }
+
+        if (severedPiecePositionOffset != Vector3.zero)
+        {
+            Transform body = GameObjectBeingCut != null ? GameObjectBeingCut.transform : null;
+            piece.position += body != null
+                ? body.TransformVector(severedPiecePositionOffset)
+                : severedPiecePositionOffset;
+        }
+
+        part.SetStartPose(piece.position, piece.rotation);
+    }
+
     private void KickSeveredPiece(GameObject piece)
     {
+        // nothing to throw a piece with in edit mode: physics is not stepping, and the authoring copy
+        // wants to stay where it was put.
+        if (!Application.isPlaying) return;
+
         if (finisher == null) return;
 
         float force = finisher.Kick;
@@ -1291,6 +1330,110 @@ public enum CuttingState
     private Vector2 previewWindow;
     private Vector2 previewWindowCenter;
     private bool previewBuilt;
+
+    /// <summary>Spawns a standalone copy of the piece this cut would take off, leaving the body whole.</summary>
+    /// <remarks>
+    /// Authoring tool, not gameplay: it reads the same preview mesh the aim highlight uses, so what
+    /// lands in the scene is exactly what the cut would sever -- handy for checking a plane and a window
+    /// without running the cut, or for lifting the piece out to author a prefab from it.
+    /// <para>The mesh is copied rather than shared: the preview belongs to this manager and is rebuilt
+    /// whenever the plane or the body moves, which would silently reshape anything holding it.</para>
+    /// </remarks>
+    /// <returns>The spawned copy, or <c>null</c> when there is nothing to copy.</returns>
+    [ContextMenu("Copy the lower hull")]
+    public GameObject CopyLowerHull()
+    {
+        if (GameObjectBeingCut == null)
+        {
+            Debug.LogError($"{name}: no object being cut, so there is no piece to copy.", this);
+            return null;
+        }
+
+        Mesh piece = SeveredPreviewMesh;
+        if (piece == null)
+        {
+            Debug.LogError($"{name}: this cut severs nothing right now. Check the plane crosses the mesh and the window holds a closed loop.", this);
+            return null;
+        }
+
+        Mesh copy = Instantiate(piece);
+        string pieceName = string.IsNullOrWhiteSpace(itemName) ? $"{name} Lower Hull" : itemName;
+        copy.name = pieceName;
+
+        GameObject go = new GameObject(pieceName);
+
+        // the preview mesh is in the body's local space, so the copy only lines up when it wears the
+        // body's own transform -- the same pose CuttableObject.SpawnPiece gives a real severed piece.
+        Transform body = GameObjectBeingCut.transform;
+        go.transform.SetParent(body.parent, false);
+        go.transform.SetLocalPositionAndRotation(body.localPosition, body.localRotation);
+        go.transform.localScale = body.localScale;
+
+        go.AddComponent<MeshFilter>().sharedMesh = copy;
+        MeshRenderer renderer = go.AddComponent<MeshRenderer>();
+        if (body.TryGetComponent(out MeshRenderer bodyRenderer))
+        {
+            renderer.sharedMaterials = MaterialsForPiece(copy, bodyRenderer.sharedMaterials);
+        }
+
+        // the collider a real severed piece gets from CuttableObject.SpawnPiece, before the outfit
+        // below turns it convex for the Rigidbody.
+        go.AddComponent<MeshCollider>().sharedMesh = copy;
+
+        // origin onto the mesh, exactly as a real severed piece gets it
+        CuttableObject.CenterPivot(go, copy);
+
+        // same fit-out as a piece the cut actually severs, so a copy behaves like the real thing
+        OutfitSeveredPiece(go);
+
+        // the outfit turned the collider convex and the placement moved it; both leave the cook stale,
+        // which shows up as a collider sitting where the mesh used to be until Convex is toggled by hand.
+        RecookColliders(go);
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            UnityEditor.Undo.RegisterCreatedObjectUndo(go, "Copy Lower Hull");
+            UnityEditor.Selection.activeGameObject = go;
+        }
+#endif
+
+        return go;
+    }
+
+    /// <summary>Rebuilds every mesh collider on a piece from its mesh as it stands.</summary>
+    /// <remarks>For the authoring copy, where the mesh is re-centred and the piece moved after the
+    /// colliders were made: the cook is cached per collider, so it keeps the shape it was first given.</remarks>
+    private static void RecookColliders(GameObject piece)
+    {
+        MeshCollider[] colliders = piece.GetComponentsInChildren<MeshCollider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            CuttableObject.Recook(colliders[i], colliders[i].sharedMesh);
+        }
+    }
+
+    /// <summary>One material per submesh, padded from the body's own list.</summary>
+    /// <remarks>The severed piece carries the body's skin submeshes plus a cross-section cap, so it has
+    /// one submesh more than the body; a renderer short of materials drops the extra silently.</remarks>
+    private static Material[] MaterialsForPiece(Mesh piece, Material[] bodyMaterials)
+    {
+        int count = Mathf.Max(1, piece.subMeshCount);
+        var slots = new Material[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            if (bodyMaterials == null || bodyMaterials.Length == 0)
+            {
+                slots[i] = null;
+                continue;
+            }
+
+            slots[i] = i < bodyMaterials.Length ? bodyMaterials[i] : bodyMaterials[bodyMaterials.Length - 1];
+        }
+
+        return slots;
+    }
 
     /// <summary>The piece this cut would take off, as a mesh in the body's local space. Rebuilt only when the plane, the body or the window moves.</summary>
     /// <remarks>
