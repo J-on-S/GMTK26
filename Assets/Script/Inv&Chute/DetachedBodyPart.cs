@@ -19,9 +19,25 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
     
     private void Start()
     {
-        _material =  GetComponent<MeshRenderer>().material;
+        if (TryGetComponent<MeshRenderer>(out var meshRenderer))
+        {
+            _material = meshRenderer.material;
+        }
+        else
+        {
+            Debug.LogError($"{name}: no MeshRenderer, so the part cannot show its decay.", this);
+        }
+
         _bodyPartDescriptionHUD = BodyPartDescriptionHUD.LastActiveInstance;
-        
+        if (_bodyPartDescriptionHUD == null)
+        {
+            Debug.LogError($"{name}: no BodyPartDescriptionHUD in the scene, so hovering this part shows nothing.", this);
+        }
+
+        if (bodyPart == null)
+        {
+            Debug.LogError($"{name}: no BodyPart assigned; selling or requesting this part cannot identify it.", this);
+        }
     }
     public BodyPartType GetBodyPartType()
     {
@@ -38,6 +54,18 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         {
             _material.color = new Color(255, c.g, c.b, 0.7f);
         }
+    }
+
+    private void OnMouseEnter()
+    {
+        if (_bodyPartDescriptionHUD == null) return;
+        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
+    }
+
+    private void OnMouseExit()
+    {
+        if (_bodyPartDescriptionHUD == null) return;
+        _bodyPartDescriptionHUD.HideBodyPartDescription(this);
     }
 
     /// <summary>Takes the part out of the fridge, if it is in one, then grabs it like any other object.</summary>
@@ -74,11 +102,6 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         hovering = false;
     }
 
-    /// <param name="preset">Grab/drop sounds for the piece. Added here rather than left to the inspector because
-    /// the component is created at runtime on a mesh the slicer just made, so there is nobody to author it on.</param>
-    /// <remarks>Invariant: the Rigidbody goes on first. AddComponent runs Awake right away and
-    /// <see cref="GrabbableObject"/> caches its Rigidbody there, so the other order caches null and
-    /// dropping the piece throws.</remarks>
     public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset)
     {
         if (!gameObject.TryGetComponent<Rigidbody>(out _))

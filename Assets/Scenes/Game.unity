@@ -642,6 +642,7 @@ Transform:
   - {fileID: 379738031}
   - {fileID: 555902296}
   - {fileID: 1052103932}
+  - {fileID: 2073518027}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &188754946
@@ -4263,6 +4264,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
   m_PrefabInstance: {fileID: 974695388}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1147442668 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9081844400141631352, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
+  m_PrefabInstance: {fileID: 974695388}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c83b58baa05a94286afb268943ac1900, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactor
 --- !u!1001 &1200048961
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7058,7 +7070,7 @@ GameObject:
   - component: {fileID: 2073518029}
   - component: {fileID: 2073518033}
   m_Layer: 0
-  m_Name: BodyPartTest
+  m_Name: TEST AAARRRMMM
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7073,11 +7085,11 @@ Transform:
   m_GameObject: {fileID: 2073518026}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.75, y: 0.33136013, z: -0.19454145}
-  m_LocalScale: {x: 0.12872083, y: 0.12872083, z: 0.12872083}
+  m_LocalPosition: {x: -60.608566, y: 4.18, z: -8.459995}
+  m_LocalScale: {x: 1.6, y: 1.6, z: 1.6}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 543450651859203499}
+  m_Father: {fileID: 155493466}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &2073518029
 Rigidbody:
@@ -7206,13 +7218,25 @@ MonoBehaviour:
   clothPickupAudio: {fileID: 0}
   metalDropAudio: {fileID: 0}
   clothDropAudio: {fileID: 0}
-  bodyPart: {fileID: 0}
+  bodyPart: {fileID: 11400000, guid: 3359b1aadf33b0a4e87e90f7c34fe108, type: 2}
   maxHealth: 100
   health: 100
   fridge: {fileID: 0}
   onPartPickup:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 8758288444896576999}
+        m_TargetAssemblyTypeName: Fridge, Assembly-CSharp
+        m_MethodName: Interact
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 1147442668}
+          m_ObjectArgumentAssemblyTypeName: Interactor, Assembly-CSharp
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &2091669863
 GameObject:
   m_ObjectHideFlags: 0
@@ -7683,7 +7707,6 @@ Transform:
   - {fileID: 1200048962}
   - {fileID: 86748967}
   - {fileID: 1262141677478417930}
-  - {fileID: 2073518027}
   m_Father: {fileID: 623475884}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &716830176128105568

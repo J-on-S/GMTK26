@@ -9,15 +9,27 @@ public class Interactor : MonoBehaviour
 
   Camera cam;
   void Awake(){ //search for camera once
-    cam = Camera.main; 
+    cam = Camera.main;
+    if (cam == null){
+      Debug.LogError($"{name}: no camera tagged MainCamera, so nothing can be interacted with.", this);
+    }
+    if (holdPoint == null){
+      Debug.LogError($"{name}: no holdPoint assigned; grabbed objects would be parented to the scene root instead of the hand.", this);
+    }
   }
   public void ResetHeldObj()
   {
+    if (heldObject == null){
+      Debug.LogError($"{name}: ResetHeldObj called with empty hands.", this);
+      return;
+    }
     Destroy(heldObject.gameObject);
     heldObject = null;
   }
-  
+
   void Update() {
+    if (cam == null) return;
+
     if (Time.timeScale == 0f) return;
     if (EventSystem.current.IsPointerOverGameObject()) return;
     if (heldObject != null && Input.GetKeyDown(KeyCode.E)){

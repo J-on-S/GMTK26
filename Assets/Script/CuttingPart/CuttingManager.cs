@@ -95,10 +95,6 @@ public enum CuttingState
 
     public CuttableObject GameObjectBeingCut;
 
-    [Header("Identity")]
-    [Tooltip("Which body part this cut takes off, e.g. \"Left Arm\". Names the piece for the rest of the game; not used by the cut itself.")]
-    public string bodyPartName;
-
     [Tooltip("ToolPickup.itemName the player must be holding to start this cut. Leave empty for a cut that needs no particular tool.")]
     public string requiredToolName;
     [SerializeField] public BodyPart bodyPartType;
@@ -150,6 +146,16 @@ public enum CuttingState
 
     [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane + curvePreset.")]
     public LoopGuideBuilder loopGuide;
+
+    [Header("Guide lines")]
+    [Tooltip("Draw this cut's guide lines in play mode as well as in edit mode. Off, they are an authoring aid only. The curved target loop ignores this and always draws -- it is what the player aims at.")]
+    public bool showGuideLinesInPlay = true;
+
+    [Tooltip("Drawn width of every guide line this cut owns, in world units. The scalpel's own trace keeps its own width.")]
+    public float guideLineWidth = 0.005f;
+
+    /// <summary>Width every guide line of this cut is drawn at, from the preset when there is one.</summary>
+    public float GuideLineWidth => minigamePreset != null ? minigamePreset.curveWidth : guideLineWidth;
 
     public static InputAction move;
 
@@ -314,6 +320,7 @@ public enum CuttingState
         if (moveCamera == null) missing.Add("Free-look MoveCamera");
         if (cameraFollow == null) missing.Add("A CameraFollow on the scene camera");
         if (scalpelFollow == null) missing.Add("Scalpel CameraFollow");
+        else if (!scalpelFollow.TryGetComponent<ScalpelSurfaceDriver>(out _)) missing.Add("A ScalpelSurfaceDriver on the scalpel");
         // no speed-driver entry: it is provisioned on demand, so it can never be "missing".
         if (SpeedPreset == null) missing.Add("Camera moves preset");
         if (Curve == null) missing.Add("Curve preset");
@@ -825,14 +832,39 @@ public enum CuttingState
     }
 
     /// <summary>Turns the scalpel's surface trail on or off, if it has a follower.</summary>
+    /// <remarks>Invariant: off stops the trail growing but leaves the drawn line standing. The line is
+    /// the cut the player made, so it stays on the body through the quit and the fly-out; only the tear
+    /// takes it down, in <see cref="PlayTearSound"/>.</remarks>
     void SetScalpelTrace(bool on)
     {
         CameraFollow scalpel = scalpelFollow;
         if (scalpel == null) return;
+        if (!scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop)) return;
+
+        scalpelLoop.drawTrace = on;
+
+        // edit mode keeps both: the driver is the authoring preview, and the line it drew is what the
+        // author is looking at. Only a running game takes them down.
+        if (!Application.isPlaying)
+        {
+            scalpelLoop.enabled = true;
+            scalpelLoop.ShowTrace();
+            return;
+        }
+
+        scalpelLoop.enabled = on;
+    }
+
+    /// <summary>Wipes the scalpel's drawn trail, if it has a follower. Play mode only: in edit mode the line is the authoring preview.</summary>
+    void ClearScalpelTrace()
+    {
+        if (!Application.isPlaying) return;
+
+        CameraFollow scalpel = scalpelFollow;
+        if (scalpel == null) return;
         if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
         {
-            scalpelLoop.enabled = on;
-            scalpelLoop.drawTrace = on;
+            scalpelLoop.ResetTrace();
         }
     }
 
@@ -907,6 +939,9 @@ public enum CuttingState
 
         tearPlayed = true;
         Channel.Play(TearSound);
+
+        // the trail is the cut the player drew; it stops meaning anything the moment the piece tears off.
+        ClearScalpelTrace();
     }
 
     /// <summary>Silences the cut loop, if it is sounding. Safe to call when it isn't.</summary>
@@ -999,20 +1034,15 @@ public enum CuttingState
     
     void OutfitSeveredPiece(GameObject piece)
     {
-        // a slice that severed nothing is already reported by SliceOffPart
         if (piece == null) return;
 
-        // convex first: a concave collider on the Rigidbody the next line adds warns and falls through the world.
         MakeCollidersDynamic(piece);
 
-        // adds the Rigidbody too, so every component the loose part is made of comes from this one call
         DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset);
 
         KickSeveredPiece(piece);
     }
 
-    /// <summary>Throws the piece off along the swing, when the finisher asks for it.</summary>
-    /// <remarks>Silent no-op without a finisher: the cut then splices with no close-up and no swing to be thrown by.</remarks>
     private void KickSeveredPiece(GameObject piece)
     {
         if (finisher == null) return;
@@ -1020,7 +1050,6 @@ public enum CuttingState
         float force = finisher.Kick;
         if (force <= 0f) return;
 
-        // MakeDetachedBodyPart guarantees one, but a piece fitted out some other way may not have it
         if (!piece.TryGetComponent(out Rigidbody body)) return;
 
         body.AddForce(-finisher.ApproachAxis * force, ForceMode.Impulse);
@@ -1087,9 +1116,16 @@ public enum CuttingState
         {
             if (GameObjectBeingCut != null) loopGuide.meshFollow = GameObjectBeingCut;
             if (Curve != null) loopGuide.preset = Curve;
+
+            // one width for every line this cut owns, preset first and the inline field otherwise.
+            // applied here and not left to the next draw: OnValidate calls this, and an author dragging
+            // the width wants the line to change under the cursor.
+            loopGuide.curveWidth = GuideLineWidth;
+            loopGuide.ApplyLineWidth();
+            loopGuide.showInPlayMode = showGuideLinesInPlay;
+
             if (minigamePreset != null)
             {
-                loopGuide.curveWidth = minigamePreset.curveWidth;
                 loopGuide.curveHoverLength = minigamePreset.curveHoverLength;
             }
         }
