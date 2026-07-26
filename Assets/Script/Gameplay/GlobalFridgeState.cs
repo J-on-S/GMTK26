@@ -5,15 +5,21 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "GlobalFridgeState", menuName = "Scriptable Objects/GlobalFridgeState")]
 public class GlobalFridgeState : ScriptableObject
 {
-    public SortedSet<Fridge> Fridges = new SortedSet<Fridge>();
+    public HashSet<Fridge> Fridges = new HashSet<Fridge>();
 
-    public SortedSet<DetachedBodyPart> GetStoredBodyParts()
+    public HashSet<DetachedBodyPart> GetStoredBodyParts()
     {
-        var storedBodyParts = new SortedSet<DetachedBodyPart>();
+        var storedBodyParts = new HashSet<DetachedBodyPart>();
         foreach (var fridge in Fridges)
         {
-            foreach (var bodyPart in fridge.StoredBodyParts)
+            if (fridge == null) continue;
+
+            var fridgeContents = fridge.StoredBodyParts;
+            if (fridgeContents == null) continue;
+
+            foreach (var bodyPart in fridgeContents)
             {
+                if (bodyPart == null) continue;
                 storedBodyParts.Add(bodyPart);
             }
         }

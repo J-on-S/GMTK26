@@ -999,20 +999,15 @@ public enum CuttingState
     
     void OutfitSeveredPiece(GameObject piece)
     {
-        // a slice that severed nothing is already reported by SliceOffPart
         if (piece == null) return;
 
-        // convex first: a concave collider on the Rigidbody the next line adds warns and falls through the world.
         MakeCollidersDynamic(piece);
 
-        // adds the Rigidbody too, so every component the loose part is made of comes from this one call
         DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset);
 
         KickSeveredPiece(piece);
     }
 
-    /// <summary>Throws the piece off along the swing, when the finisher asks for it.</summary>
-    /// <remarks>Silent no-op without a finisher: the cut then splices with no close-up and no swing to be thrown by.</remarks>
     private void KickSeveredPiece(GameObject piece)
     {
         if (finisher == null) return;
@@ -1020,7 +1015,6 @@ public enum CuttingState
         float force = finisher.Kick;
         if (force <= 0f) return;
 
-        // MakeDetachedBodyPart guarantees one, but a piece fitted out some other way may not have it
         if (!piece.TryGetComponent(out Rigidbody body)) return;
 
         body.AddForce(-finisher.ApproachAxis * force, ForceMode.Impulse);
