@@ -12,7 +12,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
         [Tooltip("Weld distance for merging cut points (mesh-local units). A property of this mesh, so it is shared by every cut on it.")]
         public float weld = 1e-4f;
 
-        [Tooltip("Material for the exposed cut face. Must differ from the skin materials so the cap lands in its own submesh and can be culled outside the bounds window.")]
+        [Tooltip("Material for the exposed cut face. May be the same as a skin material: the slice is made with a null cross material so the cap always lands in its own submesh, and this is applied to it afterwards.")]
         public Material crossSectionMaterial;
 
         [Tooltip("Master switch for every CutPlane's scene-view loop on this body. Off stops the per-frame re-extraction, which is the expensive part of authoring; turn it off once the planes are placed.")]
@@ -67,7 +67,15 @@ public class CuttableObject : MonoBehaviour , IInteractable
             return;
         }
 
-        pendingHull = gameObject.Slice(plane.Origin, plane.Normal, crossSectionMaterial);
+        // sliced with a null cross material, never crossSectionMaterial: the slicer uses the
+        // material only to pick the cap's submesh, and a material it finds among the renderer's
+        // own merges the cap INTO that skin submesh. The windowed split tells cap from skin by
+        // submesh index alone, so a merged cap reads as skin, bridges every lower chunk through
+        // the slicer's plane-wide convex cap, and the whole lower half comes off as if the plane
+        // were infinite. Null forces the cap into its own trailing submesh; the real material is
+        // applied afterwards by ApplyMaterials, so the cap still renders with crossSectionMaterial
+        // even when that equals the skin's.
+        pendingHull = gameObject.Slice(plane.Origin, plane.Normal, null);
         if (pendingHull == null) {
             Debug.LogError("CuttableObject: slice produced no geometry.", this);
         }
@@ -202,7 +210,9 @@ public class CuttableObject : MonoBehaviour , IInteractable
             return pieces;
         }
 
-        SlicedHull hull = gameObject.Slice(plane.Origin, plane.Normal, crossSectionMaterial);
+        // null cross material for the same reason Splice passes it: the cap must land in its own
+        // trailing submesh for the windowed split to recognise it, whatever crossSectionMaterial is.
+        SlicedHull hull = gameObject.Slice(plane.Origin, plane.Normal, null);
         if (hull == null) {
             return pieces;
         }
@@ -289,15 +299,19 @@ public class CuttableObject : MonoBehaviour , IInteractable
         private CutContour.PlaneBounds? BuildBounds(CutPlane plane) {
             if (plane == null) return null;
 
-            return CutContour.BuildBounds(plane.transform, plane.boundsSize, gameObject);
+            // through the plane's WindowSize/WindowCenter, never its raw boundsSize: those are what
+            // resolve the window box, and the slice has to use the same rectangle the guide and the
+            // gizmo do or the cut disagrees with what was authored.
+            return CutContour.BuildBounds(plane.transform, plane.WindowSize, gameObject, plane.WindowCenter);
         }
 
         /// <summary>Extracts every cut loop of an object against the finite quad the plane transform defines.</summary>
         /// <param name="meshObj">Object being cut; supplies the mesh and the mesh-local frame of the result.</param>
         /// <param name="plane">Cutting plane; its position + up give the cut and its scale gives the finite window.</param>
-        /// <param name="windowSize">Window rectangle in the plane's local units (the plane's own scale multiplies it); defaults to a unit rectangle. Pass the cuttable's <c>boundsSize</c> to match the slice window.</param>
+        /// <param name="windowSize">Window rectangle in the plane's local units (the plane's own scale multiplies it); defaults to a unit rectangle. Pass <c>CutPlane.WindowSize</c> to match the slice window.</param>
+        /// <param name="windowCenter">Window centre offset in the plane's local X/Z. Pass <c>CutPlane.WindowCenter</c> alongside the size; a size taken from a box with an offset centre is only half of that window.</param>
         /// <returns>Mesh-local loops of <paramref name="meshObj"/>; empty when it has no <c>MeshFilter</c> with a shared mesh.</returns>
-        public static List<SavedLoop> GetLoops(GameObject meshObj, Transform plane, float weld = 1e-4f, Vector2? windowSize = null) {
+        public static List<SavedLoop> GetLoops(GameObject meshObj, Transform plane, float weld = 1e-4f, Vector2? windowSize = null, Vector2 windowCenter = default) {
             var result = new List<SavedLoop>();
 
             if (meshObj == null || plane == null ||
@@ -314,7 +328,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
                 mt.InverseTransformPoint(plane.position),
                 inv.MultiplyVector(plane.up).normalized);
 
-            CutContour.PlaneBounds? bounds = CutContour.BuildBounds(plane, windowSize ?? Vector2.one, meshObj);
+            CutContour.PlaneBounds? bounds = CutContour.BuildBounds(plane, windowSize ?? Vector2.one, meshObj, windowCenter);
 
             ToSavedLoops(CutContour.ExtractLoops(filter.sharedMesh, pl, weld, bounds), result);
             return result;

@@ -47,6 +47,9 @@ public class CameraFollowPreset : ScriptableObject
     [Tooltip("Roll the camera so the loop's travel direction points to the top of the screen.")]
     public bool loopTowardTop = false;
 
+    [Tooltip("What ends up at the top of the screen. The cutting plane's normal has whatever sign the plane was authored with, so Plane Normal alone can hand back an upside-down view (floor at the top) with the aim still perfectly on the loop. Ignored while Loop Toward Top is on, which owns the up vector itself.")]
+    public CameraFollow.UpMode upMode = CameraFollow.UpMode.PlaneNormalUpright;
+
     [Tooltip("Also drive rotation (aim + roll). Off = orbit position only, leaving the object's rotation untouched.")]
     public bool controlRotation = true;
 
@@ -111,6 +114,7 @@ public class CameraFollowPreset : ScriptableObject
         follow.lookMode = lookMode;
         follow.lookSpeed = lookSpeed;
         follow.loopTowardTop = loopTowardTop;
+        follow.upMode = upMode;
         follow.controlRotation = controlRotation;
         follow.controlPosition = controlPosition;
 
@@ -147,6 +151,7 @@ public class CameraFollowPreset : ScriptableObject
         lookMode = follow.lookMode;
         lookSpeed = follow.lookSpeed;
         loopTowardTop = follow.loopTowardTop;
+        upMode = follow.upMode;
         controlRotation = follow.controlRotation;
         controlPosition = follow.controlPosition;
 
@@ -187,7 +192,7 @@ public static class CameraFollowCategories
     public static readonly Group[] All =
     {
         new("Path", new[] { "loopSource", "moveMode", "scale", "height", "angleOffset", "positionOffset", "moveSpeed" }),
-        new("Aim", new[] { "lookMode", "lookSpeed", "loopTowardTop", "controlRotation", "controlPosition" }),
+        new("Aim", new[] { "lookMode", "lookSpeed", "loopTowardTop", "upMode", "controlRotation", "controlPosition" }),
         new("Roll", new[] { "rollDegrees", "rollAmplitude", "rollSpeed" }),
         new("Off-centre pivot", new[] { "pivotAffectsPosition", "pivotAffectsLook", "pivotOffset", "pivotMoves", "pivotMoveRadius", "pivotMoveSpeed" }),
         new("Drift", new[] { "maxHorizontalDerive", "DerivePerSecondEvaluate", "DeriveSpeed", "deriveCenterBias" }),

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class Interactor : MonoBehaviour
 {
@@ -17,6 +18,8 @@ public class Interactor : MonoBehaviour
   }
   
   void Update() {
+    if (Time.timeScale == 0f) return;
+    if (EventSystem.current.IsPointerOverGameObject()) return;
     if (heldObject != null && Input.GetKeyDown(KeyCode.E)){
       heldObject.Drop();
       heldObject = null;
