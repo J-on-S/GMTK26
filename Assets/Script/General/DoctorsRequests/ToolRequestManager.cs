@@ -148,9 +148,7 @@ public class ToolRequestManager : MonoBehaviour
         }
         else
         {   
-            //  Todo
-            // maybe add penalty to score here for not fulfilling request?
-            // PUT SUBTRACTING A HEART HERE
+            HealthScript.Instance.TakeDamage();
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
             myTextLabel.text = "Nah man wrong tool.";
             return false; // not success
@@ -162,7 +160,7 @@ public class ToolRequestManager : MonoBehaviour
     {
         Debug.Log("Time is up! You failed the request.");
         myTextLabel.text = "Ran out of time";
-        //TODO: LOOSE LIFE
+        HealthScript.Instance.TakeDamage();
         StartCooldown();
     }
 
