@@ -4,7 +4,7 @@ using EzySlice;
 
 [RequireComponent(typeof(MeshCollider))]
 [RequireComponent(typeof(MeshRenderer))]
-public class CuttableObject : MonoBehaviour
+public class CuttableObject : MonoBehaviour , IInteractable
 {
 
 
@@ -231,6 +231,21 @@ public class CuttableObject : MonoBehaviour
         if (Application.isPlaying) Destroy(mesh);
         else DestroyImmediate(mesh);
     }
+    public void Interact(Interactor player)
+    {
+        Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+
+        if (!Physics.Raycast(ray, out RaycastHit hit)) Debug.LogError("Should not happen: raycast on interact hit. Check layers");
+        Debug.Log("successfully interacted");
+        
+        CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
+
+        if(player.heldObject != null){
+            bool hasTool = aimed.HasRequiredTool(player.heldObject.itemName);
+            bool ready = aimed.canEnterMinigame() && hasTool;
+            aimed.EnterMinigame();
+        }
+    }
 
     /// <summary>Checks at least one cut contour inside the bounds window is a closed loop, i.e. some cut fully crosses the mesh. Multiple closed loops are allowed — each becomes its own removed piece by connectivity. Open (clipped) loops are allowed too; the splice discards them and welds their cut shut.</summary>
     /// <returns><c>false</c> with a reason when the plane misses or every contour is left open (clipped) by the bounds.</returns>
@@ -320,8 +335,12 @@ public class CuttableObject : MonoBehaviour
                 GizmoUtils.DrawLoop(tf, set[l], color, withDots);
             }
         }
-        /// <summary>Draws the finite cut window as a wire rectangle on the plane.</summary>
-        
+
+    
+    
+
+    /// <summary>Draws the finite cut window as a wire rectangle on the plane.</summary>
+
 #endif
-    }
+}
 

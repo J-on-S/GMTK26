@@ -1,6 +1,6 @@
-using UnityEngine;
 using System.Collections.Generic;
-// using UnityEditor;
+using TMPro;
+using UnityEngine;
 
 public class ToolRequestManager : MonoBehaviour
 {
@@ -23,10 +23,13 @@ public class ToolRequestManager : MonoBehaviour
     private State currentState = State.Idle;
 
     private ToolRequest currentRequest;
-    //private string currentRequiredTool;
     private float remainingTime;
     private float remainingCooldown;
     private SpawnBodyPartCustomer spawnBodyPartCustomer;
+
+
+    // stuff for doctor request UI
+    public TextMeshProUGUI myTextLabel;
 
     private void Start()
     {
@@ -114,7 +117,8 @@ public class ToolRequestManager : MonoBehaviour
 
         string itemCategory = currentRequest.itemType.ToString();
         Debug.Log($"Hey, hand me a {itemCategory}: [{currentRequest.itemName}] within {remainingTime:F1} seconds!");
-        //Debug.Log($"Hey, hand me a: {currentRequiredTool} within {remainingTime:F1} seconds!");
+        myTextLabel.text = "Hey, hand me a " +  itemCategory + ":<color=\"red\"> " + currentRequest.itemName + "</color>"; //+ " within " + remainingTime + " seconds!";
+
 
         // remove request from the list immediately, doctor will not ask again regardless of if request is fulfilled or not
         availableRequests.Remove(currentRequest);
@@ -130,6 +134,8 @@ public class ToolRequestManager : MonoBehaviour
         if (submittedName == currentRequest.itemName && submittedType == currentRequest.itemType)
         {
             Debug.Log("Dude thanks for giving me that.");
+            myTextLabel.text = "Dude thanks for giving me that."; 
+
             StartCooldown();
             //For now: Add the body on it
             if (submittedType == ItemType.BodyPart)
@@ -145,6 +151,7 @@ public class ToolRequestManager : MonoBehaviour
             // maybe add penalty to score here for not fulfilling request?
             // PUT SUBTRACTING A HEART HERE
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
+            myTextLabel.text = "Nah man wrong tool.";
             return false; // not success
         }
     }
@@ -153,6 +160,7 @@ public class ToolRequestManager : MonoBehaviour
     private void FailRequest()
     {
         Debug.Log("Time is up! You failed the request.");
+        myTextLabel.text = "Ran out of time";
         //TODO: LOOSE LIFE
         StartCooldown();
     }

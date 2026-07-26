@@ -24,7 +24,7 @@ public class Interactor : MonoBehaviour
       // TryGetComponent if there smth put in variable
       // check if transform of object that we look on is interactable
       if (hit.transform.TryGetComponent<IInteractable>(out var interactable)
-      && Input.GetMouseButtonDown(0)){
+        && Input.GetMouseButtonDown(0)){
         interactable.Interact(this);
       }
     }

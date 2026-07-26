@@ -155,7 +155,7 @@ public enum CuttingState
     /// <summary>Arrow-key drive, built in code so it needs no entry in the input asset. Same effect as the wheel.</summary>
     public static InputAction arrows;
 
-    /// <summary>Per-frame mouse motion in pixels, both axes: x = horizontal, y = vertical. Shared by the scalpel's along-limb slide and <see cref="MoveCamera"/>'s look, so both read the same delta.</summary>
+    /// <summary>Per-frame mouse motion in pixels, both axes: x = horizontal, y = vertical.</summary>
     public static InputAction mouseDelta;
 
     public MoveCamera moveCamera;
@@ -224,6 +224,15 @@ public enum CuttingState
 
     public static event Action<CuttingManager> OnMinigameQuit;
 
+    /// <summary>Fired when the camera has finished flying back out and free-look can have it again.</summary>
+    /// <remarks>
+    /// Invariant: fires after the camera has landed, unlike <see cref="OnMinigameQuit"/>, which
+    /// fires as the fly-out starts — anything that steers the camera on that one cancels the
+    /// travel.
+    /// <para>Invariant: does not fire for the park that happens on load.</para>
+    /// </remarks>
+    public static event Action<CuttingManager> OnMinigameExited;
+
     // ---- resolved tuning: the preset when one is assigned, the inline field otherwise ----
 
     // Note the two below are NOT preset-backed: a preset is a reusable feel, and where a cut opens
@@ -276,7 +285,10 @@ public enum CuttingState
     /// <summary>Travel speed above which the cut counts as cutting, in deg/sec.</summary>
     public float CutSoundSpeedThreshold => soundPreset != null ? soundPreset.cutSoundSpeedThreshold : 0.5f;
 
-  
+    /// <summary>
+    /// null when there is no game being played
+    /// </summary>
+    public static CuttingManager currentGame = null;
 
     /// <summary>What is still missing before this cut can run, in inspector-readable words. Empty when it is ready.</summary>
     public List<string> MissingWiring()
@@ -460,6 +472,10 @@ public enum CuttingState
     /// <summary>Lands the fly-out: the camera is exactly back where free-look left it, and free-look takes over again.</summary>
     void CompleteExit()
     {
+        // read before the phase is cleared: the park on load also lands here, and announcing an
+        // exit from a cut that never ran would hand free-look back to a scene that still has it.
+        bool landedFromCut = phase == RigPhase.Exiting;
+
         ReleaseCamera();
 
         // the tool is in shot for the whole fly-out, so it only goes once the camera has landed
@@ -474,6 +490,8 @@ public enum CuttingState
         }
 
         phase = RigPhase.Free;
+
+        if (landedFromCut) OnMinigameExited?.Invoke(this);
     }
 
     /// <summary>Puts the rig in free-look with no travel, for load time -- there is no pose to fly back from before the first cut.</summary>
@@ -580,7 +598,7 @@ public enum CuttingState
             Debug.LogError($"{name}: can't enter the cut, still missing {string.Join(", ", missing)}.", this);
             return;
         }
-
+        currentGame = this;
         OnMinigameEntered?.Invoke(this);
         Debug.LogWarning("entering minigame");
 
@@ -603,7 +621,7 @@ public enum CuttingState
         StopCutSound();
 
         RestoreRig();
-
+        
         OnMinigameQuit?.Invoke(this);
     }
 
@@ -856,7 +874,7 @@ public enum CuttingState
             BeginFinisher();
             return;
         }
-
+        CuttingManager.currentGame = null;
         ApplySplice();
         FinishUp();
     }
@@ -1093,13 +1111,7 @@ public enum CuttingState
         return state != CuttingState.COMPLETED && phase == RigPhase.Free;
     }
 
-    // ---- the region this cut removes ----
-    //
-    // Before the cut runs there is no Lower_Hull object to point at: CuttableObject only spawns
-    // those in Weld(), at completion. So the piece is previewed by running the real slice against
-    // this cut's plane and keeping the mesh, without assigning anything. A plane half-space test
-    // would NOT do: the real piece is bounded by the finite window and by mesh connectivity, so an
-    // infinite plane claims every limb it happens to pass through.
+   
 
     /// <summary>The cutting plane this cut runs on, or null when the loop guide has none.</summary>
     public CutPlane CutPlane => loopGuide != null ? loopGuide.plane : null;
@@ -1257,15 +1269,13 @@ public enum CuttingState
     }
 
     /// <summary>Whether the player is holding the tool this cut needs. Always true when no tool is named.</summary>
-    public bool HasRequiredTool(PlayerInventoryandInteraction inventory)
+    public bool HasRequiredTool(string itemName)
     {
         if (string.IsNullOrWhiteSpace(requiredToolName))
         {
             return true;
         }
-        return inventory != null
-            && inventory.isHoldingItem
-            && string.Equals(inventory.heldItemName, requiredToolName.Trim(), System.StringComparison.OrdinalIgnoreCase);
+        return string.Equals(itemName, requiredToolName.Trim(), System.StringComparison.OrdinalIgnoreCase);
     }
 
 
