@@ -9,6 +9,7 @@ public class MenuController : MonoBehaviour
     [Header ("General Setting")]
     [SerializeField] private bool useSavedValues = false; // should we load prefs or not
     [SerializeField] private string mainScene = "MainScene";
+
     [Header ("Volume settings")]
     [SerializeField] private TMP_Text volumeValueText = null;
     [SerializeField] private Slider volumeSlider = null;
@@ -133,16 +134,39 @@ public class MenuController : MonoBehaviour
         VolumeApply();
     }
 
+
+    // buttons that actually matter
+
+    // play button -- forces the player to see credits first
     public void PlayButton()
     {
-        SceneManager.LoadScene(mainScene);
+        SceneManager.LoadScene("Credits");
     }
 
+    // exits the game
     public void ExitButton()
     {
         Application.Quit();
     }
 
+    // takes player back to menu
+    public void BackToMenu()
+    {
+        SceneManager.LoadScene("StartScreen");
+    }
+
+    // takes player to the tutorial scene (comes after credits)
+    public void GoToTutorial()
+    {
+        SceneManager.LoadScene("Tutorial");
+    }
+
+
+    // starts game -- only called after tutorial
+    public void StartGameProper()
+    {
+        SceneManager.LoadScene("Game");
+    }
     public void SetVolume()
     {
         float volume = volumeSlider.value;
