@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Serialization;
 
 public enum GameplayDayState
@@ -34,6 +35,12 @@ public class GameplayManager : MonoBehaviour
     [SerializeField] private int numberOfLives = 4;
     [SerializeField] private float countdownRemaining = 0f;
 
+    [Header("End of day")]
+    [Tooltip(
+        "Invoked when the day ends. Connect the black-market camera or UI " +
+        "entry function here.")]
+    [SerializeField] private UnityEvent enterBlackMarketRequested = new();
+
     public int CurrentDay => currentDay;
     public GameplayDayState State => state;
     public BlackMarketTask CurrentBlackMarketTask => currentBlackMarketTask;
@@ -41,6 +48,8 @@ public class GameplayManager : MonoBehaviour
     public bool RequireAssetValidation => requireAssetValidation;
     public int NumberOfLives => numberOfLives;
     public float CountdownRemaining => countdownRemaining;
+    public UnityEvent EnterBlackMarketRequested =>
+        enterBlackMarketRequested;
 
     public event Action<int> DayStarted;
     public event Action<BlackMarketTask> BlackMarketTaskGenerated;
@@ -182,6 +191,7 @@ public class GameplayManager : MonoBehaviour
         }
 
         SetState(GameplayDayState.Ended);
+        enterBlackMarketRequested?.Invoke();
         DayEnded?.Invoke(currentDay);
         Debug.Log($"[Day {currentDay}] Day ended.", this);
     }

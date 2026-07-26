@@ -114,7 +114,7 @@ public class Chute : MonoBehaviour, IInteractable
         StartCoroutine(SellPart(detachedBodyPart));
     }
 
-    private void AddToBlackMarket(BodyPartType bodyPartType)
+  private void AddToBlackMarket(BodyPartType bodyPartType)
     {
         if (temporaryBlackMarketTaskGenerator == null)
         {

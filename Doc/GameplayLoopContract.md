@@ -201,11 +201,15 @@ Current APIs:
 gameplayManager.EndDay();
 gameplayManager.AdvanceToNextDay();
 gameplayManager.DayEnded += HandleDayEnded;
+gameplayManager.EnterBlackMarketRequested.AddListener(
+    HandleEnterBlackMarket);
 ```
 
 Current implementation:
 
 - `Ended` state and `DayEnded` event: implemented.
+- Inspector-configurable enter-black-market request invoked by `EndDay`:
+  implemented.
 - Advancing the day number: implemented.
 - Automatic ending when the client list reaches zero, temporary lives are
   greater than three, and temporary countdown remaining is nonnegative:

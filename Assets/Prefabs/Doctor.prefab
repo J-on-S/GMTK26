@@ -1510,6 +1510,7 @@ GameObject:
   - component: {fileID: 264942017431276350}
   - component: {fileID: 4037502183312625495}
   - component: {fileID: 8207978196295689558}
+  - component: {fileID: 2187646501735477482}
   m_Layer: 0
   m_Name: Doctor
   m_TagString: Untagged
@@ -1612,6 +1613,25 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2187646501735477482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2112398837450586553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46c6db39aba9b6b4b9499367412e4b88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitSound
+  hitSounds:
+  - {fileID: 11400000, guid: 3a8982382d45c4eb7920abeea9414a80, type: 2}
+  - {fileID: 11400000, guid: 858b9c5a0bf5f4752a0fd54f9da563d9, type: 2}
+  - {fileID: 11400000, guid: e7a7ef1b499f0467ea6ff068ea660793, type: 2}
+  - {fileID: 11400000, guid: 933688b9f51e14d67aad4de0fd7f4b16, type: 2}
+  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  decider: 0
 --- !u!1 &2152321910453675204
 GameObject:
   m_ObjectHideFlags: 0
@@ -6141,7 +6161,8 @@ MonoBehaviour:
   surgeryTableBTransform: {fileID: 0}
   testIsATable: 0
   rotationSpeed: 90
-  bed: {fileID: 0}
+  bedA: {fileID: 0}
+  bedB: {fileID: 0}
 --- !u!1 &9122737164078992661
 GameObject:
   m_ObjectHideFlags: 0

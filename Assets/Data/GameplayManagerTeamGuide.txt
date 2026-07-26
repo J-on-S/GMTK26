@@ -20,7 +20,13 @@ At the beginning of the day it:
 
 During the day it waits for other systems to report what happened.
 
-At the end of the day it changes the state to Ended and sends DayEnded.
+At the end of the day it changes the state to Ended, invokes Enter Black
+Market Requested, and sends DayEnded.
+
+In the GameplayManager Inspector, connect Enter Black Market Requested to the
+camera or UI function that opens the black-market view. With the current
+camera system, drag the object containing CameraSwitch into the event and
+select CameraSwitch.SwitchToOtherCamera.
 
 GameplayManager does NOT perform cutting, move the doctor, manage tools, or
 decide whether the doctor accepted an item.
