@@ -500,7 +500,23 @@ public class CutFinisher : MonoBehaviour
             toolInstance.hideFlags = HideFlags.HideAndDontSave;
         }
 
+        if (Application.isPlaying)
+        {
+            SetRenderersEnabled(toolInstance, false);
+        }
+
         return toolInstance.transform;
+    }
+
+    /// <summary>Shows or hides every renderer under an object, leaving line renderers alone.</summary>
+    private static void SetRenderersEnabled(GameObject root, bool enabled)
+    {
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] is LineRenderer) continue;
+            renderers[i].enabled = enabled;
+        }
     }
 
     /// <summary>Destroys the spawned tool, doing nothing when there is none.</summary>

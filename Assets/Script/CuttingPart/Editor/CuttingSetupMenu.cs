@@ -57,6 +57,9 @@ public static class CuttingSetupMenu
         // orbit this one is assigned, since the manager holds it in a slot.
         EnsureMoveCamera(manager);
 
+        // the scalpel and its surface driver, which the manager cannot find on its own.
+        EnsureScalpelDriver(manager);
+
         if (target != null)
         {
             // sit the cut under its target, so a CutPlane added later resolves its own body and
@@ -142,6 +145,57 @@ public static class CuttingSetupMenu
 
         Debug.Log("No free-look in the scene, so a MoveCamera was created for this cut.", go);
         return created;
+    }
+
+    /// <summary>The scalpel this cut drives and its surface driver, both added when the scene has none, and wired into the manager either way.</summary>
+    /// <remarks>
+    /// One scalpel per scene, like the free-look: every cut points its <c>scalpelFollow</c> at the same
+    /// object, and the manager drives its orbit angle directly. The driver is a separate step from the
+    /// follow because a scene can carry a hand-placed scalpel that predates it -- that one keeps its
+    /// transform and only gains the missing component.
+    /// <para>The mesh is left to the author: what the scalpel looks like is not something this tool can
+    /// guess, and an empty object still drives the cut.</para>
+    /// </remarks>
+    private static ScalpelSurfaceDriver EnsureScalpelDriver(CuttingManager manager)
+    {
+        CameraFollow follow = manager.scalpelFollow;
+
+        if (follow == null)
+        {
+            ScalpelSurfaceDriver existing = Object.FindFirstObjectByType<ScalpelSurfaceDriver>(FindObjectsInactive.Include);
+            if (existing != null)
+            {
+                manager.scalpelFollow = existing.GetComponent<CameraFollow>();
+                return existing;
+            }
+
+            GameObject go = new GameObject("Scalpel");
+
+            // the manager's own scene, not whichever happens to be active: with more than one scene
+            // loaded a scalpel in the wrong one is unloaded out from under the cut.
+            if (manager.gameObject.scene.IsValid())
+            {
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, manager.gameObject.scene);
+            }
+
+            // RequireComponent on the driver brings the CameraFollow with it.
+            ScalpelSurfaceDriver created = go.AddComponent<ScalpelSurfaceDriver>();
+            manager.scalpelFollow = go.GetComponent<CameraFollow>();
+
+            Undo.RegisterCreatedObjectUndo(go, "Create Cut Minigame");
+
+            Debug.Log("No scalpel in the scene, so one was created for this cut. Give it a mesh, then place it.", go);
+            return created;
+        }
+
+        if (follow.TryGetComponent(out ScalpelSurfaceDriver driver))
+        {
+            return driver;
+        }
+
+        driver = Undo.AddComponent<ScalpelSurfaceDriver>(follow.gameObject);
+        Debug.Log($"Added a ScalpelSurfaceDriver to {follow.name} for this cut.", follow);
+        return driver;
     }
 
     /// <summary>Builds one world-space closed-loop LineRenderer for a guide, sharing the guide material.</summary>

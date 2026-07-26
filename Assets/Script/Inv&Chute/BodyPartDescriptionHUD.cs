@@ -26,15 +26,39 @@ public class BodyPartDescriptionHUD : MonoBehaviour
     {
         LastActiveInstance = this;
         _animator = GetComponent<Animator>();
+
+        if (_animator == null)
+        {
+            Debug.LogError($"{name}: no Animator, so the body part HUD can never be shown or hidden.", this);
+        }
+
+        if (bodyPartDescriptionText == null)
+        {
+            Debug.LogError($"{name}: no bodyPartDescriptionText assigned; the hovered part cannot be named.", this);
+        }
+
+        if (bodyPartHealthSlider == null)
+        {
+            Debug.LogError($"{name}: no bodyPartHealthSlider assigned; the hovered part cannot show its health.", this);
+        }
     }
 
     private void Update()
     {
-        if (_visible)
+        if (_visible && _selectedBodyPart != null)
         {
-            bodyPartDescriptionText.text = _selectedBodyPart.gameObject.name;
-            bodyPartHealthSlider.value = _selectedBodyPart.health / _selectedBodyPart.maxHealth;
+            if (bodyPartDescriptionText != null)
+            {
+                bodyPartDescriptionText.text = _selectedBodyPart.gameObject.name;
+            }
+
+            if (bodyPartHealthSlider != null)
+            {
+                bodyPartHealthSlider.value = _selectedBodyPart.health / _selectedBodyPart.maxHealth;
+            }
         }
+
+        if (_animator == null) return;
         _animator.SetBool(Visible, _visible);
     }
 
