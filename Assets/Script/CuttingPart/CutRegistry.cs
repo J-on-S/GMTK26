@@ -73,27 +73,43 @@ public static class CutRegistry
     /// forearm, which only the shoulder region holds, picks the shoulder.
     /// </remarks>
     /// <returns><c>null</c> when the point is in no cut's region, i.e. it is on the upper hull.</returns>
+    /// <summary>Scratch list of the cuts whose region holds the point, reused so aiming allocates nothing.</summary>
+    private static readonly List<CuttingManager> Containing = new();
+
     public static CuttingManager CutAt(CuttableObject body, Vector3 worldPoint)
     {
         List<CuttingManager> cuts = CutsOf(body);
+
+        // Collected in one pass first. Every containment test can cost a slice of the whole body,
+        // so the nesting comparison below must never run for a point only one cut claims -- which
+        // is the overwhelmingly common case.
+        Containing.Clear();
+        for (int i = 0; i < cuts.Count; i++)
+        {
+            if (cuts[i] != null && cuts[i].RegionContains(worldPoint))
+            {
+                Containing.Add(cuts[i]);
+            }
+        }
+
+        if (Containing.Count <= 1)
+        {
+            return Containing.Count == 1 ? Containing[0] : null;
+        }
 
         CuttingManager best = null;
         int bestDepth = -1;
         float bestDistance = float.PositiveInfinity;
 
-        for (int i = 0; i < cuts.Count; i++)
+        for (int i = 0; i < Containing.Count; i++)
         {
-            CuttingManager candidate = cuts[i];
-            if (candidate == null || !candidate.RegionContains(worldPoint))
-            {
-                continue;
-            }
+            CuttingManager candidate = Containing[i];
 
-            // how many other candidate regions this one sits inside; more = deeper in
+            // how many other containing regions this one sits inside; more = deeper in
             int depth = 0;
-            for (int j = 0; j < cuts.Count; j++)
+            for (int j = 0; j < Containing.Count; j++)
             {
-                if (cuts[j] != null && cuts[j].RegionContainsCutOf(candidate))
+                if (Containing[j].RegionContainsCutOf(candidate))
                 {
                     depth++;
                 }
