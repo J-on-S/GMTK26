@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Temporary implementation used until the full BlackMarketManager exists.
-/// Replace this component with any MonoBehaviour implementing
-/// IBlackMarketTaskGenerator.
+/// Generates the black-market body-part task for the current day.
 /// </summary>
-public class TemporaryBlackMarketTaskGenerator :
+public class BlackMarketGenerator :
     MonoBehaviour,
     IBlackMarketTaskGenerator
 {
