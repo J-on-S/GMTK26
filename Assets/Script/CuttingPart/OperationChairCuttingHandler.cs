@@ -70,13 +70,19 @@ public class OperationChairCuttingHandler : MonoBehaviour
     /// <summary>Copies the matching template's cuts onto every cuttable part of a freshly placed client.</summary>
     private void OnClientPlaced(OperationChair chair, GameObject client)
     {
+        Debug.Log(client.name , client);
         if (client == null) return;
         
         CuttableObject[] bodies = client.GetComponentsInChildren<CuttableObject>(true);
         if (bodies.Length == 0)
         {
-            Debug.LogError($"{name}: {client.name} was placed in {chair.name} with no CuttableObject, so it has nothing to cut.", client);
-            return;
+            CuttableObject made = CreateCuttable(client);
+            if (made == null)
+            {
+                Debug.LogError($"{name}: {client.name} was placed in {chair.name} with no CuttableObject and no body mesh to add one to, so it has nothing to cut.", client);
+                return;
+            }
+            bodies = new[] { made };
         }
 
         for (int i = 0; i < bodies.Length; i++)
@@ -86,6 +92,44 @@ public class OperationChairCuttingHandler : MonoBehaviour
 
             CutCopier.CopyCutsFrom(template, bodies[i], replaceExistingCuts);
         }
+    }
+
+    /// <summary>Puts a <see cref="CuttableObject"/> on a placed client that arrived without one, so its cuts have a body to land on.</summary>
+    /// <remarks>
+    /// Clients come from <c>RandomizedClientList</c> as plain body objects with no cut wiring; rather than
+    /// authoring a CuttableObject on every client prefab, this adds it at placement. It goes on the object
+    /// that actually carries a mesh: a CuttableObject with no <c>MeshFilter</c> mesh can be neither aimed
+    /// at nor sliced (see <see cref="CutCopier"/>). Its <c>RequireComponent</c>s pull in the MeshRenderer
+    /// and MeshCollider it needs, and the collider is cooked against the body mesh so aiming resolves it.
+    /// </remarks>
+    /// <returns>The added component, or <c>null</c> when the client has no mesh to make cuttable.</returns>
+    private CuttableObject CreateCuttable(GameObject client)
+    {
+        MeshFilter meshHost = FindBodyMesh(client);
+        if (meshHost == null) return null;
+
+        CuttableObject body = meshHost.gameObject.AddComponent<CuttableObject>();
+
+        // aiming reads the CuttableObject off the collider it hits, so the body needs a collider on its
+        // own object; the RequireComponent added a MeshCollider, but a fresh one cooks no mesh until told.
+        if (body.TryGetComponent(out MeshCollider collider) && collider.sharedMesh == null)
+        {
+            collider.sharedMesh = meshHost.sharedMesh;
+        }
+
+        return body;
+    }
+
+    /// <summary>The client's body mesh: the first <c>MeshFilter</c> carrying a shared mesh, on the client or under it.</summary>
+    /// <returns><c>null</c> when the client has no mesh at all.</returns>
+    private static MeshFilter FindBodyMesh(GameObject client)
+    {
+        MeshFilter[] filters = client.GetComponentsInChildren<MeshFilter>(true);
+        for (int i = 0; i < filters.Length; i++)
+        {
+            if (filters[i].sharedMesh != null) return filters[i];
+        }
+        return null;
     }
 
     /// <summary>The template to copy cuts from: the first assigned one. No mesh matching -- every body takes the same template's cuts.</summary>

@@ -73,6 +73,13 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
     private readonly List<Vector3> tracePoints = new List<Vector3>();
 
+    /// <summary>The body the trace is drawn on. Its transform is the frame the line's points live in, so a cut drawn on it moves, turns and slices with the body instead of hanging in world space where the cut was made.</summary>
+    /// <remarks><c>null</c> until a cut wires the guide's <see cref="LoopGuideBuilder.meshFollow"/>; while it is, the line falls back to world space on the scalpel so authoring without a body still previews.</remarks>
+    private Transform TraceSpace => builder != null && builder.meshFollow != null ? builder.meshFollow.transform : null;
+
+    /// <summary>The object the line is hosted on when it is hung on the body -- a managed child of <see cref="TraceSpace"/>, so its local frame equals the body's.</summary>
+    private Transform traceHost;
+
     /// <summary>Most recent surface hit with hover applied; held through frames the ray misses.</summary>
     private Vector3 lastSurfacePos;
 
@@ -129,8 +136,6 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
     LineRenderer EnsureTraceRenderer()
     {
-        if (traceRenderer != null) return traceRenderer;
-
         if (owned == null) owned = GetComponent<CameraFollow>();
         if (owned == null)
         {
@@ -138,9 +143,31 @@ public class ScalpelSurfaceDriver : MonoBehaviour
             return null;
         }
 
-        if (!owned.TryGetComponent(out traceRenderer))
+        // the line hangs on a child of the body, so its local frame is the body's and its points travel
+        // with the body. Until a cut wires the body, it lives on the scalpel in world space instead.
+        // Play-only: edit-mode authoring keeps the world-space preview on the scalpel so selecting a
+        // driver never spawns a child on the body it points at and saves it into the scene.
+        Transform space = Application.isPlaying ? TraceSpace : null;
+        Transform wantHost = space != null ? TraceHost(space) : owned.transform;
+
+        // already on the right host: keep it, but re-apply the settings the frame may have changed.
+        if (traceRenderer != null && traceRenderer.transform == wantHost)
         {
-            traceRenderer = owned.gameObject.AddComponent<LineRenderer>();
+            ConfigureTraceRenderer();
+            return traceRenderer;
+        }
+
+        // host moved (a body was wired, or a different one): the old line's points are in the old frame,
+        // so drop them and start the trail again on the new host.
+        if (traceRenderer != null && traceRenderer.transform != wantHost)
+        {
+            tracePoints.Clear();
+            traceRenderer.positionCount = 0;
+        }
+
+        if (!wantHost.TryGetComponent(out traceRenderer))
+        {
+            traceRenderer = wantHost.gameObject.AddComponent<LineRenderer>();
             traceRenderer.positionCount = 0;
 
             // starting point for a renderer nobody has authored yet. Set once, on creation only, so
@@ -156,25 +183,51 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         return traceRenderer;
     }
 
+    /// <summary>The managed child of the body that hosts this driver's line, sitting at the body's origin so its local space is the body's own.</summary>
+    /// <remarks>One per driver, not one per body: several cuts share a body, and a child keyed by name
+    /// would have the second cut's run reuse the first's line and <c>ResetTrace</c> wipe the cut it left.
+    /// Cached for the driver's life and rebuilt only if the body it hung under was destroyed.</remarks>
+    private Transform TraceHost(Transform space)
+    {
+        if (traceHost != null && traceHost.parent == space) return traceHost;
+
+        GameObject go = new GameObject($"ScalpelTrace ({name})");
+        go.transform.SetParent(space, false);
+        go.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        go.transform.localScale = Vector3.one;
+        traceHost = go.transform;
+        return traceHost;
+    }
+
     /// <summary>Holds the one renderer setting the trace cannot work without, and the material when this component owns it.</summary>
     /// <remarks>
-    /// Invariant: <c>useWorldSpace</c> is on. Every point handed to this line is a world-space surface
-    /// hit, while the object it sits on is moved and rotated every frame by the surface snap and the
-    /// orbit -- read as local space those points wind around the moving transform and the line comes out
-    /// tangled. Deliberately narrow: alignment, texture mode, shadows and the rest are presentation, set
-    /// once when this component creates the renderer and left to the author from then on.
+    /// Space follows the host. On the body's <c>ScalpelTrace</c> child <c>useWorldSpace</c> is off, so the
+    /// points -- stored in that child's local frame, which is the body's -- travel with the body when it
+    /// moves, turns or is sliced. On the fallback host (the scalpel, before a body is wired) it is on,
+    /// because the scalpel is moved and orbited every frame and local points would wind around it.
+    /// Deliberately narrow: alignment, texture mode, shadows and the rest are presentation, set once when
+    /// this component creates the renderer and left to the author from then on.
     /// </remarks>
     private void ConfigureTraceRenderer()
     {
         if (traceRenderer == null) return;
 
-        traceRenderer.useWorldSpace = true;
+        // world space only while the line is parked on the scalpel; on the body's own child the points
+        // are body-local so the line rides the body.
+        traceRenderer.useWorldSpace = owned == null || traceRenderer.transform == owned.transform;
 
         // only when the slot above is filled: an empty slot means the material is the renderer's own.
         if (traceMaterial != null && traceRenderer.sharedMaterial != traceMaterial)
         {
             traceRenderer.sharedMaterial = traceMaterial;
         }
+    }
+
+    /// <summary>Converts a world-space surface hit into whatever space the line is currently drawn in.</summary>
+    private Vector3 ToRendererSpace(Vector3 worldPoint)
+    {
+        if (traceRenderer == null || traceRenderer.useWorldSpace) return worldPoint;
+        return traceRenderer.transform.InverseTransformPoint(worldPoint);
     }
 
     /// <summary>Puts the trace line back on screen, and in edit mode fills it with the whole loop the scalpel would walk.</summary>
@@ -214,6 +267,10 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         // closed: the full line is the whole ring, not a ring with a gap where the run would have started
         line.loop = true;
         line.positionCount = points.Count;
+
+        // the loop comes out of the builder in world space; hand it to the line in whatever space the
+        // line draws in, so a body-hosted preview sits on the body rather than winding off it.
+        for (int i = 0; i < points.Count; i++) points[i] = ToRendererSpace(points[i]);
         line.SetPositions(points.ToArray());
         ApplyTraceWidth();
     }
@@ -365,11 +422,13 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     }
 
     /// <summary>Stores one point and shows it, without any spacing rule.</summary>
+    /// <remarks><c>tracePoints</c> keeps the world position so the spacing rules stay in world units; the
+    /// renderer is fed the same point in its own space, which is the body's when the line rides it.</remarks>
     void AppendTracePoint(Vector3 p)
     {
         tracePoints.Add(p);
         traceRenderer.positionCount = tracePoints.Count;
-        traceRenderer.SetPosition(tracePoints.Count - 1, p);
+        traceRenderer.SetPosition(tracePoints.Count - 1, ToRendererSpace(p));
     }
 
     void ApplyTraceWidth()
@@ -407,8 +466,8 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         bool hasMouse = Mouse.current != null;
         switch (moveInput) {
             case MoveInput.MouseDelta:
-                if (CuttingManager.mouseDelta != null)
-                    offset -= CuttingManager.mouseDelta.ReadValue<Vector2>().x * preset.Xspeed;
+                if (GameInputActions.MouseDelta != null)
+                    offset -= GameInputActions.MouseDelta.ReadValue<Vector2>().x * preset.Xspeed;
                 break;
             case MoveInput.MouseButtons: {
                 if (!hasMouse) break;
@@ -418,7 +477,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
                 break;
             }
             case MoveInput.ArrowKeys:
-                offset -= CuttingManager.arrows.ReadValue<Vector2>().x * preset.Xspeed * Time.deltaTime;
+                offset -= GameInputActions.Arrows.ReadValue<Vector2>().x * preset.Xspeed * Time.deltaTime;
                 break;
         }
     }

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ced10e033f2a56941a1a452812e14dc9, type: 3}
   m_Name: LeftArm
   m_EditorClassIdentifier: Assembly-CSharp::CameraMovesPreset
-  secondsPerLoop: 12
+  secondsPerLoop: 3.5
   acceleration: 4
   wheelKick: 3
   deceleration: -0.1
