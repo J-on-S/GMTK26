@@ -317,7 +317,7 @@ Most common causes:
 - A bed has no Client Pose Proxy.
 - A bed references the wrong GameplayManager or Client List.
 - ClientTaskDatabase is not assigned.
-- Client prefabs are missing ClientTaskHolder.
+- CustomersAsset is missing or contains no customer prefabs.
 - Black Market Task Generator is not assigned.
 
 Fix the missing reference and enter Play Mode again.

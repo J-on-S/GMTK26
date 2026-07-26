@@ -23,8 +23,8 @@ UNITY SETUP
 7. Assign exactly two distinct OperationChair components to GameplayAssetChecker.
 8. Assign one Trapdoor, one Storage, and at least one Cutting Tool.
 9. Optionally assign the world-space Client List Poster.
-10. On the single RandomizedClientList, assign its Task Generator and client
-    prefabs.
+10. On the single RandomizedClientList, assign its Task Generator and
+    Customers Asset.
 11. Disable Prepare On Start on RandomizedClientList because GameplayManager
    now owns beginning-of-day generation.
 12. Leave Begin First Day On Start enabled, or call BeginDay() manually.

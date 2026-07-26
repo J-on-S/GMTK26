@@ -78,6 +78,12 @@ Important configuration:
 - Disable `Prepare On Start` on `RandomizedClientList`.
 - Pre-generated clients are data only; no client GameObject exists until an
   operation chair calls `SpawnNextClient`.
+- `RandomizedClientList` obtains each queue entry's prefab from
+  `CustomersAsset.GetRandomCustomerAsset()` and stores the returned prefab on
+  that entry before spawning.
+- When a spawned customer prefab has no `ClientTaskHolder`,
+  `RandomizedClientList` adds the component to the runtime instance before
+  assigning its task.
 
 ## During the Day
 

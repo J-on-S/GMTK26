@@ -43,9 +43,10 @@ public class RandomizedClientList : MonoBehaviour
 {
     public static RandomizedClientList Instance { get; private set; }
 
-    [Header("Client prefabs")]
-    [SerializeField] private List<GameObject> clientPrefabs = new();
-    [SerializeField] private bool reshuffleWhenEmpty = true;
+    [Header("Customer source")]
+    [Tooltip(
+        "Provides the random customer prefab used for each generated queue entry.")]
+    [SerializeField] private CustomersAsset customersAsset;
 
     [Header("Pre-generated task list")]
     [SerializeField] private ClientTaskList taskGenerator;
@@ -56,10 +57,6 @@ public class RandomizedClientList : MonoBehaviour
 
     [Header("Runtime")]
     [SerializeField] private List<GameObject> activeClients = new();
-
-    private readonly List<GameObject> randomizedClients = new();
-    private int nextClientIndex;
-    private GameObject lastClientPrefab;
 
     public IReadOnlyList<ClientTaskQueueEntry> GeneratedTaskList => generatedTaskList;
     public IReadOnlyList<GameObject> ActiveClients => activeClients;
@@ -383,20 +380,22 @@ public class RandomizedClientList : MonoBehaviour
         // Keep the client unparented, then copy the proxy's complete world
         // pose. Because the clone has no parent, localScale is its world scale.
         GameObject clientObject = Instantiate(entry.ClientPrefab);
+        customersAsset?.ApplyRandomMaterial(clientObject);
         Transform clientTransform = clientObject.transform;
         clientTransform.SetPositionAndRotation(
             spawnPose.position,
             spawnPose.rotation);
         clientTransform.localScale = spawnPose.lossyScale;
 
-        ClientTaskHolder taskHolder = clientObject.GetComponent<ClientTaskHolder>();
+        ClientTaskHolder taskHolder =
+            clientObject.GetComponent<ClientTaskHolder>();
         if (taskHolder == null)
         {
-            Debug.LogError(
-                $"{clientObject.name} needs a ClientTaskHolder component.",
+            taskHolder = clientObject.AddComponent<ClientTaskHolder>();
+            Debug.Log(
+                $"Added ClientTaskHolder to spawned customer " +
+                $"{clientObject.name}.",
                 clientObject);
-            Destroy(clientObject);
-            return null;
         }
 
         entry.SetSpawnedClient(clientObject, assignedChair);
@@ -492,49 +491,32 @@ public class RandomizedClientList : MonoBehaviour
 
     private GameObject GetNextClientPrefab()
     {
-        if (nextClientIndex >= randomizedClients.Count)
+        if (customersAsset == null)
         {
-            if (!reshuffleWhenEmpty)
-                return null;
-
-            ShuffleClients();
+            Debug.LogError(
+                "RandomizedClientList needs a CustomersAsset.",
+                this);
+            return null;
         }
 
-        if (randomizedClients.Count == 0)
+        GameObject client = customersAsset.GetRandomCustomerAsset();
+        if (client == null)
             return null;
 
-        GameObject client = randomizedClients[nextClientIndex++];
-        lastClientPrefab = client;
         ClientSelected?.Invoke(client);
         return client;
     }
 
-    [ContextMenu("Shuffle Client Prefabs")]
+    // Kept for compatibility with existing callers. CustomersAsset now makes
+    // an independent random selection for every generated queue entry.
+    [ContextMenu("Validate Random Customer Source")]
     public void ShuffleClients()
     {
-        randomizedClients.Clear();
-
-        foreach (GameObject client in clientPrefabs)
+        if (customersAsset == null)
         {
-            if (client != null)
-                randomizedClients.Add(client);
+            Debug.LogWarning(
+                "Assign a CustomersAsset to RandomizedClientList.",
+                this);
         }
-
-        for (int i = randomizedClients.Count - 1; i > 0; i--)
-        {
-            int randomIndex = UnityEngine.Random.Range(0, i + 1);
-            (randomizedClients[i], randomizedClients[randomIndex]) =
-                (randomizedClients[randomIndex], randomizedClients[i]);
-        }
-
-        if (randomizedClients.Count > 1 &&
-            randomizedClients[0] == lastClientPrefab)
-        {
-            int swapIndex = UnityEngine.Random.Range(1, randomizedClients.Count);
-            (randomizedClients[0], randomizedClients[swapIndex]) =
-                (randomizedClients[swapIndex], randomizedClients[0]);
-        }
-
-        nextClientIndex = 0;
     }
 }

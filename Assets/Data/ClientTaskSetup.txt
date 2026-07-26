@@ -25,8 +25,9 @@ ClientTaskList component.
 
 2. CLIENT PREFABS
 
-Add ClientTaskHolder to every client prefab.
-Add those prefabs to Client Prefabs on RandomizedClientList.
+Assign CustomersAsset to RandomizedClientList. Customer prefabs may already
+contain ClientTaskHolder, but it is optional: RandomizedClientList adds one to
+the spawned instance when it is missing.
 
 
 3. PRE-GENERATION SETTINGS

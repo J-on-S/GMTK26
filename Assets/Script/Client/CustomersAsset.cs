@@ -11,15 +11,38 @@ public class CustomersAsset : ScriptableObject
 
     public GameObject GetRandomCustomerAsset()
     {
-        int randomIndexCustomerAsset = UnityEngine.Random.Range(0, customersPrefab.Count);
-        GameObject randomCustomerPrefab = customersPrefab[randomIndexCustomerAsset];
-        int randomIndexMat = UnityEngine.Random.Range(0, materials.Count);
-        Material randomMat = materials[randomIndexMat];
-        foreach (Transform child in randomCustomerPrefab.transform)
+        if (customersPrefab == null || customersPrefab.Count == 0)
         {
-            Renderer childRenderer = child.gameObject.GetComponent<Renderer>();
-            childRenderer.material = randomMat;
+            Debug.LogError(
+                "CustomersAsset needs at least one customer prefab.",
+                this);
+            return null;
         }
-        return randomCustomerPrefab;
+
+        int randomIndex =
+            UnityEngine.Random.Range(0, customersPrefab.Count);
+        return customersPrefab[randomIndex];
+    }
+
+    /// <summary>
+    /// Applies one random configured material to a spawned customer instance.
+    /// The prefab asset itself is never modified.
+    /// </summary>
+    public void ApplyRandomMaterial(GameObject customerInstance)
+    {
+        if (customerInstance == null ||
+            materials == null ||
+            materials.Count == 0)
+        {
+            return;
+        }
+
+        Material randomMaterial =
+            materials[UnityEngine.Random.Range(0, materials.Count)];
+        Renderer[] renderers =
+            customerInstance.GetComponentsInChildren<Renderer>(true);
+
+        foreach (Renderer customerRenderer in renderers)
+            customerRenderer.material = randomMaterial;
     }
 }
