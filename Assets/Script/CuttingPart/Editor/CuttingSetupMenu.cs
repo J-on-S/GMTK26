@@ -57,7 +57,7 @@ public static class CuttingSetupMenu
         // orbit this one is assigned, since the manager holds it in a slot.
         EnsureMoveCamera(manager);
 
-        // the scalpel and its surface driver, which the manager cannot find on its own.
+        // this cut's own scalpel and surface driver, built as a child so it travels with the cut.
         EnsureScalpelDriver(manager);
 
         if (target != null)
@@ -147,12 +147,18 @@ public static class CuttingSetupMenu
         return created;
     }
 
-    /// <summary>The scalpel this cut drives and its surface driver, both added when the scene has none, and wired into the manager either way.</summary>
+    /// <summary>The scalpel this cut drives and its surface driver, created under the cut when it has none, and wired into the manager either way.</summary>
     /// <remarks>
-    /// One scalpel per scene, like the free-look: every cut points its <c>scalpelFollow</c> at the same
-    /// object, and the manager drives its orbit angle directly. The driver is a separate step from the
-    /// follow because a scene can carry a hand-placed scalpel that predates it -- that one keeps its
-    /// transform and only gains the missing component.
+    /// One scalpel per CUT, unlike the free-look: the driver snaps the transform it sits on onto the
+    /// body and draws that cut's trail into its own LineRenderer, so a shared one could only ever hold
+    /// one cut's trace and would have to be re-pointed at whichever cut ran last. Cuts on different
+    /// bodies then cannot keep their own lines at all.
+    /// <para>Built as a child of the cut, so it travels with it -- including through
+    /// <see cref="CutCopier"/>, which copies the cut's hierarchy wholesale.</para>
+    /// <para>Only the running cut's driver is live: it parks itself when play starts, and
+    /// <c>CuttingManager.SetScalpelTrace</c> switches it on at entry.</para>
+    /// <para>An already-assigned <c>scalpelFollow</c> is left alone -- a scene can carry a hand-placed
+    /// scalpel, and that one keeps its transform and only gains the missing component.</para>
     /// <para>The mesh is left to the author: what the scalpel looks like is not something this tool can
     /// guess, and an empty object still drives the cut.</para>
     /// </remarks>
@@ -162,21 +168,10 @@ public static class CuttingSetupMenu
 
         if (follow == null)
         {
-            ScalpelSurfaceDriver existing = Object.FindFirstObjectByType<ScalpelSurfaceDriver>(FindObjectsInactive.Include);
-            if (existing != null)
-            {
-                manager.scalpelFollow = existing.GetComponent<CameraFollow>();
-                return existing;
-            }
-
+            // deliberately NOT adopting another cut's scalpel: that is the shared-scalpel arrangement
+            // this per-cut layout exists to replace.
             GameObject go = new GameObject("Scalpel");
-
-            // the manager's own scene, not whichever happens to be active: with more than one scene
-            // loaded a scalpel in the wrong one is unloaded out from under the cut.
-            if (manager.gameObject.scene.IsValid())
-            {
-                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, manager.gameObject.scene);
-            }
+            go.transform.SetParent(manager.transform, false);
 
             // RequireComponent on the driver brings the CameraFollow with it.
             ScalpelSurfaceDriver created = go.AddComponent<ScalpelSurfaceDriver>();
@@ -184,7 +179,7 @@ public static class CuttingSetupMenu
 
             Undo.RegisterCreatedObjectUndo(go, "Create Cut Minigame");
 
-            Debug.Log("No scalpel in the scene, so one was created for this cut. Give it a mesh, then place it.", go);
+            Debug.Log($"A Scalpel was created for {manager.name}. Give it a mesh, then place it.", go);
             return created;
         }
 

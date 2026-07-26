@@ -25,7 +25,7 @@ public class ToolRequestManager : MonoBehaviour
     private ToolRequest currentRequest;
     private float remainingTime;
     private float remainingCooldown;
-    private SpawnBodyPartCustomer spawnBodyPartCustomer;
+    
 
     [Tooltip("Where a delivered body part gets stuck onto the customer. Found in the scene when left empty.")]
     [SerializeField] private SpawnBodyPartCustomer spawnBodyPartCustomer;

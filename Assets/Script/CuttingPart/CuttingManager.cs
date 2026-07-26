@@ -378,6 +378,16 @@ public enum CuttingState
             finisher = GetComponentInChildren<CutFinisher>(true);
         }
 
+        // the scalpel is per-cut, not scene-wide: its driver snaps the transform it sits on and draws
+        // this cut's trail into its own line. Resolved from this cut's own children only -- a scalpel
+        // found anywhere else in the scene belongs to another cut, and taking it would leave both cuts
+        // fighting over one transform and one trace.
+        if (scalpelFollow == null)
+        {
+            ScalpelSurfaceDriver own = GetComponentInChildren<ScalpelSurfaceDriver>(true);
+            if (own != null) own.TryGetComponent(out scalpelFollow);
+        }
+
         // free-look is one scene-wide component, not a per-cut one, so every cut points at the same
         // instance. Found, never created: AutoWire also runs from Reset, and spawning a GameObject
         // from there would litter the scene each time the component is added. The setup menu makes
@@ -1222,11 +1232,18 @@ public enum CuttingState
                 scalpel.ApplyPreset();
             }
 
-            if (ScalpelPreset != null
-                && scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
+            if (scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop))
             {
-                scalpelLoop.preset = ScalpelPreset;
+                // NOT gated on there being a preset. The builder is which loop this scalpel rides --
+                // its centre, its plane and the surface it projects onto -- and it is hidden in the
+                // driver's inspector, so a cut that never pushed it keeps whichever guide the driver
+                // was last handed. On a copied cut that is the ORIGINAL cut's guide: the scalpel snaps
+                // onto the body it came from and its trace draws there, shifted off the body being cut.
                 if (loopGuide != null) scalpelLoop.builder = loopGuide;
+
+                // tuning, unlike the builder, is optional: with no preset the driver keeps its own
+                // inline values, which is what a scalpel authored before presets existed relies on.
+                if (ScalpelPreset != null) scalpelLoop.preset = ScalpelPreset;
             }
         }
     }
