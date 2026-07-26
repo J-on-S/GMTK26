@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d672e0def09c80649a6618dd3276e05d, type: 3}
-  m_Name: CutMinigamePreset
+  m_Name: RightEar
   m_EditorClassIdentifier: Assembly-CSharp::CutMinigamePreset
-  cameraFOV: 25.62
+  cameraFOV: 40
   scalpelAngleLead: 0
   cameraPreset: {fileID: 11400000, guid: 75612b990c9c21e4d9058da711e7f3db, type: 2}
-  curvePreset: {fileID: 11400000, guid: 01d5a639055a2844b9b2e815d4481571, type: 2}
+  curvePreset: {fileID: 11400000, guid: 34f8aae6db27fbc48a75864d17e8e80f, type: 2}
   scalpelFollowPreset: {fileID: 11400000, guid: fe3ef3a98701134469bf5c0582fec9bd, type: 2}
   cameraOrbitPreset: {fileID: 11400000, guid: a5c08a62c8d04cc40b6536ff1a9fc119, type: 2}
   scalpelOrbitPreset: {fileID: 11400000, guid: c7b8777cac06ca145b48ea82682e0ac3, type: 2}
-  curveWidth: 0.01
-  curveHoverLength: 0
+  curveWidth: 0.005
+  curveHoverLength: 0.01
   curveResolution: 64

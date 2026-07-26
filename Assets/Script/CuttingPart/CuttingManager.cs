@@ -342,6 +342,36 @@ public enum CuttingState
         // no speed-driver entry: it is provisioned on demand, so it can never be "missing".
         if (SpeedPreset == null) missing.Add("Camera moves preset");
         if (Curve == null) missing.Add("Curve preset");
+
+        // ---- per-cut authoring, not wiring: the data a cut needs to mean something ----
+
+        // the severed piece is named and requested by this, so an empty one leaves a piece the rest
+        // of the game cannot ask for by name.
+        if (string.IsNullOrWhiteSpace(itemName)) missing.Add("Item name (what the severed piece is called)");
+
+        // the BodyPart asset the detached piece is built from; without it the piece has no identity.
+        if (bodyPartType == null) missing.Add("Body part (a BodyPart asset)");
+
+        // start and end must span an arc. Equal angles are a zero-length cut: progress divides by
+        // (End - Start) and the ring never opens.
+        if (Mathf.Approximately(startAngle, endAngle)) missing.Add("Start/End angle span (they are equal, so the cut has no length)");
+
+        // the finisher is mandatory: every cut ends on the close-up chop, so a missing, disabled,
+        // unframed or tool-less one is not a runnable cut. Each state names its own fix.
+        if (finisher == null)
+        {
+            missing.Add("Finisher (a CutFinisher on the cut)");
+        }
+        else if (!finisher.enableFinisher)
+        {
+            missing.Add("Finisher enabled (its Enable Finisher is off)");
+        }
+        else
+        {
+            if (!finisher.hasShot) missing.Add("Finisher camera shot (frame it, then Set Shot From Camera)");
+            if (finisher.ToolPrefab == null) missing.Add("Finisher tool (a scalpel/saw for the finisher to swing)");
+        }
+
         return missing;
     }
 

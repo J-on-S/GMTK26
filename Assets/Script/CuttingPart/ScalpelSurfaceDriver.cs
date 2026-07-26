@@ -101,6 +101,13 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
         HideScalpelRenderers();
 
+        // clear the edit-mode preview the line was left holding. ShowTrace fills it with the whole
+        // closed loop as an authoring aid, and those points serialize into the scene -- left as they
+        // are, play opens with every scalpel's full cut ring floating on its body before anything is
+        // cut. ResetTrace empties the points and reopens the loop, so the trail starts clean and only
+        // grows once a cut is running.
+        ResetTrace();
+
         // Parked until a cut claims it. There is one of these per cut, so every driver in the scene
         // would otherwise start snapping its own scalpel onto its own body and drawing its own trail
         // from the first frame, on bodies nobody is cutting. CuttingManager.SetScalpelTrace switches
