@@ -9,7 +9,6 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
     [SerializeField] public float maxHealth = 100.0f;
     [SerializeField] public float health = 100.0f;
     [SerializeField] public Fridge fridge;
-    private BodyPartDescriptionHUD _bodyPartDescriptionHUD;
     private Material _material;
     
     [Serializable] public class PartPickupEvent : UnityEvent {}
@@ -28,8 +27,7 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
             Debug.LogError($"{name}: no MeshRenderer, so the part cannot show its decay.", this);
         }
 
-        _bodyPartDescriptionHUD = BodyPartDescriptionHUD.LastActiveInstance;
-        if (_bodyPartDescriptionHUD == null)
+        if (BodyPartDescriptionHUD.LastActiveInstance == null)
         {
             Debug.LogError($"{name}: no BodyPartDescriptionHUD in the scene, so hovering this part shows nothing.", this);
         }
@@ -60,18 +58,6 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         return health;
     }
 
-    private void OnMouseEnter()
-    {
-        if (_bodyPartDescriptionHUD == null) return;
-        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
-    }
-
-    private void OnMouseExit()
-    {
-        if (_bodyPartDescriptionHUD == null) return;
-        _bodyPartDescriptionHUD.HideBodyPartDescription(this);
-    }
-
     /// <summary>Takes the part out of the fridge, if it is in one, then grabs it like any other object.</summary>
     /// <remarks>Invariant: the fridge is left alone when the player's hands are full. The base grab is a
     /// no-op in that case, so evicting first would strand the part loose in the room with nobody holding it.</remarks>
@@ -87,23 +73,12 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
 
         base.Interact(player);
     }
-    
-    private bool hovering;
 
-    public void HoverOver(Interactor player)
+    /// <summary>A part shows its name and its decay bar, so it overrides the base name-only HUD.</summary>
+    protected override void ShowHudDescription()
     {
-        _bodyPartDescriptionHUD.ShowBodyPartDescription(this);
-        hovering = true;
-    }
-
-    private void LateUpdate()
-    {
-        if (!hovering)
-        {
-            _bodyPartDescriptionHUD.HideBodyPartDescription(this);
-        }
-
-        hovering = false;
+        BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
+        if (hud != null) hud.ShowBodyPartDescription(this);
     }
 
     /// <param name="itemName">What the piece is called. Names the GameObject and fills GrabbableObject.itemName,
