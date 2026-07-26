@@ -19,15 +19,20 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
   private Quaternion initialRotation;
 
   private Rigidbody rb;
+  private Interactor holder;
+  private Coroutine respawnRoutine;
+
   void Awake(){
     rb = GetComponent<Rigidbody>();
-    initialPosition = transform.position;
-    initialRotation = transform.rotation;
+    SetStartPose(transform.position, transform.rotation);
   }
+
+  public void SetStartPose(Vector3 position, Quaternion rotation){
+    initialPosition = position;
+    initialRotation = rotation;
+  }
+
   //GRAB
-  // virtual so a subclass can run its own step first (see DetachedBodyPart leaving the fridge) and
-  // still hand off to this one grab. Overriding beats re-declaring: a `new` Interact would take over
-  // the IInteractable slot and the object would never actually reach the player's hands.
   public virtual void Interact(Interactor player){
     if (player.heldObject == null){
       // make an object as a child for holdPoint
@@ -38,15 +43,13 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
       // local means relative to the parent
       this.transform.localPosition = Vector3.zero; // centre of holdPoint
       this.transform.localRotation = Quaternion.identity; //without rotation
-      // fills the cached field, not a local: Awake finds nothing on an object whose body is added later,
-      // and Drop() would then throw on it.
-      if (rb == null && !TryGetComponent<Rigidbody>(out rb))
-        rb = gameObject.AddComponent<Rigidbody>();
-      rb.isKinematic = true; // no physics for object;
+      EnsureRigidbody().isKinematic = true; // no physics for object;
+      SetCollidersEnabled(false);
       player.heldObject = this;
+      holder = player;
     }
   }
-  /// <summary>Plays the grab sound off the preset, or off the inline clips when no preset is assigned.</summary>
+
   private void PlayPickupSound(){
     if (audioPreset != null){
       audioPreset.PlayPickup(itemType);
@@ -56,7 +59,6 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     channel.Play(itemType == ItemType.Tool ? metalPickupAudio : clothPickupAudio);
   }
 
-  /// <summary>Plays the drop sound off the preset, or off the inline clips when no preset is assigned.</summary>
   private void PlayDropSound(){
     if (audioPreset != null){
       audioPreset.PlayDrop(itemType);
@@ -66,35 +68,77 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     channel.Play(itemType == ItemType.Tool ? metalDropAudio : clothDropAudio);
   }
 
+  private Rigidbody EnsureRigidbody(){
+    if (rb == null && !TryGetComponent(out rb)){
+      rb = gameObject.AddComponent<Rigidbody>();
+    }
+    return rb;
+  }
+
+  private void GoDynamic(){
+    Rigidbody body = EnsureRigidbody();
+    body.isKinematic = false;
+    body.linearVelocity = Vector3.zero;
+    body.angularVelocity = Vector3.zero;
+  }
+
+  public void SetCollidersEnabled(bool enabled){
+    Collider[] colliders = GetComponentsInChildren<Collider>(true);
+    for (int i = 0; i < colliders.Length; i++){
+      colliders[i].enabled = enabled;
+    }
+  }
+
+  private void SetRenderersEnabled(bool enabled){
+    Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+    for (int i = 0; i < renderers.Length; i++){
+      renderers[i].enabled = enabled;
+    }
+  }
+
+  public void ReleaseFromHolder(){
+    if (holder != null && holder.heldObject == this){
+      holder.heldObject = null;
+    }
+    holder = null;
+  }
+
   // DROP
   public void Drop(){
     PlayDropSound();
+    ReleaseFromHolder();
     // remove parenting
     transform.parent = null;
-    rb.isKinematic = false; // no physics for object;
+    SetCollidersEnabled(true);
+    GoDynamic(); // physics back on for object;
   }
+
   public void ReturnToStart(){
+    ReleaseFromHolder();
     transform.parent = null;
     transform.position = initialPosition;
     transform.rotation = initialRotation;
-    rb.isKinematic = false; // physics work back
+    SetCollidersEnabled(true);
+    GoDynamic(); // physics work back
   }
 
   // this is called when the doctor gets the right item delivered
   public void StartRespawnTimer(){
-    StartCoroutine(RespawnRoutine());
+    if (respawnRoutine != null){
+      StopCoroutine(respawnRoutine);
+    }
+    ReleaseFromHolder();
+    respawnRoutine = StartCoroutine(RespawnRoutine());
   }
 
   // respawn items after a certain amount of time
   IEnumerator RespawnRoutine(){
     transform.parent = null;
-    Renderer rend = GetComponent<Renderer>(); // hide appearence
-    Collider coll = GetComponent<Collider>(); // hide physical
-    rend.enabled = false;
-    coll.enabled = false;
+    SetRenderersEnabled(false); // hide appearence
+    SetCollidersEnabled(false); // hide physical
     yield return new WaitForSeconds(respawnTime);
     ReturnToStart();
-    rend.enabled = true;
-    coll.enabled = true;
+    SetRenderersEnabled(true);
+    respawnRoutine = null;
   }
 }
