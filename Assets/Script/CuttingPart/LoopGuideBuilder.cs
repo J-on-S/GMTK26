@@ -36,11 +36,11 @@ public class LoopGuideBuilder : MonoBehaviour {
 
 
     [Header("Loop guide")]
-    [Tooltip("Draw the curved target loop into loopLine.")]
-    public bool showCurvedLoop = true;
+    [Tooltip("Draw the curved target loop into loopLine. Off by default: cuts show only the straight flat loop in play. CuttingManager forces this off every push.")]
+    public bool showCurvedLoop = false;
 
-    [Tooltip("Draw the raw flat cut loop into flatLine.")]
-    public bool showFlatLoop = false;
+    [Tooltip("Draw the raw flat (straight) cut loop into flatLine. On by default: this is the line shown in play. CuttingManager forces this on every push.")]
+    public bool showFlatLoop = true;
 
     [Tooltip("Optional LineRenderer that draws the curved target loop each frame so the player can see where to cut.")]
     public LineRenderer loopLine;

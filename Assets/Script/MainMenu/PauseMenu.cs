@@ -64,7 +64,7 @@ public class PauseMenu : MonoBehaviour
         // No to menu scene
         if (SceneManager.GetActiveScene().name == mainMenuScene) return;
 
-        if (Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.pKey.wasPressedThisFrame)
         {
             if (!isPaused)
             {

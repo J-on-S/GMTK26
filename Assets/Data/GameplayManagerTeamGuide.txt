@@ -169,9 +169,10 @@ int combined = BodyPartRunSummary.Instance.GetTotalCount(BodyPartType.Hand);
 int chute = BodyPartRunSummary.Instance.GetChuteCount(BodyPartType.Hand);
 int fridge = BodyPartRunSummary.Instance.GetFridgeCount(BodyPartType.Hand);
 
-BlackMarketBodyPartSummaryUI automatically updates the existing Hand, Mouth,
-Nose, and Ear rows on Win. If a result scene has no rows, it creates a simple
-text summary automatically.
+BlackMarketBodyPartSummaryUI automatically updates the existing Hand, Leg,
+Nose, and Ear rows on Win. Each TMP field contains only "x {count}"; the
+existing image identifies its body-part type. Assign the four TMP fields in
+any result scene whose rows do not use the expected names.
 
 
 ============================================================

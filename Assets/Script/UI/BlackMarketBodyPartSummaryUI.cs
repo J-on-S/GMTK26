@@ -1,20 +1,18 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 /// <summary>
 /// Displays the persistent combined chute + fridge counts on result screens.
-/// Automatically binds the existing Win rows and creates a text fallback on
-/// result scenes that do not contain those rows.
+/// Each assigned TMP field contains only "x {count}"; the row image identifies
+/// its body-part type.
 /// </summary>
 public class BlackMarketBodyPartSummaryUI : MonoBehaviour
 {
     [SerializeField] private TMP_Text handCountText;
-    [SerializeField] private TMP_Text mouthCountText;
+    [SerializeField] private TMP_Text legCountText;
     [SerializeField] private TMP_Text noseCountText;
     [SerializeField] private TMP_Text earCountText;
-    [SerializeField] private TMP_Text fallbackSummaryText;
 
     private BodyPartRunSummary summary;
 
@@ -57,7 +55,13 @@ public class BlackMarketBodyPartSummaryUI : MonoBehaviour
         AutoBindExistingRows();
 
         if (!HasAllIndividualRows())
-            CreateFallbackText();
+        {
+            Debug.LogWarning(
+                "BlackMarketBodyPartSummaryUI could not find every Hand, " +
+                "Leg, Nose, and Ear NumberText. Assign the missing TMP " +
+                "fields in this result scene.",
+                this);
+        }
 
         Refresh();
     }
@@ -77,20 +81,14 @@ public class BlackMarketBodyPartSummaryUI : MonoBehaviour
             handCountText,
             summary.GetTotalCount(BodyPartType.Hand));
         SetCount(
-            mouthCountText,
-            summary.GetTotalCount(BodyPartType.Mouth));
+            legCountText,
+            summary.GetTotalCount(BodyPartType.Leg));
         SetCount(
             noseCountText,
             summary.GetTotalCount(BodyPartType.Nose));
         SetCount(
             earCountText,
             summary.GetTotalCount(BodyPartType.Ear));
-
-        if (fallbackSummaryText != null)
-        {
-            fallbackSummaryText.text =
-                BuildFallbackSummary();
-        }
     }
 
     private void AutoBindExistingRows()
@@ -100,10 +98,15 @@ public class BlackMarketBodyPartSummaryUI : MonoBehaviour
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None);
 
+        DisableUnusedRow(
+            allText,
+            "Mouth WinLoseStatRow");
+
         handCountText ??=
             FindRowCount(allText, "Hand WinLoseStatRow");
-        mouthCountText ??=
-            FindRowCount(allText, "Mouth WinLoseStatRow");
+        legCountText ??=
+            FindRowCount(allText, "Leg WinLoseStatRow") ??
+            FindRowCount(allText, "Foot WinLoseStatRow");
         noseCountText ??=
             FindRowCount(allText, "Nose WinLoseStatRow");
         earCountText ??=
@@ -129,92 +132,27 @@ public class BlackMarketBodyPartSummaryUI : MonoBehaviour
         return null;
     }
 
+    private static void DisableUnusedRow(
+        TMP_Text[] allText,
+        string rowName)
+    {
+        foreach (TMP_Text text in allText)
+        {
+            Transform row = text.transform.parent;
+            if (row == null || row.name != rowName)
+                continue;
+
+            row.gameObject.SetActive(false);
+            return;
+        }
+    }
+
     private bool HasAllIndividualRows()
     {
         return handCountText != null &&
-               mouthCountText != null &&
+               legCountText != null &&
                noseCountText != null &&
                earCountText != null;
-    }
-
-    private void CreateFallbackText()
-    {
-        if (fallbackSummaryText != null)
-            return;
-
-        Canvas[] activeCanvases =
-            FindObjectsByType<Canvas>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
-        Canvas canvas = activeCanvases.Length > 0
-            ? activeCanvases[0]
-            : CreateFallbackCanvas();
-
-        if (canvas == null)
-        {
-            Debug.LogWarning(
-                "Body-part summary could not find a Canvas.",
-                this);
-            return;
-        }
-
-        GameObject textObject =
-            new(
-                "BodyPartSummaryText",
-                typeof(RectTransform),
-                typeof(CanvasRenderer),
-                typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(
-            canvas.transform,
-            false);
-
-        RectTransform rect =
-            textObject.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = new Vector2(0f, -100f);
-        rect.sizeDelta = new Vector2(520f, 220f);
-
-        TextMeshProUGUI text =
-            textObject.GetComponent<TextMeshProUGUI>();
-        text.alignment = TextAlignmentOptions.Center;
-        text.fontSize = 30f;
-        text.color = Color.white;
-        fallbackSummaryText = text;
-    }
-
-    private static Canvas CreateFallbackCanvas()
-    {
-        GameObject canvasObject =
-            new(
-                "Black Market Summary Canvas",
-                typeof(RectTransform),
-                typeof(Canvas),
-                typeof(CanvasScaler),
-                typeof(GraphicRaycaster));
-
-        Canvas canvas = canvasObject.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-        CanvasScaler scaler =
-            canvasObject.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode =
-            CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution =
-            new Vector2(1920f, 1080f);
-
-        return canvas;
-    }
-
-    private string BuildFallbackSummary()
-    {
-        return
-            "BLACK MARKET BODY PARTS\n" +
-            $"Hand  x {summary.GetTotalCount(BodyPartType.Hand)}\n" +
-            $"Mouth x {summary.GetTotalCount(BodyPartType.Mouth)}\n" +
-            $"Nose  x {summary.GetTotalCount(BodyPartType.Nose)}\n" +
-            $"Ear   x {summary.GetTotalCount(BodyPartType.Ear)}";
     }
 
     private static void SetCount(

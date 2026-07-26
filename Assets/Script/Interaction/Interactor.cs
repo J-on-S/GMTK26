@@ -31,7 +31,8 @@ public class Interactor : MonoBehaviour
     if (cam == null) return;
 
     if (Time.timeScale == 0f) return;
-    if (EventSystem.current.IsPointerOverGameObject()) return;
+    // null when no EventSystem is in the scene; then nothing is over UI, so just skip the check
+    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
     if (heldObject != null && Input.GetKeyDown(KeyCode.E)){
       heldObject.Drop();
       heldObject = null;

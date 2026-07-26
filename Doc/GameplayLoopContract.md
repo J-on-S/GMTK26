@@ -190,7 +190,7 @@ Current implementation:
   type/health information: implemented.
 - `BodyPartRunSummary` persists per-type chute and fridge counts across the
   gameplay-to-Win/Lost scene transition. Result UI displays combined Hand,
-  Mouth, Nose, and Ear totals: implemented.
+  Leg, Nose, and Ear totals: implemented.
 - End-of-day freezer/storage/decay integration: planned.
 
 ## End of Day
