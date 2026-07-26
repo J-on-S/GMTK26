@@ -19,7 +19,7 @@ public class CuttingManagerEditor : Editor
     // not tuning a preset can supply.
     private static readonly string[] InlineTuningFields =
     {
-        "cameraFOV", "scalpelAngleLead", "guideLineWidth",
+        "cameraFOV", "scalpelAngleLead", "guideLineWidth", "guideHoverLength", "guideResolution",
         "cameraPreset", "curvePreset", "scalpelSurfacePreset",
     };
 
@@ -43,7 +43,7 @@ public class CuttingManagerEditor : Editor
         Draw("loopGuide");
 
         // identity: what the piece is called and what it takes to cut it. Per-cut, never from a preset.
-        
+        Draw("itemName");
         Draw("bodyPartType");
         Draw("requiredToolName");
 
@@ -313,11 +313,12 @@ public class CuttingManagerEditor : Editor
         preset.cameraPreset = manager.cameraPreset;
         preset.curvePreset = manager.curvePreset;
         preset.scalpelFollowPreset = manager.scalpelSurfacePreset;
-        if (manager.loopGuide != null)
-        {
-            preset.curveWidth = manager.loopGuide.curveWidth;
-            preset.curveHoverLength = manager.loopGuide.curveHoverLength;
-        }
+
+        // read off the manager, not the guide: the guide's copies are pushed outputs, and taking them
+        // back would round-trip through whatever the last push happened to leave there.
+        preset.curveWidth = manager.guideLineWidth;
+        preset.curveHoverLength = manager.guideHoverLength;
+        preset.curveResolution = manager.guideResolution;
 
         AssetDatabase.CreateAsset(preset, path);
         AssetDatabase.SaveAssets();
