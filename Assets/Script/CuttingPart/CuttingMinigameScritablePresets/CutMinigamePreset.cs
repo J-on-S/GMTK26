@@ -48,4 +48,7 @@ public class CutMinigamePreset : ScriptableObject
 
     [Tooltip("How far the drawn loop is lifted off the surface so it doesn't z-fight, in world units. Drawing only; scoring uses the unlifted loop.")]
     public float curveHoverLength = 0.01f;
+
+    [Tooltip("Smallest number of points the loop is warped and drawn with. The cross-section of a low-poly body is only a handful of points, and curving those few makes a zigzag instead of a wave. 0 keeps the raw extraction.")]
+    public int curveResolution = 64;
 }

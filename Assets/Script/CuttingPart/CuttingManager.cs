@@ -95,6 +95,10 @@ public enum CuttingState
 
     public CuttableObject GameObjectBeingCut;
 
+    [Header("Identity")]
+    [Tooltip("What the piece this cut takes off is called, e.g. \"Left Arm\". Becomes the severed object's name and its GrabbableObject.itemName, so the rest of the game can ask for it by name.")]
+    public string itemName;
+
     [Tooltip("ToolPickup.itemName the player must be holding to start this cut. Leave empty for a cut that needs no particular tool.")]
     public string requiredToolName;
     [SerializeField] public BodyPart bodyPartType;
@@ -154,8 +158,20 @@ public enum CuttingState
     [Tooltip("Drawn width of every guide line this cut owns, in world units. The scalpel's own trace keeps its own width.")]
     public float guideLineWidth = 0.005f;
 
+    [Tooltip("How far the guide lines float off the body, in world units. Drawing only -- scoring uses the unlifted loop. Too low and the line z-fights the mesh.")]
+    public float guideHoverLength = 0.01f;
+
+    [Tooltip("Smallest number of points the loop is warped and drawn with. A low-poly body gives a cross-section of only a handful, and curving those few makes a zigzag instead of a wave. 0 keeps the raw extraction.")]
+    public int guideResolution = 64;
+
     /// <summary>Width every guide line of this cut is drawn at, from the preset when there is one.</summary>
     public float GuideLineWidth => minigamePreset != null ? minigamePreset.curveWidth : guideLineWidth;
+
+    /// <summary>Hover the guide lines are drawn at, from the preset when there is one.</summary>
+    public float GuideHoverLength => minigamePreset != null ? minigamePreset.curveHoverLength : guideHoverLength;
+
+    /// <summary>Point count the loop is warped and drawn at, from the preset when there is one.</summary>
+    public int GuideResolution => minigamePreset != null ? minigamePreset.curveResolution : guideResolution;
 
     public static InputAction move;
 
@@ -1038,7 +1054,7 @@ public enum CuttingState
 
         MakeCollidersDynamic(piece);
 
-        DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset);
+        DetachedBodyPart.MakeDetachedBodyPart(SeveredPieceHealth, SeveredPieceHealth, bodyPartType, piece, severedPieceAudioPreset, itemName);
 
         KickSeveredPiece(piece);
     }
@@ -1117,17 +1133,17 @@ public enum CuttingState
             if (GameObjectBeingCut != null) loopGuide.meshFollow = GameObjectBeingCut;
             if (Curve != null) loopGuide.preset = Curve;
 
-            // one width for every line this cut owns, preset first and the inline field otherwise.
+            // width and hover both go down every push, preset first and the inline field otherwise.
+            // Never conditional on there being a preset: the guide's own copies are outputs, hidden in
+            // its inspector, so a push that skips them leaves numbers nobody can reach or correct.
+            loopGuide.curveWidth = GuideLineWidth;
+            loopGuide.curveHoverLength = GuideHoverLength;
+            loopGuide.curveResolution = GuideResolution;
+
             // applied here and not left to the next draw: OnValidate calls this, and an author dragging
             // the width wants the line to change under the cursor.
-            loopGuide.curveWidth = GuideLineWidth;
             loopGuide.ApplyLineWidth();
             loopGuide.showInPlayMode = showGuideLinesInPlay;
-
-            if (minigamePreset != null)
-            {
-                loopGuide.curveHoverLength = minigamePreset.curveHoverLength;
-            }
         }
 
         // cutting speed driver reads the camera-moves preset.
