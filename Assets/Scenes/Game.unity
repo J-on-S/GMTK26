@@ -1579,8 +1579,11 @@ MonoBehaviour:
     targetChair: {fileID: 0}
   timeBetweenRequests: 5
   numberOfRequests: 5
+  minimumRequestTime: 50
+  maximumRequestTime: 60
   rewardEarlyCompletion: 1
   earlyCompletionBonusMultiplier: 1
+  maximumEarlyCompletionBonus: 10
   operationChairs: []
   currentState: 0
   currentRequest:
@@ -8310,6 +8313,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2126527763}
   - component: {fileID: 2126527764}
+  - component: {fileID: 2126527765}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -8347,6 +8351,18 @@ MonoBehaviour:
   m_FirstSelected: {fileID: 0}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
+--- !u!114 &2126527765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2126527762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19105, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.InputSystem.InputSystemEventSystem
 --- !u!65 &2133304715
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9724,7 +9740,7 @@ PrefabInstance:
       objectReference: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
     - target: {fileID: 8056053254657921675, guid: d19502f2b76b22746ae713e32ea2133e, type: 3}
       propertyPath: itemName
-      value: Tweezer
+      value: Tweezers
       objectReference: {fileID: 0}
     - target: {fileID: 8056053254657921675, guid: d19502f2b76b22746ae713e32ea2133e, type: 3}
       propertyPath: audioPreset
@@ -10459,6 +10475,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
     - target: {fileID: 5846179299688006383, guid: 2f0e06942902ebc4bb627b5078395a94, type: 3}
+      propertyPath: itemName
+      value: Saw
+      objectReference: {fileID: 0}
+    - target: {fileID: 5846179299688006383, guid: 2f0e06942902ebc4bb627b5078395a94, type: 3}
       propertyPath: audioPreset
       value: 
       objectReference: {fileID: 11400000, guid: 63490d4edcff78340b3193fadbfb1738, type: 2}
@@ -10864,6 +10884,10 @@ PrefabInstance:
       propertyPath: channel
       value: 
       objectReference: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+    - target: {fileID: 9115308940188587761, guid: 26251fe0f43e9db42934be3b4b578b84, type: 3}
+      propertyPath: itemName
+      value: Scalpel
+      objectReference: {fileID: 0}
     - target: {fileID: 9115308940188587761, guid: 26251fe0f43e9db42934be3b4b578b84, type: 3}
       propertyPath: audioPreset
       value: 
