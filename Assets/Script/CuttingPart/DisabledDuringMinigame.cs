@@ -7,7 +7,7 @@ using UnityEngine;
 public class DisabledDuringMinigame : MonoBehaviour
 {
     public List<MonoBehaviour> ToDeactivate;
-
+    public static bool IsMinigameActive { get; private set; }
 
     void OnEnable()
     {
@@ -23,11 +23,13 @@ public class DisabledDuringMinigame : MonoBehaviour
 
     void Suspend(CuttingManager cm)
     {
+        IsMinigameActive = true;
         ToDeactivate.ForEach(mb => mb.enabled = false);
     }
 
     void Resume(CuttingManager cm)
     {
+        IsMinigameActive = false;
         ToDeactivate.ForEach(mb => mb.enabled = true);
     }
 

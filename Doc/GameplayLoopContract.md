@@ -177,7 +177,9 @@ Current implementation:
 - Doctor detection and heart penalty: planned.
 - Countdown and timeout penalty: planned.
 - Chute registration and per-chute debug entry counting: implemented.
-- Freezer/storage/decay integration: planned.
+- Fridge storage exposes live count, capacity, and per-slot body-part
+  type/health information: implemented.
+- End-of-day freezer/storage/decay integration: planned.
 
 ## End of Day
 
@@ -217,6 +219,8 @@ Current implementation:
   implemented.
 - `EndDay` resolves the generated black-market order first and publishes its
   success/failure through `BlackMarketTaskResolved`: implemented.
+- `TestFinishDay` listens to `BlackMarketTaskResolved` and loads the Win or
+  Lost result scene on the following frame: implemented.
 - Advancing the day number: implemented.
 - Automatic ending when the client list reaches zero, the player has health
   remaining, and the temporary countdown remaining is nonnegative:

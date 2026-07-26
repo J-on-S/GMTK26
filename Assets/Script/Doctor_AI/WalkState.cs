@@ -30,6 +30,7 @@ public class WalkState : State
     private NavMeshAgent agent;
     private bool hasDestination;
     private bool loggedMissingTarget;
+    
 
     protected override void Awake()
     {
