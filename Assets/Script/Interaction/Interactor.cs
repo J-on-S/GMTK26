@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class Interactor : MonoBehaviour
 {
@@ -10,9 +11,15 @@ public class Interactor : MonoBehaviour
   void Awake(){ //search for camera once
     cam = Camera.main; 
   }
-  
+  public void ResetHeldObj()
+  {
+    Destroy(heldObject.gameObject);
+    heldObject = null;
+  }
   
   void Update() {
+    if (Time.timeScale == 0f) return;
+    if (EventSystem.current.IsPointerOverGameObject()) return;
     if (heldObject != null && Input.GetKeyDown(KeyCode.E)){
       heldObject.Drop();
       heldObject = null;

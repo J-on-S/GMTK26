@@ -34,6 +34,16 @@ public class CameraFollow : MonoBehaviour {
         ScaleLoop,
     }
 
+    /// <summary>Where the camera's up vector comes from, i.e. what ends up at the top of the screen.</summary>
+    public enum UpMode {
+        /// <summary>The cutting plane's normal, sign and all. What the camera did before this setting existed; an author who rotated the plane the other way gets an upside-down view.</summary>
+        PlaneNormal,
+        /// <summary>The plane normal, flipped when it would put the world's floor above the horizon. Same framing as <see cref="PlaneNormal"/> for a plane authored the right way up.</summary>
+        PlaneNormalUpright,
+        /// <summary>World up, so the horizon stays level however the plane is rotated. Falls back toward the upright plane normal as the view turns vertical and world up stops being usable.</summary>
+        WorldUp,
+    }
+
     /// <summary>Which loop from the guide the camera orbits.</summary>
     public enum LoopSource {
         /// <summary>Raw flat cross-section.</summary>
@@ -134,6 +144,9 @@ public class CameraFollow : MonoBehaviour {
 
     [Tooltip("Roll the camera so the loop's travel direction points to the top of the screen.")]
     public bool loopTowardTop = false;
+
+    [Tooltip("What ends up at the top of the screen. The cutting plane's normal has whatever sign the plane was authored with, so Plane Normal alone can hand back an upside-down view (floor at the top) with the aim still perfectly on the loop. Ignored while Loop Toward Top is on, which owns the up vector itself.")]
+    public UpMode upMode = UpMode.PlaneNormalUpright;
 
     [Tooltip("Fixed head start around the ring, in degrees. Shifts where the orbit sits (and its Progress) without changing the speed.")]
     public float angleOffset = 0f;
@@ -265,17 +278,59 @@ public class CameraFollow : MonoBehaviour {
 
         Vector3 toTarget = lookTarget - (viewFrom ?? position);
         if (toTarget.sqrMagnitude > 1e-8f) {
+            Vector3 view = toTarget.normalized;
+
+            // the plane normal's sign is authoring, not geometry, so on its own it can put the
+            // floor at the top of the screen with the aim still correct. loopTowardTop is exempt:
+            // its up IS the travel direction, and it is meant to turn the whole way round.
+            if (!loopTowardTop) {
+                up = ResolveUp(up, view);
+            }
+
             // bank the up vector about the view axis so the horizon rolls; constant
-            // rollDegrees plus a slow readable oscillation.
+            // rollDegrees plus a slow readable oscillation. After the up is resolved, so a
+            // deliberate bank is measured from a level horizon rather than fighting a flip.
             float roll = rollDegrees + rollAmplitude * Mathf.Sin(t * rollSpeed);
             if (roll != 0f) {
-                up = Quaternion.AngleAxis(roll, toTarget.normalized) * up;
+                up = Quaternion.AngleAxis(roll, view) * up;
             }
 
             rotation = Quaternion.LookRotation(toTarget, up);
         }
 
         return true;
+    }
+
+    /// <summary>Turns the raw plane normal into the up vector the aim actually uses, per <see cref="upMode"/>.</summary>
+    /// <param name="planeNormal">Up as the geometry gives it, before any world alignment.</param>
+    /// <param name="view">Unit view direction the rotation will be built around.</param>
+    /// <remarks>Pure and a function of this frame's pose alone -- no remembered sign -- so <see cref="TryGetPose"/> stays something the travel in <see cref="CuttingManager"/> can ask for a destination pose up front.</remarks>
+    private Vector3 ResolveUp(Vector3 planeNormal, Vector3 view) {
+        switch (upMode) {
+            case UpMode.PlaneNormalUpright:
+                return Upright(planeNormal, view);
+
+            case UpMode.WorldUp: {
+                // world up is useless once the view is vertical (it collapses onto the view axis),
+                // which is exactly where a big height puts the camera. Fade to the upright plane
+                // normal before that happens, rather than snapping at the degenerate pose.
+                float verticality = Mathf.Abs(Vector3.Dot(view, Vector3.up));
+                float blend = Mathf.InverseLerp(0.97f, 0.999f, verticality);
+                return blend <= 0f
+                    ? Vector3.up
+                    : Vector3.Slerp(Vector3.up, Upright(planeNormal, view), blend);
+            }
+
+            default:
+                return planeNormal;
+        }
+    }
+
+    /// <summary>Flips an up vector when it would put the world's floor above the horizon.</summary>
+    /// <remarks>Tests the vector <c>LookRotation</c> will actually use -- the part of <paramref name="up"/> across the view axis -- because a normal can point below the horizon and still come out upright on screen once the view direction is taken out of it.</remarks>
+    private static Vector3 Upright(Vector3 up, Vector3 view) {
+        Vector3 onScreen = up - view * Vector3.Dot(up, view);
+        return Vector3.Dot(onScreen, Vector3.up) < 0f ? -up : up;
     }
 
     /// <summary>Puts the follower where its current <c>angle</c> says it should be.</summary>
