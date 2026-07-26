@@ -17,7 +17,7 @@ public class Interactor : MonoBehaviour
       heldObject.Drop();
       heldObject = null;
     }
-    Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+    Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
     RaycastHit hit;
     if (Physics.Raycast(ray, out hit, maxRange)){
       // GetComponent just get or null
