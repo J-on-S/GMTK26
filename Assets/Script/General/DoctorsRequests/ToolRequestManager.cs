@@ -23,6 +23,14 @@ public class ToolRequestManager : MonoBehaviour
     public float timeBetweenRequests = 5f; // oooldown before next order from doctor
     public float numberOfRequests = 5;  // minimum size of the focused client's batch
 
+    [Header("Early completion reward")]
+    [Tooltip(
+        "When a request succeeds, add its remaining request time to the " +
+        "next cooldown.")]
+    [SerializeField] private bool rewardEarlyCompletion = true;
+    [SerializeField, Min(0f)]
+    private float earlyCompletionBonusMultiplier = 1f;
+
     [Header("Client processing order")]
     [Tooltip("Assign Bed A first, then Bed B. If empty, chairs are found and sorted by name.")]
     [SerializeField] private List<OperationChair> operationChairs = new();
@@ -36,18 +44,30 @@ public class ToolRequestManager : MonoBehaviour
     [SerializeField] private ToolRequest currentRequest;
     [SerializeField] private float remainingTime;
     [SerializeField] private float remainingCooldown;
+    [SerializeField] private float lastRequestElapsedTime;
+    [SerializeField] private float lastEarlyCompletionBonus;
     [SerializeField] private OperationChair focusedChair;
     [SerializeField] private GameObject focusedClient;
     [SerializeField] private int focusedChairIndex = -1;
     private RandomizedClientList subscribedClientList;
     private bool isCompletingFocusedClient;
+    private bool completeFocusedClientAfterCooldown;
 
     public event Action<ToolRequest> RequestStarted;
     public event Action<ToolRequest> RequestCompleted;
     public event Action<ToolRequest> RequestFailed;
+    public event Action<float> EarlyCompletionBonusAwarded;
     public event Action RequestQueueEmptied;
     public OperationChair FocusedChair => focusedChair;
     public GameObject FocusedClient => focusedClient;
+    public float RemainingRequestTime => remainingTime;
+    public float RemainingCooldownTime => remainingCooldown;
+    public float LastEarlyCompletionBonus =>
+        lastEarlyCompletionBonus;
+    public bool IsRequestActive =>
+        currentState == State.ActiveRequest;
+    public bool IsCooldownActive =>
+        currentState == State.Cooldown;
     [Tooltip("Where a delivered body part gets stuck onto the customer. Found in the scene when left empty.")]
     [SerializeField] private SpawnBodyPartCustomer spawnBodyPartCustomer;
 
@@ -243,10 +263,19 @@ public class ToolRequestManager : MonoBehaviour
     private void HandleCooldown()
     {
         remainingCooldown -= Time.deltaTime;
-        if (remainingCooldown <= 0)
+        if (remainingCooldown > 0)
+            return;
+
+        remainingCooldown = 0f;
+
+        if (!completeFocusedClientAfterCooldown)
         {
             StartNewRandomRequest();
+            return;
         }
+
+        completeFocusedClientAfterCooldown = false;
+        CompleteFocusedClientAndAdvance();
     }
 
     // randomize the requests
@@ -352,6 +381,14 @@ public class ToolRequestManager : MonoBehaviour
     private void CompleteActiveRequest()
     {
         ToolRequest completedRequest = currentRequest;
+        float safeRemainingTime = Mathf.Max(0f, remainingTime);
+        lastRequestElapsedTime = Mathf.Max(
+            0f,
+            completedRequest.timeLimit - safeRemainingTime);
+        lastEarlyCompletionBonus = rewardEarlyCompletion
+            ? safeRemainingTime *
+              Mathf.Max(0f, earlyCompletionBonusMultiplier)
+            : 0f;
 
         if (completedRequest.itemType == ItemType.BodyPart)
         {
@@ -369,15 +406,20 @@ public class ToolRequestManager : MonoBehaviour
         remainingTime = 0f;
         RequestCompleted?.Invoke(completedRequest);
 
-        if (availableRequests.Count == 0)
+        if (lastEarlyCompletionBonus > 0f)
         {
-            currentState = State.Idle;
-            RequestQueueEmptied?.Invoke();
-            CompleteFocusedClientAndAdvance();
-            return;
+            EarlyCompletionBonusAwarded?.Invoke(
+                lastEarlyCompletionBonus);
         }
 
-        StartCooldown();
+        bool finishedClientBatch =
+            availableRequests.Count == 0;
+        if (finishedClientBatch)
+            RequestQueueEmptied?.Invoke();
+
+        StartCooldown(
+            lastEarlyCompletionBonus,
+            finishedClientBatch);
     }
 
     private void FailRequest()
@@ -393,22 +435,44 @@ public class ToolRequestManager : MonoBehaviour
         availableRequests.Add(failedRequest);
 
         remainingTime = 0f;
+        lastEarlyCompletionBonus = 0f;
         RequestFailed?.Invoke(failedRequest);
         HealthScript.Instance.TakeDamage();
         StartCooldown();
     }
 
     // deals with cooldown state and timer
-    private void StartCooldown()
+    private void StartCooldown(
+        float bonusTime = 0f,
+        bool finishClientAfterCooldown = false)
     {
-        remainingCooldown = timeBetweenRequests;
+        float baseCooldown = Mathf.Max(0f, timeBetweenRequests);
+        float safeBonus = Mathf.Max(0f, bonusTime);
+        remainingCooldown = baseCooldown + safeBonus;
+        completeFocusedClientAfterCooldown =
+            finishClientAfterCooldown;
         currentState = State.Cooldown;
-        Debug.Log($"Waiting for the next request. Cooldown active for {timeBetweenRequests} seconds");
+        string requestTiming = safeBonus > 0f ||
+                               finishClientAfterCooldown
+            ? $" Request used {lastRequestElapsedTime:0.##} seconds."
+            : string.Empty;
+        Debug.Log(
+            $"Doctor cooldown: {baseCooldown:0.##} base + " +
+            $"{safeBonus:0.##} early-completion bonus = " +
+            $"{remainingCooldown:0.##} seconds." +
+            requestTiming,
+            this);
     }
 
     public float timeRemaining()
     {
-        return remainingTime;
+        if (IsRequestActive)
+            return remainingTime;
+
+        if (IsCooldownActive)
+            return remainingCooldown;
+
+        return 0f;
     }
 
     private void SubscribeToClientList()
@@ -488,6 +552,8 @@ public class ToolRequestManager : MonoBehaviour
         focusedClient = null;
         focusedChair = null;
         currentRequest = default;
+        remainingCooldown = 0f;
+        completeFocusedClientAfterCooldown = false;
         currentState = State.Idle;
         StartCoroutine(StartNextClientBatchNextFrame());
     }
@@ -614,6 +680,8 @@ public class ToolRequestManager : MonoBehaviour
         focusedClient = null;
         focusedChair = null;
         currentRequest = default;
+        remainingCooldown = 0f;
+        completeFocusedClientAfterCooldown = false;
         currentState = State.Idle;
         TryStartNextClientBatch();
     }

@@ -41,20 +41,29 @@ public class CountdownUI : MonoBehaviour
         // otherwise throw on every frame for the rest of the session.
         if (manager == null) return;
 
-        timeRemaining = manager.timeRemaining();    // gets the time remaining from the toolrequestmanager script
+        // Displays either the active request deadline or the rewarded
+        // cooldown/storage window owned by ToolRequestManager.
+        timeRemaining = manager.timeRemaining();
         if (timeRemaining > 0)
         {
-            timeRemaining -= Time.deltaTime;
-
             // fixes the negative number messy display
             float safety = Mathf.Max(0, timeRemaining);
             UpdateTimerDisplay(safety);
-            FlashScreen(safety);
+
+            if (manager.IsRequestActive)
+                FlashScreen(safety);
+            else
+            {
+                SetFlashOpacity(0f);
+                alarmSoundedThisFlash = false;
+            }
         }
         else
         {
             timeRemaining = 0;
             UpdateTimerDisplay(timeRemaining);
+            SetFlashOpacity(0f);
+            alarmSoundedThisFlash = false;
             // heart loss could also happen here idk
             // 
         }

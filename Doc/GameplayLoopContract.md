@@ -132,7 +132,9 @@ clientDialogueEventChannel.DialogueRequested
 toolRequestManager.RequestStarted
 toolRequestManager.RequestCompleted
 toolRequestManager.RequestFailed
+toolRequestManager.EarlyCompletionBonusAwarded
 toolRequestManager.RequestQueueEmptied
+cameraSwitch.ViewStateChanged
 ```
 
 Current implementation:
@@ -172,6 +174,13 @@ Current implementation:
   to run before focus advances: implemented.
 - Failed requests return to the current batch and must succeed before the
   focused client completes: implemented.
+- Successful doctor requests add their unused request time to the normal
+  cooldown. The final request delays client completion by that rewarded
+  cooldown, creating a storage/chute preparation window: implemented.
+- `CameraSwitch` owns `MainGame` and `BlackMarket` view states. Entering the
+  black-market camera pauses scaled gameplay; returning restores the previous
+  time scale. Doctor request and cooldown counters therefore retain their
+  remaining values: implemented.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
 - Doctor detection and heart penalty: planned.
@@ -179,6 +188,9 @@ Current implementation:
 - Chute registration and per-chute debug entry counting: implemented.
 - Fridge storage exposes live count, capacity, and per-slot body-part
   type/health information: implemented.
+- `BodyPartRunSummary` persists per-type chute and fridge counts across the
+  gameplay-to-Win/Lost scene transition. Result UI displays combined Hand,
+  Leg, Nose, and Ear totals: implemented.
 - End-of-day freezer/storage/decay integration: planned.
 
 ## End of Day

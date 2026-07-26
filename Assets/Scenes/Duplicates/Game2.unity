@@ -4325,6 +4325,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   blackMarketGenerator: {fileID: 338945033}
+  gameplayManager: {fileID: 0}
+  winScene: Scenes/Menu/Win
+  loseScene: Scenes/Menu/Lost
 --- !u!4 &1062407667
 Transform:
   m_ObjectHideFlags: 0
@@ -7940,7 +7943,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DetachedBodyPart
   itemName: 
   itemType: 0
-  bodyPartType: 0
+  bodyPartType: 1
   respawnTime: 3
   audioPreset: {fileID: 0}
   channel: {fileID: 0}
@@ -12641,6 +12644,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraSwitch
   mainCamera: {fileID: 324369630}
   otherCamera: {fileID: 658666551}
+  pauseGameInBlackMarket: 1
+  currentState: 0
 --- !u!4 &8757348572635722193
 Transform:
   m_ObjectHideFlags: 0
@@ -12726,6 +12731,8 @@ MonoBehaviour:
   - {fileID: 1942723845}
   - {fileID: 787170561}
   - {fileID: 1811117080}
+  storedItemCount: 0
+  storedItemStatuses: []
 --- !u!64 &8758288444896577000
 MeshCollider:
   m_ObjectHideFlags: 0

@@ -12,7 +12,7 @@ A game for the 2026 GMTK Game Jam for the theme "Countdown."
 - Prop Modeling (3D): Yuchen Zheng
 - UI art, concept art and prop design: Yuzhi Cheng
 - Music and sound design: Julian Glover
-- Writing: Clvis Desmarais
+- Writing: Clovis Desmarais
 - Game design: Acacie Song, Stefaniia Kornilova
 
 ## For developers and artists

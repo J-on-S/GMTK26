@@ -31,6 +31,12 @@ select CameraSwitch.SwitchToOtherCamera.
 GameplayManager does NOT perform cutting, move the doctor, manage tools, or
 decide whether the doctor accepted an item.
 
+CameraSwitch has two runtime states: MainGame and BlackMarket.
+SwitchToOtherCamera enters BlackMarket and pauses Time.timeScale. This pauses
+the doctor's active-request timer and cooldown because ToolRequestManager uses
+Time.deltaTime. SwitchToMainCamera restores the time scale that existed before
+entering the black market.
+
 ToolRequestManager processes one occupied bed at a time. It starts with Bed A,
 finishes that client's complete doctor-request batch, completes/removes that
 client, then moves to Bed B. It alternates A, B, A, B while clients remain.
@@ -97,6 +103,12 @@ client and chair.
 The doctor asks one request at a time. Successful requests leave the batch.
 Failed requests return to the batch and must be attempted again.
 
+Completing a request early adds its unused request time to the normal doctor
+cooldown. For example, completing a 20-second request with 12 seconds left
+creates the normal cooldown plus a 12-second bonus. The final request also
+uses this cooldown before the client leaves, giving the player time to move
+parts into the fridge or chute.
+
 When the batch reaches zero, ToolRequestManager completes every remaining
 requirement on the focused ClientTask through RandomizedClientList. The normal
 completion events remove the client and refill that bed. ToolRequestManager
@@ -150,6 +162,17 @@ Each StoredBodyPartStatus provides its slot number, occupied state, body-part
 type, current health, and maximum health. During Play Mode, the same
 information appears under Runtime Storage Information in the Fridge
 Inspector. Use "Debug/Print Stored Body Parts" to print it to the Console.
+
+BodyPartRunSummary persists chute and fridge totals into the Win/Lost scene:
+
+int combined = BodyPartRunSummary.Instance.GetTotalCount(BodyPartType.Hand);
+int chute = BodyPartRunSummary.Instance.GetChuteCount(BodyPartType.Hand);
+int fridge = BodyPartRunSummary.Instance.GetFridgeCount(BodyPartType.Hand);
+
+BlackMarketBodyPartSummaryUI automatically updates the existing Hand, Leg,
+Nose, and Ear rows on Win. Each TMP field contains only "x {count}"; the
+existing image identifies its body-part type. Assign the four TMP fields in
+any result scene whose rows do not use the expected names.
 
 
 ============================================================
