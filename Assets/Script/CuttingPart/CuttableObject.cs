@@ -168,7 +168,69 @@ public class CuttableObject : MonoBehaviour , IInteractable
         ApplyMaterials(go.AddComponent<MeshRenderer>(), mesh, skinMats);
         go.AddComponent<MeshCollider>().sharedMesh = mesh;
 
+        CenterPivot(go, mesh);
+
         return go;
+    }
+
+    /// <summary>Moves a piece's origin to the middle of its own mesh, without moving the piece.</summary>
+    /// <remarks>
+    /// A sliced piece keeps the whole body's local space, so its vertices sit wherever that part of the
+    /// body was and the object's origin stays at the body's. The piece then looks detached from its own
+    /// handle: the gizmo is off in the chest while the mesh is an arm, rotation swings it around a point
+    /// it does not contain, and physics is given a centre of mass nowhere near the geometry.
+    /// <para>Invariant: nothing moves on screen. The vertices go back by the same offset the transform
+    /// goes forward, so the world pose of every vertex is unchanged.</para>
+    /// </remarks>
+    public static void CenterPivot(GameObject piece, Mesh mesh)
+    {
+        if (piece == null || mesh == null) {
+            return;
+        }
+
+        Vector3 center = mesh.bounds.center;
+        if (center == Vector3.zero) {
+            return;
+        }
+
+        Vector3[] vertices = mesh.vertices;
+        for (int i = 0; i < vertices.Length; i++) {
+            vertices[i] -= center;
+        }
+        mesh.vertices = vertices;
+        mesh.RecalculateBounds();
+
+        // TransformVector, not TransformPoint: this is a displacement, and it has to carry the piece's
+        // own rotation and scale so the mesh lands back exactly where it was.
+        piece.transform.position += piece.transform.TransformVector(center);
+
+        // a MeshCollider caches the mesh it cooked; re-assigning is what makes it read the new vertices
+        if (piece.TryGetComponent(out MeshCollider collider)) {
+            Recook(collider, mesh);
+        }
+    }
+
+    /// <summary>Makes a MeshCollider throw away its cooked shape and build it again from the mesh as it is now.</summary>
+    /// <remarks>
+    /// The cook is cached against the collider, not the mesh, so editing the vertices under it leaves the
+    /// old shape in place -- the collider sits where the mesh used to be, and only ticking Convex off and
+    /// on in the inspector puts it right. This is that toggle, done in code.
+    /// <para>Both steps are needed: re-assigning the mesh re-reads the vertices, and re-setting Convex is
+    /// what rebuilds the hull, which is the shape a dynamic piece actually collides with.</para>
+    /// </remarks>
+    public static void Recook(MeshCollider collider, Mesh mesh)
+    {
+        if (collider == null) {
+            return;
+        }
+
+        collider.sharedMesh = null;
+        collider.sharedMesh = mesh;
+
+        if (collider.convex) {
+            collider.convex = false;
+            collider.convex = true;
+        }
     }
 
     /// <summary>Assigns the skin materials in order, appending the cross-section material last when the mesh carries a cap submesh.</summary>

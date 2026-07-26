@@ -59,7 +59,7 @@ public class Chute : MonoBehaviour, IInteractable
         }
 
         part.ReleaseFromHolder();
-        part.transform.SetParent(null, true);
+        part.DetachToWorld();
         part.SetCollidersEnabled(false);
 
         var startTime = Time.time;

@@ -61,8 +61,11 @@ public class Fridge : MonoBehaviour, IInteractable
     {
         if (!TryGetNextFreeSlot(out var index)) return false;
         _itemsBySlotIndex[index] = item;
-        item.transform.SetParent(slots[index].transform);
+        // false, then the pose is written: keeping the world pose would also rewrite localScale, and a
+        // shelved part would come out of the fridge a different size than it went in.
+        item.transform.SetParent(slots[index].transform, false);
         item.transform.localPosition = Vector3.zero;
+        item.RestoreWorldScale();
         if (item.TryGetComponent<Rigidbody>(out var itemRigidbody))
         {
             itemRigidbody.constraints = RigidbodyConstraints.FreezeAll;
@@ -79,7 +82,7 @@ public class Fridge : MonoBehaviour, IInteractable
         {
             if (_itemsBySlotIndex[i] != item) continue;
             _itemsBySlotIndex[i] = null;
-            item.transform.SetParent(null);
+            item.DetachToWorld();
             if (item.TryGetComponent<Rigidbody>(out var itemRigidbody))
             {
                 itemRigidbody.constraints = RigidbodyConstraints.None;
