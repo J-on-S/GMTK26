@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60834d41c5f1b8846b0be01492d2c418, type: 3}
   m_Name: music_level
   m_EditorClassIdentifier: Assembly-CSharp::Audio
-  AudioClip: {fileID: 8300000, guid: 63fca4032a2c2400d99710acfa537c35, type: 3}
+  AudioClip: {fileID: 8300000, guid: ccd722a1c8ee089af8f6ccda1a4a0889, type: 3}
   Volume: 1
   Loop: 0
   Pan: 0
   Pitch: 1
   PitchVariation: 0
+  RandomizePitchEachLoop: 0
