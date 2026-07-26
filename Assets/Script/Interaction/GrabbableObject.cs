@@ -43,10 +43,15 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
   private Interactor holder;
   private Coroutine respawnRoutine;
 
+  /// <summary>The rigidbody's authored <c>isKinematic</c>, restored on respawn so a delivery never turns a kinematic object dynamic.</summary>
+  /// <remarks>Snapshotted before the first grab flips it kinematic; without it <c>GoDynamic</c> would hardcode every respawned object dynamic, whatever it was authored as.</remarks>
+  private bool startKinematic;
+
   public Vector3 StartWorldScale => startWorldScale;
 
   void Awake(){
     rb = GetComponent<Rigidbody>();
+    startKinematic = rb != null && rb.isKinematic;
     CaptureWorldScale();
     SetStartPose(transform.position, transform.rotation);
   }
@@ -241,7 +246,19 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     DetachToWorld();
     transform.SetPositionAndRotation(initialPosition, initialRotation);
     SetCollidersEnabled(true);
-    GoDynamic(); // physics work back
+    RestoreStartPhysics(); // physics back, in the object's authored kinematic state
+  }
+
+  /// <summary>Puts the rigidbody back to how it was authored -- its start <c>isKinematic</c>, at rest.</summary>
+  /// <remarks>Not <see cref="GoDynamic"/>: that always turns physics on, which is right for a toss but would
+  /// make a respawned kinematic object dynamic. Velocities are cleared either way so a respawn lands still.</remarks>
+  private void RestoreStartPhysics(){
+    Rigidbody body = EnsureRigidbody();
+    body.isKinematic = startKinematic;
+    if (!body.isKinematic){
+      body.linearVelocity = Vector3.zero;
+      body.angularVelocity = Vector3.zero;
+    }
   }
 
   // this is called when the doctor gets the right item delivered
@@ -262,5 +279,17 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     ReturnToStart();
     SetRenderersEnabled(true);
     respawnRoutine = null;
+  }
+
+  /// <summary>Finishes a respawn that was cut short by the object being disabled, so it is not left stranded hidden.</summary>
+  /// <remarks>Unity stops coroutines when a component is disabled, so an object switched off mid-wait would
+  /// keep its renderers off and never come back. This lands it at its start, visible and collidable, the
+  /// moment that happens; a plain destroy runs it too but the transform writes are harmless there.</remarks>
+  void OnDisable(){
+    if (respawnRoutine == null) return;
+
+    respawnRoutine = null;
+    ReturnToStart();
+    SetRenderersEnabled(true);
   }
 }

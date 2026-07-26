@@ -13,14 +13,7 @@ MonoBehaviour:
   m_Name: CustomersAsset
   m_EditorClassIdentifier: Assembly-CSharp::CustomersAsset
   customersPrefab:
-  - {fileID: 891889828009974434, guid: fecff275f963a7d488f8259cf3bf7bfa, type: 3}
-  - {fileID: 6584522938404549995, guid: 95802d38f0dd8bc47a8674766e15adb2, type: 3}
-  - {fileID: 345268175625567848, guid: 8c35be8675fa7b942b3624245a585a59, type: 3}
-  - {fileID: 7519316788551829705, guid: 5b3911968ce3f4e4e9a5b29c2feae66e, type: 3}
-  - {fileID: 8097868018903137069, guid: f6e618044541afe4294bb4c683ba7c22, type: 3}
-  - {fileID: 7614813933254351859, guid: 8d0609cb9af22994e891070c39479b8d, type: 3}
-  - {fileID: 6252563501712821300, guid: 2edf036b41de92b45bec616966e75450, type: 3}
-  - {fileID: 4057611996250940699, guid: b01d9a93674d1784489e6ab7cbfdf1d2, type: 3}
+  - {fileID: 5372300780621046797, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
   materials:
   - {fileID: 2100000, guid: 1dd8b431d0e93ad42a636bf1b14a2cde, type: 2}
   - {fileID: 2100000, guid: 939243d3380838e4dae8fbe00aca5100, type: 2}
