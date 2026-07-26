@@ -31,13 +31,13 @@ public class CutMinigamePreset : ScriptableObject
     [Tooltip("Shape of the wavy target loop. Read by the LoopGuideBuilder.")]
     public CurvePreset curvePreset;
 
-    [Tooltip("Along-limb input, speeds and smoothing. Read by the scalpel's LoopFollowingObject.")]
-    public FollowLoopPresets scalpelFollowPreset;
+    [Tooltip("Along-limb input, speeds and smoothing. Read by the scalpel's ScalpelSurfaceDriver.")]
+    public ScalpelSurfacePreset scalpelFollowPreset;
 
     [Tooltip("How the camera frames this cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts can frame differently without each owning a camera.")]
     public CameraFollowPreset cameraOrbitPreset;
 
-    [Tooltip("The same, for the scalpel's CameraFollow. Normally has controlPosition off, since the LoopFollowingObject owns the scalpel's position.")]
+    [Tooltip("The same, for the scalpel's CameraFollow. Normally has controlPosition off, since the ScalpelSurfaceDriver owns the scalpel's position.")]
     public CameraFollowPreset scalpelOrbitPreset;
 
     // Sound is deliberately absent: the clips are wired on the CuttingManager itself.

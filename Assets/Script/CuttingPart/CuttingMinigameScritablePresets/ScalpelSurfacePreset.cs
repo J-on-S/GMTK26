@@ -1,9 +1,9 @@
 using UnityEngine;
-using static LoopFollowingObject;
+using static ScalpelSurfaceDriver;
 
 
-[CreateAssetMenu(fileName = "FollowLoopPresets", menuName = "FollowLoopPresets", order = 0)]
-public class FollowLoopPresets : ScriptableObject
+[CreateAssetMenu(fileName = "ScalpelSurfacePreset", menuName = "Cutting/Scalpel Surface Preset", order = 0)]
+public class ScalpelSurfacePreset : ScriptableObject
 {
     [Tooltip("Which input drives left/right travel: mouse motion, left/right mouse buttons, or the left/right arrow keys.")]
     public MoveInput moveInput = MoveInput.MouseDelta;

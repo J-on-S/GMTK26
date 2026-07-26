@@ -395,6 +395,15 @@ public class CutFinisher : MonoBehaviour
         }
 
         // ---- 3. slash, firing the splice on the frame the blade reaches the cut ----
+
+        // the tear leads the splice by half a swing: the splice stalls the main thread on the mesh
+        // slice, so a tear fired next to it lands after the piece has already visibly moved. Started
+        // here it is under the blade by the time the cut opens.
+        if (Manager != null)
+        {
+            Manager.PlayTearSound();
+        }
+
         float slash = SlashTime;
         bool impacted = false;
         float t = 0f;

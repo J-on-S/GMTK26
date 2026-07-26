@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 [ExecuteAlways]
 [RequireComponent(typeof(CameraFollow))]
 [DefaultExecutionOrder(-10)]
-public class LoopFollowingObject : MonoBehaviour
+public class ScalpelSurfaceDriver : MonoBehaviour
 {
     /// <summary>Supplies the cut loop, its centre, and surface projection.</summary>
     [HideInInspector] public LoopGuideBuilder builder;
@@ -34,7 +34,7 @@ public class LoopFollowingObject : MonoBehaviour
     }
 
     /// <summary>Serialized tuning bundle: input mode, slide axis, speeds, and smoothing.</summary>
-    [HideInInspector] public FollowLoopPresets preset;
+    [HideInInspector] public ScalpelSurfacePreset preset;
 
     /// <summary>Left/right arrow-and-A/D axis driving along-limb travel.</summary>
 

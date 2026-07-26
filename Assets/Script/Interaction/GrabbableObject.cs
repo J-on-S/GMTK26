@@ -25,6 +25,8 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
       // local means relative to the parent
       this.transform.localPosition = Vector3.zero; // centre of holdPoint
       this.transform.localRotation = Quaternion.identity; //without rotation
+    if (!TryGetComponent<Rigidbody>(out var rb))
+      rb = gameObject.AddComponent<Rigidbody>();
       rb.isKinematic = true; // no physics for object;
       player.heldObject = this;
     }

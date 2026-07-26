@@ -1212,7 +1212,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 41bc956e3bc07d54787ee95c4538fa29, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LoopFollowingObject
+  m_EditorClassIdentifier: Assembly-CSharp::ScalpelSurfaceDriver
   builder: {fileID: 1889869352}
   radialMaxAngle: 85
   preset: {fileID: 11400000, guid: fe3ef3a98701134469bf5c0582fec9bd, type: 2}

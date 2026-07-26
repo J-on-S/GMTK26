@@ -53,6 +53,10 @@ public static class CuttingSetupMenu
         // effect: the component has to exist for the cut to have an orbit to drive.
         EnsureCameraFollow(manager);
 
+        // free-look, which the cut switches off on entry and back on when it exits. Unlike the
+        // orbit this one is assigned, since the manager holds it in a slot.
+        EnsureMoveCamera(manager);
+
         if (target != null)
         {
             // sit the cut under its target, so a CutPlane added later resolves its own body and
@@ -103,6 +107,41 @@ public static class CuttingSetupMenu
 
         Debug.Log($"Added a CameraFollow to {cam.name} for this cut.", cam);
         return follow;
+    }
+
+    /// <summary>The scene's free-look, created on its own GameObject when there isn't one, and wired into the manager either way.</summary>
+    /// <remarks>
+    /// One per scene rather than one per cut: <see cref="MoveCamera"/> resolves its own camera and
+    /// every manager only ever toggles it, so a second instance would fight the first over the same
+    /// aim highlight. Created here rather than in <c>AutoWire</c> because this is the one entry point
+    /// that is a deliberate authoring action -- <c>AutoWire</c> also runs from <c>Reset</c>, where
+    /// spawning objects would be a surprise.
+    /// </remarks>
+    private static MoveCamera EnsureMoveCamera(CuttingManager manager)
+    {
+        MoveCamera existing = Object.FindFirstObjectByType<MoveCamera>(FindObjectsInactive.Include);
+        if (existing != null)
+        {
+            manager.moveCamera = existing;
+            return existing;
+        }
+
+        GameObject go = new GameObject("MoveCamera");
+
+        // the manager's own scene, not whichever happens to be active: with more than one scene
+        // loaded a free-look in the wrong one is unloaded out from under the cut.
+        if (manager.gameObject.scene.IsValid())
+        {
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, manager.gameObject.scene);
+        }
+
+        MoveCamera created = go.AddComponent<MoveCamera>();
+        manager.moveCamera = created;
+
+        Undo.RegisterCreatedObjectUndo(go, "Create Cut Minigame");
+
+        Debug.Log("No free-look in the scene, so a MoveCamera was created for this cut.", go);
+        return created;
     }
 
     /// <summary>Builds one world-space closed-loop LineRenderer for a guide, sharing the guide material.</summary>

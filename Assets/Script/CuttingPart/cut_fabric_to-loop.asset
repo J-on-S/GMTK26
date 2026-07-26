@@ -17,5 +17,5 @@ MonoBehaviour:
   Loop: 1
   Pan: 0
   Pitch: 1.1
-  PitchVariation: 0.12
+  PitchVariation: 0.1
   RandomizePitchEachLoop: 1
