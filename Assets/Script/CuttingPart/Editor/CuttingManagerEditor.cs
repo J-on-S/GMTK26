@@ -273,7 +273,7 @@ public class CuttingManagerEditor : Editor
         preset.scalpelAngleLead = manager.scalpelAngleLead;
         preset.cameraPreset = manager.cameraPreset;
         preset.curvePreset = manager.curvePreset;
-        preset.scalpelFollowPreset = manager.ScalpelFollowLoopPreset;
+        preset.scalpelFollowPreset = manager.scalpelSurfacePreset;
         if (manager.loopGuide != null)
         {
             preset.curveWidth = manager.loopGuide.curveWidth;

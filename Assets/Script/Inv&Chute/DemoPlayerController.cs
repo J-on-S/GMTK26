@@ -59,6 +59,6 @@ public class DemoPlayerController : MonoBehaviour
 
     private void OnMouseEnter()
     {
-        DetachedBodyPart.MakeDetachedBodyPart(10, 30, gameObject);
+        //DetachedBodyPart.MakeDetachedBodyPart(10, 30 , gameObject);
     }
 }
