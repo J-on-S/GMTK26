@@ -100,7 +100,9 @@ public class Chute : MonoBehaviour, IInteractable
             CheckBlackMarket();
             return;
         }
+        
         GrabbableObject grabbableObject = player.heldObject;
+        if(grabbableObject.itemType != ItemType.BodyPart) return;
         GameObject grabbableGO = grabbableObject.gameObject;
 
         DetachedBodyPart detachedBodyPart = grabbableGO.GetComponent<DetachedBodyPart>();
@@ -109,7 +111,7 @@ public class Chute : MonoBehaviour, IInteractable
             RecordTrapdoorEntry(
                 grabbableGO,
                 grabbableObject.bodyPartType.ToString());
-            AddToBlackMarket(grabbableObject.bodyPartType);
+            AddToBlackMarket(grabbableObject.bodyPartType, 100);
             CheckBlackMarket();
             grabbableObject.ReleaseFromHolder();
             Destroy(grabbableGO);
@@ -126,13 +128,14 @@ public class Chute : MonoBehaviour, IInteractable
             RecordTrapdoorEntry(
                 grabbableGO,
                 detachedBodyPart.GetBodyPartType().ToString());
-            AddToBlackMarket(detachedBodyPart.GetBodyPartType());
+            AddToBlackMarket(detachedBodyPart.GetBodyPartType(), detachedBodyPart.GetCurrentHealth());
         }
-
+        
+        grabbableObject.ReleaseFromHolder();
         StartCoroutine(SellPart(detachedBodyPart));
     }
 
-  private void AddToBlackMarket(BodyPartType bodyPartType)
+  private void AddToBlackMarket(BodyPartType bodyPartType, float health)
     {
         if (temporaryBlackMarketTaskGenerator == null)
         {
@@ -140,7 +143,10 @@ public class Chute : MonoBehaviour, IInteractable
             return;
         }
 
-        temporaryBlackMarketTaskGenerator.AddBodyPartInBlackMarket(bodyPartType);
+        if (health >= 0)
+        {
+            temporaryBlackMarketTaskGenerator.AddBodyPartInBlackMarket(bodyPartType);   
+        }
     }
 
     private void CheckBlackMarket()

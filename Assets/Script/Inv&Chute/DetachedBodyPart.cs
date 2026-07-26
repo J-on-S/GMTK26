@@ -55,6 +55,10 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
             _material.color = new Color(255, c.g, c.b, 0.7f);
         }
     }
+    public float GetCurrentHealth()
+    {
+        return health;
+    }
 
     private void OnMouseEnter()
     {
