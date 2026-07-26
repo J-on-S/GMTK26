@@ -8,6 +8,10 @@ public class ClickingObject : MonoBehaviour, IInteractable{
   private Renderer objRenderer;
   void Awake(){
     objRenderer = GetComponent<Renderer>();
+    if (objRenderer == null){
+      Debug.LogError($"{name}: no Renderer, so clicking this object can change nothing.", this);
+      return;
+    }
     initialColor = objRenderer.material.color;
   }
   //Doctor scrit
@@ -15,6 +19,7 @@ public class ClickingObject : MonoBehaviour, IInteractable{
     //player.heldobj
     //heldObj information: type of it:
     //
+    if (objRenderer == null) return;
     if (objRenderer.material.color == changeColor){
       objRenderer.material.color = initialColor;
     } else {

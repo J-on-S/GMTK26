@@ -260,7 +260,8 @@ public class ToolRequestManager : MonoBehaviour
             return true;
         }
         else
-        {
+        {   
+            HealthScript.Instance.TakeDamage();
             Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
             if (myTextLabel != null)
                 myTextLabel.text = "Nah man wrong tool.";
@@ -363,7 +364,7 @@ public class ToolRequestManager : MonoBehaviour
 
         remainingTime = 0f;
         RequestFailed?.Invoke(failedRequest);
-        //TODO: LOOSE LIFE
+        HealthScript.Instance.TakeDamage();
         StartCooldown();
     }
 

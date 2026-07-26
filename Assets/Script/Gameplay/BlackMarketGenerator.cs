@@ -131,6 +131,7 @@ public class BlackMarketGenerator :
     public void GenerateBodyPartContains()
     {
         int pos_index = 0;
+        bodyPartsContainByType = new Dictionary<BodyPartType, List<BodyPartContain>>();
         foreach (BodyPartRequest bodyPartRequest in currentBlackMarketTask.RequestedParts)
         {
             BodyPartType bodyPartType = bodyPartRequest.BodyPart;
@@ -143,8 +144,23 @@ public class BlackMarketGenerator :
             {
                 //TODO: rotation of bodypart in black market
                 Debug.Log("pos_index: "+pos_index);
-                GameObject newBodyPartObj = Instantiate(bodyPart.BodyPartPrefab, bodyPartsPos[pos_index].position, Quaternion.identity);
-                Renderer renderer = newBodyPartObj.GetComponent<Renderer>();
+                Transform bodyPartsTransform = bodyPartsPos[pos_index];
+                // GameObject newBodyPartObj = Instantiate(bodyPart.BodyPartPrefab, bodyPartsTransform.position, Quaternion.identity, bodyPartsTransform);
+                // newBodyPartObj.position = 
+                GameObject newBodyPartObj = Instantiate(bodyPart.BodyPartPrefab, bodyPartsTransform);
+                newBodyPartObj.transform.localPosition = Vector3.zero;
+                newBodyPartObj.transform.localRotation = Quaternion.Euler(bodyPart.rotation);
+                newBodyPartObj.transform.localScale = Vector3.one * bodyPart.size;
+                Renderer renderer;
+                if (newBodyPartObj.transform.childCount > 0)
+                {
+                    renderer = newBodyPartObj.transform.GetChild(0).GetComponent<Renderer>();
+                }
+                else
+                {
+                    renderer = newBodyPartObj.GetComponent<Renderer>();
+                }
+                 
                 Material originalMat = renderer.material;
                 if (renderer != null)
                 {

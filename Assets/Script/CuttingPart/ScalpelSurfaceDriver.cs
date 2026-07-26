@@ -39,7 +39,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     /// <summary>Left/right arrow-and-A/D axis driving along-limb travel.</summary>
 
     /// <summary>This object's own <c>CameraFollow</c>, supplying <c>BasePosition</c> and aim while this script owns the surface-snapped position. Its orbit angle is driven externally by <see cref="CuttingManager"/>.</summary>
-    public CameraFollow owned;
+    private CameraFollow owned;
 
     /// <summary>Along-limb travel, in world units for <c>PlaneNormal</c> mode or degrees for <c>RadialPerpendicular</c>.</summary>
     private float offset;
@@ -82,7 +82,57 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
         owned = GetComponent<CameraFollow>();
 
+        EnsureTraceRenderer();
         ApplyTraceWidth();
+
+        if (Application.isPlaying) HideScalpelRenderers();
+    }
+
+    void HideScalpelRenderers()
+    {
+        Transform root = owned != null ? owned.transform : transform;
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] is LineRenderer) continue;
+            renderers[i].enabled = false;
+        }
+    }
+
+    LineRenderer EnsureTraceRenderer()
+    {
+        if (traceRenderer != null) return traceRenderer;
+
+        if (owned == null) owned = GetComponent<CameraFollow>();
+        if (owned == null)
+        {
+            Debug.LogError($"{name}: no CameraFollow to hang the scalpel trace on, so the cut line cannot be drawn.", this);
+            return null;
+        }
+
+        if (!owned.TryGetComponent(out traceRenderer))
+        {
+            traceRenderer = owned.gameObject.AddComponent<LineRenderer>();
+            traceRenderer.useWorldSpace = true;
+            traceRenderer.loop = false;
+            traceRenderer.positionCount = 0;
+            traceRenderer.alignment = LineAlignment.View;
+            traceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            traceRenderer.receiveShadows = false;
+            ApplyTraceWidth();
+        }
+
+        return traceRenderer;
+    }
+
+    /// <summary>Puts the trace line back on screen, without touching the points it holds.</summary>
+    /// <remarks>Authoring wants the line visible whatever the cut last did to it: a manager that ended a
+    /// run in play mode leaves the renderer disabled, and that state is what the next edit-mode session
+    /// comes up in. Never creates the renderer -- that is play-mode work, so edit mode cannot dirty the
+    /// scene just by having this component selected.</remarks>
+    public void ShowTrace()
+    {
+        if (traceRenderer != null) traceRenderer.enabled = true;
     }
 
     void OnValidate()
@@ -93,7 +143,10 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     void Update()
     {
         // Input runs only in play mode.
-        if (!Application.isPlaying) return;
+        if (!Application.isPlaying) {
+            ShowTrace();
+            return;
+        }
 
         // Accumulate left/right travel: MouseDelta is per-pixel, the held modes per-second.
         updateOffset(preset.moveInput);
@@ -186,7 +239,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
             : lastSurfacePos;
 
         // Trail the surface point the object sits on.
-        if (drawTrace && traceRenderer != null) AddTracePoint(owned.transform.position);
+        if (drawTrace && EnsureTraceRenderer() != null) AddTracePoint(owned.transform.position);
         calculatePrecision();
     }
 

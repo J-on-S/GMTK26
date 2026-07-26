@@ -19,8 +19,8 @@ public class CuttingManagerEditor : Editor
     // not tuning a preset can supply.
     private static readonly string[] InlineTuningFields =
     {
-        "cameraFOV", "scalpelAngleLead",
-        "cameraPreset", "curvePreset", "ScalpelFollowLoopPreset",
+        "cameraFOV", "scalpelAngleLead", "guideLineWidth",
+        "cameraPreset", "curvePreset", "scalpelSurfacePreset",
     };
 
     // sceneCamera and speedDriver are absent on purpose: the manager finds the camera in the
@@ -39,13 +39,18 @@ public class CuttingManagerEditor : Editor
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("What this cut is", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("GameObjectBeingCut"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("loopGuide"));
+        Draw("GameObjectBeingCut");
+        Draw("loopGuide");
+
+        // identity: what the piece is called and what it takes to cut it. Per-cut, never from a preset.
+        
+        Draw("bodyPartType");
+        Draw("requiredToolName");
 
         // geometry, so it sits with the target rather than in the tuning block: it is fixed by
         // where this cut's plane is, and a preset must never move it.
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("startAngle"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("endAngle"));
+        Draw("startAngle");
+        Draw("endAngle");
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("How it plays", EditorStyles.boldLabel);
@@ -62,14 +67,26 @@ public class CuttingManagerEditor : Editor
             DrawEmbeddedPreset(preset);
         }
 
+        // not in the inline block: no preset carries it, so it applies either way.
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Guide lines", EditorStyles.boldLabel);
+        Draw("showGuideLinesInPlay");
+
+        // not in the inline block: no preset carries the travel, so these apply either way.
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Camera travel", EditorStyles.boldLabel);
+        Draw("enterTravelTime");
+        Draw("exitTravelTime");
+        Draw("travelEase");
+
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Sound", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("soundPreset"));
+        Draw("soundPreset");
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Severed Piece", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("severedPieceAudioPreset"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("SeveredPieceHealth"));
+        Draw("severedPieceAudioPreset");
+        Draw("SeveredPieceHealth");
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Finisher", EditorStyles.boldLabel);
@@ -87,7 +104,8 @@ public class CuttingManagerEditor : Editor
         EditorGUILayout.Space();
         using (new EditorGUI.DisabledScope(true))
         {
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("currentAngle"));
+            Draw("phase");
+            Draw("currentAngle");
             EditorGUILayout.FloatField("Current Progress", Application.isPlaying ? manager.currentProgress : 0f);
         }
 
@@ -95,6 +113,21 @@ public class CuttingManagerEditor : Editor
 
         DrawPreview(manager);
         DrawActions(manager);
+    }
+
+    /// <summary>Draws one field by name, reporting it in the inspector instead of throwing when the name is stale.</summary>
+    /// <remarks>Every field here is named as a string, so a rename on the manager turns into a null
+    /// property and <c>PropertyField</c> throws, taking the whole inspector with it. Saying which name
+    /// went missing costs one branch and names the fix.</remarks>
+    private void Draw(string fieldName)
+    {
+        SerializedProperty property = serializedObject.FindProperty(fieldName);
+        if (property == null)
+        {
+            EditorGUILayout.HelpBox($"CuttingManager has no field '{fieldName}'. It was renamed or removed; update CuttingManagerEditor.", MessageType.Error);
+            return;
+        }
+        EditorGUILayout.PropertyField(property);
     }
 
     /// <summary>Lists everything this cut still needs before it can run, next to the button that usually fills it in.</summary>
@@ -130,7 +163,7 @@ public class CuttingManagerEditor : Editor
             EditorGUI.indentLevel++;
             for (int i = 0; i < InlineTuningFields.Length; i++)
             {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(InlineTuningFields[i]));
+                Draw(InlineTuningFields[i]);
             }
 
             if (GUILayout.Button("Save these as a preset asset"))
@@ -170,7 +203,8 @@ public class CuttingManagerEditor : Editor
         int filled = 0;
         for (int i = 0; i < HardwareFields.Length; i++)
         {
-            if (serializedObject.FindProperty(HardwareFields[i]).objectReferenceValue != null) filled++;
+            SerializedProperty property = serializedObject.FindProperty(HardwareFields[i]);
+            if (property != null && property.objectReferenceValue != null) filled++;
         }
 
         bool show = SessionState.GetBool(OverridesKey, false);
@@ -185,7 +219,7 @@ public class CuttingManagerEditor : Editor
         EditorGUI.indentLevel++;
         for (int i = 0; i < HardwareFields.Length; i++)
         {
-            EditorGUILayout.PropertyField(serializedObject.FindProperty(HardwareFields[i]));
+            Draw(HardwareFields[i]);
         }
         EditorGUI.indentLevel--;
     }
