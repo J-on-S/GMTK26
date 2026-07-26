@@ -285,7 +285,10 @@ public enum CuttingState
     /// <summary>Travel speed above which the cut counts as cutting, in deg/sec.</summary>
     public float CutSoundSpeedThreshold => soundPreset != null ? soundPreset.cutSoundSpeedThreshold : 0.5f;
 
-  
+    /// <summary>
+    /// null when there is no game being played
+    /// </summary>
+    public static CuttingManager currentGame = null;
 
     /// <summary>What is still missing before this cut can run, in inspector-readable words. Empty when it is ready.</summary>
     public List<string> MissingWiring()
@@ -595,7 +598,7 @@ public enum CuttingState
             Debug.LogError($"{name}: can't enter the cut, still missing {string.Join(", ", missing)}.", this);
             return;
         }
-
+        currentGame = this;
         OnMinigameEntered?.Invoke(this);
         Debug.LogWarning("entering minigame");
 
@@ -618,7 +621,7 @@ public enum CuttingState
         StopCutSound();
 
         RestoreRig();
-
+        
         OnMinigameQuit?.Invoke(this);
     }
 
@@ -871,7 +874,7 @@ public enum CuttingState
             BeginFinisher();
             return;
         }
-
+        CuttingManager.currentGame = null;
         ApplySplice();
         FinishUp();
     }
@@ -912,14 +915,68 @@ public enum CuttingState
         }
 
         LastSeveredPiece = SliceOffPart();
+        InstantiateBodyPart(LastSeveredPiece);
     }
 
     /// <summary>Hands the camera back and reports the cut done, after the follow-through when there is a finisher.</summary>
     void FinishUp()
     {
+        CuttingManager.currentGame = null;
         QuitMinigame();
-        // instantiate the BodyPart
         OnMinigameCompleted?.Invoke(this, LastSeveredPiece);
+    }
+
+    void InstantiateBodyPart(GameObject bodyPart)
+    {
+        GrabbableObject grabbableObject =bodyPart.AddComponent<GrabbableObject>();
+        grabbableObject.itemName = bodyPartName;
+        grabbableObject.itemType = ItemType.BodyPart;
+        
+        KickSeveredPiece(bodyPart);
+       
+
+
+    }
+
+    private void KickSeveredPiece(GameObject bodyPart)
+    {
+        float force = finisher.kick;
+        if (force <= 0f)
+        {
+            return;
+        }
+
+      
+        if (bodyPart == null)
+        {
+            // a slice that severed nothing is already reported by the cut
+            return;
+        }
+
+        MakeCollidersDynamic(bodyPart);
+
+        if (!bodyPart.TryGetComponent(out Rigidbody body))
+        {
+            body = bodyPart.AddComponent<Rigidbody>();
+        }
+
+        body.AddForce(-finisher.ApproachAxis * force, ForceMode.Impulse);
+    }
+
+    /// <summary>Turns the severed piece's mesh colliders convex, which a dynamic <c>Rigidbody</c> requires.</summary>
+    /// <remarks>
+    /// Invariant: a piece left concave logs <c>"Concave Mesh Colliders are not supported when used
+    /// with dynamic Rigidbody GameObjects"</c> and falls through the world.
+    /// <para>Invariant: only the severed piece is touched — the body keeps its exact concave shape
+    /// for the aim raycasts.</para>
+    /// </remarks>
+    private static void MakeCollidersDynamic(GameObject piece)
+    {
+        MeshCollider[] colliders = piece.GetComponentsInChildren<MeshCollider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            colliders[i].convex = true;
+        }
     }
 
     /// <summary>Runs the slice and picks out the piece that came away.</summary>
@@ -958,10 +1015,6 @@ public enum CuttingState
     }
 
 
-    void InstantiateBodyPart(GameObject bodyPart)
-    {
-        // should call a method that someone will provide me
-    }
 
 /// <summary>This manager owns the tuning; it pushes its presets + wiring down into the loop guide, both CameraFollows and the cutting speed driver so they can't drift apart. Live in edit mode too.</summary>
     void PushParameters()

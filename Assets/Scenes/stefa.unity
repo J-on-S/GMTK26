@@ -202,10 +202,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 127692329}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 1006468214}
+        m_TargetAssemblyTypeName: OpenBlackMarket, Assembly-CSharp
+        m_MethodName: notVisible
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -725,6 +725,7 @@ MonoBehaviour:
     timeLimit: 30
   timeBetweenRequests: 5
   numberOfRequests: 5
+  myTextLabel: {fileID: 0}
 --- !u!4 &977149185
 Transform:
   m_ObjectHideFlags: 0
@@ -772,6 +773,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 621570356e83e4b3199736de67defb17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OpenBlackMarket
+  UIvisible: 0
   UImarket: {fileID: 127692329}
 --- !u!65 &1006468215
 BoxCollider:
@@ -861,7 +863,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 15.93, y: 0.5, z: 29.93}
-  m_LocalScale: {x: 3.2197, y: 1, z: 2.1043}
+  m_LocalScale: {x: 3.2197, y: 9.164464, z: 2.1043}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1081,8 +1083,8 @@ Transform:
   m_GameObject: {fileID: 1308002244}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 21.43, y: 2.23, z: 32.03}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 21.43, y: 3.74, z: 32.03}
+  m_LocalScale: {x: 1, y: 6.8971, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1157,8 +1159,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
   itemName: Knife
-  itemType: 0
+  itemType: 1
   respawnTime: 3
+  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  metalPickupAudio: {fileID: 0}
+  clothPickupAudio: {fileID: 11400000, guid: 8979acb1c662ac999aeb04e0e268e7a7, type: 2}
 --- !u!54 &1308002252
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1529,7 +1534,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.2
+      value: 2.53
       objectReference: {fileID: 0}
     - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_LocalPosition.z

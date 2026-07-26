@@ -409,7 +409,6 @@ public class CutFinisher : MonoBehaviour
                 onImpact?.Invoke();
 
                 // the piece does not exist until the callback returns
-                KickSeveredPiece();
             }
 
             yield return null;
@@ -419,7 +418,7 @@ public class CutFinisher : MonoBehaviour
         if (!impacted)
         {
             onImpact?.Invoke();
-            KickSeveredPiece();
+            
         }
 
         // ---- 4. hold on the aftermath, then hand back ----
@@ -428,11 +427,9 @@ public class CutFinisher : MonoBehaviour
         {
             yield return new WaitForSeconds(hold);
         }
-
-        // the tool is deliberately left up: onDone starts the fly-out, and it is still in shot for
         // all of it. The cut releases it when the camera lands.
         running = null;
-
+        CuttingManager.currentGame = null;
         onDone?.Invoke();
     }
 
@@ -444,46 +441,9 @@ public class CutFinisher : MonoBehaviour
     }
 
     /// <summary>Pushes the severed piece away along the approach axis, doing nothing when the slice produced none.</summary>
-    private void KickSeveredPiece()
-    {
-        float force = Kick;
-        if (force <= 0f || Manager == null)
-        {
-            return;
-        }
+    
 
-        GameObject piece = Manager.LastSeveredPiece;
-        if (piece == null)
-        {
-            // a slice that severed nothing is already reported by the cut
-            return;
-        }
-
-        MakeCollidersDynamic(piece);
-
-        if (!piece.TryGetComponent(out Rigidbody body))
-        {
-            body = piece.AddComponent<Rigidbody>();
-        }
-
-        body.AddForce(-ApproachAxis * force, ForceMode.Impulse);
-    }
-
-    /// <summary>Turns the severed piece's mesh colliders convex, which a dynamic <c>Rigidbody</c> requires.</summary>
-    /// <remarks>
-    /// Invariant: a piece left concave logs <c>"Concave Mesh Colliders are not supported when used
-    /// with dynamic Rigidbody GameObjects"</c> and falls through the world.
-    /// <para>Invariant: only the severed piece is touched — the body keeps its exact concave shape
-    /// for the aim raycasts.</para>
-    /// </remarks>
-    private static void MakeCollidersDynamic(GameObject piece)
-    {
-        MeshCollider[] colliders = piece.GetComponentsInChildren<MeshCollider>(true);
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            colliders[i].convex = true;
-        }
-    }
+    
 
     /// <summary>Writes one tool pose, doing nothing when no tool is up.</summary>
     private void PoseTool(Transform tool, float t, float clock)
