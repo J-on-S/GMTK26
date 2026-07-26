@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Fridge : MonoBehaviour
+public class Fridge : MonoBehaviour, IInteractable
 {
     [SerializeField] private GlobalFridgeState globalFridgeState;
     [SerializeField] private Transform[] slots;
@@ -64,5 +64,12 @@ public class Fridge : MonoBehaviour
         }
 
         return false;
+    }
+
+    public void Interact(Interactor player)
+    {
+        var bodyPart = player.heldObject.GetComponent<DetachedBodyPart>();
+        if (bodyPart == null) return;
+        TryAddItemToFreeSlot(bodyPart);
     }
 }
