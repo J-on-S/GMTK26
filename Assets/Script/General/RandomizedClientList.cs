@@ -8,10 +8,14 @@ public class ClientTaskQueueEntry
     [SerializeField] private GameObject clientPrefab;
     [SerializeField] private ClientTask task;
     [SerializeField] private GameObject spawnedClient;
+    [SerializeField] private OperationChair assignedChair;
 
     public GameObject ClientPrefab => clientPrefab;
     public ClientTask Task => task;
     public GameObject SpawnedClient => spawnedClient;
+    public OperationChair AssignedChair => assignedChair;
+    public string AssignedChairName =>
+        assignedChair != null ? assignedChair.name : "Unassigned";
     public bool IsSpawned => spawnedClient != null;
 
     public ClientTaskQueueEntry(GameObject clientPrefab, ClientTask task)
@@ -20,9 +24,12 @@ public class ClientTaskQueueEntry
         this.task = task;
     }
 
-    public void SetSpawnedClient(GameObject client)
+    public void SetSpawnedClient(
+        GameObject client,
+        OperationChair chair = null)
     {
         spawnedClient = client;
+        assignedChair = chair;
     }
 }
 
@@ -75,6 +82,7 @@ public class RandomizedClientList : MonoBehaviour
 
     public event Action<GameObject> ClientSelected;
     public event Action<GameObject> ClientSpawned;
+    public event Action<OperationChair, GameObject> ClientSpawnedOnChair;
     public event Action<GameObject> ClientRemoved;
     public event Action<ClientTaskQueueEntry> TaskListEntryCreated;
     public event Action<ClientTaskQueueEntry> TaskListEntryRemoved;
@@ -98,6 +106,15 @@ public class RandomizedClientList : MonoBehaviour
         return entry?.ClientPrefab != null
             ? entry.ClientPrefab.name
             : string.Empty;
+    }
+
+    /// <summary>
+    /// Returns the name of the bed assigned when this entry was spawned.
+    /// Pending entries return "Unassigned".
+    /// </summary>
+    public string GetAssignedChairName(ClientTaskQueueEntry entry)
+    {
+        return entry?.AssignedChairName ?? "Unassigned";
     }
 
     /// <summary>Returns display-ready request text for a generated entry.</summary>
@@ -320,11 +337,37 @@ public class RandomizedClientList : MonoBehaviour
     /// Spawns the first pending pre-generated entry and assigns its existing task.
     /// No task generation happens here.
     /// </summary>
-    public GameObject SpawnNextClient(Transform chair)
+    public GameObject SpawnNextClient(Transform spawnPose)
+    {
+        return SpawnNextClientInternal(spawnPose, null);
+    }
+
+    /// <summary>
+    /// Spawns the next client using a chair's pose proxy and records that chair
+    /// on the queue entry.
+    /// </summary>
+    public GameObject SpawnNextClient(OperationChair chair)
     {
         if (chair == null)
         {
-            Debug.LogWarning("Cannot spawn a client without an operation chair.", this);
+            Debug.LogWarning(
+                "Cannot spawn a client without an operation chair.",
+                this);
+            return null;
+        }
+
+        return SpawnNextClientInternal(chair.ClientPoseProxy, chair);
+    }
+
+    private GameObject SpawnNextClientInternal(
+        Transform spawnPose,
+        OperationChair assignedChair)
+    {
+        if (spawnPose == null)
+        {
+            Debug.LogWarning(
+                "Cannot spawn a client without a spawn-pose transform.",
+                this);
             return null;
         }
 
@@ -337,12 +380,14 @@ public class RandomizedClientList : MonoBehaviour
             return null;
         }
 
-        // The chair supplies position and rotation only. Keeping the client
-        // unparented prevents a scaled chair hierarchy from changing its size.
-        GameObject clientObject = Instantiate(
-            entry.ClientPrefab,
-            chair.position,
-            chair.rotation);
+        // Keep the client unparented, then copy the proxy's complete world
+        // pose. Because the clone has no parent, localScale is its world scale.
+        GameObject clientObject = Instantiate(entry.ClientPrefab);
+        Transform clientTransform = clientObject.transform;
+        clientTransform.SetPositionAndRotation(
+            spawnPose.position,
+            spawnPose.rotation);
+        clientTransform.localScale = spawnPose.lossyScale;
 
         ClientTaskHolder taskHolder = clientObject.GetComponent<ClientTaskHolder>();
         if (taskHolder == null)
@@ -354,11 +399,13 @@ public class RandomizedClientList : MonoBehaviour
             return null;
         }
 
-        entry.SetSpawnedClient(clientObject);
+        entry.SetSpawnedClient(clientObject, assignedChair);
         activeClients.Add(clientObject);
         taskHolder.AssignTask(entry.Task);
         taskHolder.TaskCompletedWithOwner += HandleClientTaskCompleted;
         ClientSpawned?.Invoke(clientObject);
+        if (assignedChair != null)
+            ClientSpawnedOnChair?.Invoke(assignedChair, clientObject);
         return clientObject;
     }
 
@@ -366,12 +413,14 @@ public class RandomizedClientList : MonoBehaviour
     /// Backwards-compatible overload. The generator must be used to pre-generate
     /// the list before this function is called.
     /// </summary>
-    public GameObject SpawnNextClient(Transform chair, ClientTaskList generator)
+    public GameObject SpawnNextClient(
+        Transform spawnPose,
+        ClientTaskList generator)
     {
         if (taskGenerator == null)
             taskGenerator = generator;
 
-        return SpawnNextClient(chair);
+        return SpawnNextClientInternal(spawnPose, null);
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Owns one operation-chair slot. It spawns a client when the day begins and
@@ -9,7 +10,13 @@ public class OperationChair : MonoBehaviour
 {
     [Header("Required references")]
     [SerializeField] private GameplayManager gameplayManager;
-    [SerializeField] private Transform clientSpawnPoint;
+    [Tooltip(
+        "A preset character or proxy positioned on this chair. " +
+        "Spawned clients copy its world position, rotation, and scale.")]
+    [FormerlySerializedAs("clientSpawnPoint")]
+    [SerializeField] private Transform clientPoseProxy;
+    [Tooltip("Hide the proxy when Play Mode starts so only spawned clients are visible.")]
+    [SerializeField] private bool hidePoseProxyAtRuntime = true;
 
     [Header("Runtime")]
     [SerializeField] private GameObject currentClient;
@@ -18,14 +25,21 @@ public class OperationChair : MonoBehaviour
     public bool IsOccupied => currentClient != null;
     public RandomizedClientList ClientList => RandomizedClientList.Instance;
     public GameplayManager GameplayManager => gameplayManager;
-    public Transform ClientSpawnPoint => clientSpawnPoint;
+    public Transform ClientPoseProxy => clientPoseProxy;
+    [Obsolete("Use ClientPoseProxy instead.")]
+    public Transform ClientSpawnPoint => clientPoseProxy;
 
     public event Action<OperationChair, GameObject> ClientPlaced;
     public event Action<OperationChair, GameObject> ClientLeft;
 
-    private void Reset()
+    private void Awake()
     {
-        clientSpawnPoint = transform;
+        if (hidePoseProxyAtRuntime &&
+            clientPoseProxy != null &&
+            clientPoseProxy != transform)
+        {
+            clientPoseProxy.gameObject.SetActive(false);
+        }
     }
 
     public bool ValidateConfiguration(
@@ -45,9 +59,16 @@ public class OperationChair : MonoBehaviour
             return false;
         }
 
-        if (clientSpawnPoint == null)
+        if (clientPoseProxy == null)
         {
-            error = $"{name} has no Client Spawn Point assigned.";
+            error = $"{name} has no Client Pose Proxy assigned.";
+            return false;
+        }
+
+        if (clientPoseProxy == transform)
+        {
+            error =
+                $"{name} must use a separate character object as its Client Pose Proxy.";
             return false;
         }
 
@@ -123,10 +144,16 @@ public class OperationChair : MonoBehaviour
             return false;
         }
 
-        Transform spawnPoint =
-            clientSpawnPoint != null ? clientSpawnPoint : transform;
+        if (clientPoseProxy == null || clientPoseProxy == transform)
+        {
+            Debug.LogError(
+                $"{name} needs a separate character object assigned as its " +
+                "Client Pose Proxy.",
+                this);
+            return false;
+        }
 
-        currentClient = ClientList.SpawnNextClient(spawnPoint);
+        currentClient = ClientList.SpawnNextClient(this);
         if (currentClient == null)
             return false;
 
@@ -136,6 +163,74 @@ public class OperationChair : MonoBehaviour
         ClientPlaced?.Invoke(this, currentClient);
         return true;
     }
+
+#if UNITY_EDITOR
+    [ContextMenu("Debug/Complete Current Client Task")]
+    private void DebugCompleteCurrentClientTask()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning(
+                "Enter Play Mode before completing a client task.",
+                this);
+            return;
+        }
+
+        GameObject clientToComplete = currentClient;
+        if (clientToComplete == null)
+        {
+            Debug.LogWarning(
+                $"{name} has no client to complete.",
+                this);
+            return;
+        }
+
+        ClientTaskHolder holder =
+            clientToComplete.GetComponent<ClientTaskHolder>();
+        if (holder == null || holder.AssignedTask == null)
+        {
+            Debug.LogError(
+                $"{clientToComplete.name} has no assigned client task.",
+                clientToComplete);
+            return;
+        }
+
+        if (ClientList == null)
+        {
+            Debug.LogError(
+                "The scene has no RandomizedClientList singleton.",
+                this);
+            return;
+        }
+
+        ClientTask task = holder.AssignedTask;
+        foreach (BodyPartRequest request in task.Requests)
+        {
+            int remaining =
+                task.GetRemainingAmount(request.BodyPart);
+
+            for (int i = 0; i < remaining; i++)
+            {
+                if (ClientList.RemoveOneFromTask(
+                        clientToComplete,
+                        request.BodyPart))
+                {
+                    continue;
+                }
+
+                Debug.LogError(
+                    $"Could not debug-complete {request.BodyPart} for " +
+                    $"{clientToComplete.name}.",
+                    this);
+                return;
+            }
+        }
+
+        Debug.Log(
+            $"Debug-completed the task for {clientToComplete.name}.",
+            this);
+    }
+#endif
 
     private void HandleDayStarted(int dayNumber)
     {

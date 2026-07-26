@@ -35,7 +35,7 @@ When Require Asset Validation is enabled, GameplayManager refuses to begin if:
 - GameplayAssetChecker is missing.
 - There are not exactly two assigned beds.
 - A bed reference is null or duplicated.
-- A bed is missing Client List, Gameplay Manager, or Client Spawn Point.
+- A bed is missing its Gameplay Manager or Client Pose Proxy.
 - A bed references a different manager or client list.
 - Trapdoor is missing.
 - Storage is missing.
@@ -133,9 +133,14 @@ Add OperationChair to each bed.
 
 Assign:
 - Gameplay Manager: the shared GameplayManager.
-- Client Spawn Point: an empty Transform positioned where the patient lies.
+- Client Pose Proxy: a preset character/proxy positioned, rotated, and scaled
+  exactly as the spawned patient should appear.
 
 The chairs automatically use RandomizedClientList.Instance.
+
+When Hide Pose Proxy At Runtime is enabled, the proxy remains visible for
+scene editing but is hidden in Play Mode. The spawned client is unparented and
+copies the proxy's world position, world rotation, and world scale.
 
 When DayStarted fires, every empty chair requests one pending client.
 When a chair's specific client completes their task and is removed, that chair

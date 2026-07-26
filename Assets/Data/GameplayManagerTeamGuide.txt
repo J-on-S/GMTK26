@@ -25,11 +25,10 @@ At the end of the day it changes the state to Ended and sends DayEnded.
 GameplayManager does NOT perform cutting, move the doctor, manage tools, or
 decide whether the doctor accepted an item.
 
-ToolRequestManager listens to RandomizedClientList.ClientSpawned. Whenever a
-bed or another system spawns a queued client, it reads that client's assigned
-ClientTaskHolder task, adds the required body parts to the shared doctor queue,
-and fills remaining minimum slots with random tools. Beds do not generate
-doctor requests themselves.
+Automatic transfer of a spawned client's body-part requirements into
+ToolRequestManager listens to RandomizedClientList.ClientSpawnedOnChair.
+Every spawned client's remaining body-part requirements are added to the
+shared doctor queue with references to the exact client and bed.
 
 
 ============================================================
@@ -57,10 +56,14 @@ Require Asset Validation is enabled.
 Each OperationChair must have:
 
 - The shared GameplayManager.
-- A Client Spawn Point where the patient should lie.
+- A Client Pose Proxy positioned, rotated, and scaled exactly like the patient.
 
 The scene must contain exactly one RandomizedClientList. GameplayManager and
 both OperationChair components access it through RandomizedClientList.Instance.
+
+The proxy can be visible while arranging the chair in Edit Mode. Enable Hide
+Pose Proxy At Runtime so it disappears when the game starts. Spawned clients
+remain unparented and copy the proxy's complete world pose.
 
 RandomizedClientList must have:
 
@@ -195,6 +198,7 @@ GameplayManager:
 RandomizedClientList:
 
 - ClientSpawned
+- ClientSpawnedOnChair (provides the OperationChair and spawned client)
 - ClientRemoved
 - TaskRequirementChanged
 - TaskListEmptied
@@ -265,6 +269,11 @@ WARNING-PATH TEST:
 
 OTHER DEBUG ACTIONS:
 
+- Select an occupied OperationChair and run
+  "Debug/Complete Current Client Task".
+  This fulfills the current patient's remaining requirements through the
+  normal task API, so completion, removal, and bed-refill events still run.
+
 - "4. Doctor Accepts Selected Body Part"
   Uses the selected bed and selected body-part value.
 
@@ -272,6 +281,23 @@ OTHER DEBUG ACTIONS:
   Ends the active day without completing every task.
 
 The Runtime Debug List and Console show the current state after every action.
+
+To inspect doctor requests during Play Mode, select the GameObject containing
+ToolRequestManager:
+
+- Available Requests is the queue the doctor has not selected yet.
+- Current Request is the request currently being asked.
+- Current State shows Idle, ActiveRequest, or Cooldown.
+- Remaining Time and Remaining Cooldown show the runtime timers.
+
+To skip the active doctor request, open ToolRequestManager's component menu
+during Play Mode and choose:
+
+Debug > Force Complete Active Request
+
+This skips the required item and starts the normal doctor cooldown. It does
+count as accepted. For a body-part request, it decreases the targeted client's
+requirement and can complete that client.
 
 
 ============================================================
@@ -288,7 +314,7 @@ Most common causes:
 - Trapdoor is missing.
 - Storage is missing.
 - No cutting tool is assigned.
-- A bed has no Client Spawn Point.
+- A bed has no Client Pose Proxy.
 - A bed references the wrong GameplayManager or Client List.
 - ClientTaskDatabase is not assigned.
 - Client prefabs are missing ClientTaskHolder.

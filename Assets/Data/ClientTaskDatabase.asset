@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98bfab62b7252b04e9a8e0c096c950c7, type: 3}
   m_Name: ClientTaskDatabase
   m_EditorClassIdentifier: Assembly-CSharp::ClientTaskDatabase
-  maxPartsPerTask: 6
+  maxPartsPerTask: 3
   maxDifferentPartTypes: 2
-  availableBodyParts: 00000000010000000200000003000000040000000500000006000000
+  availableBodyParts: 01000000030000000400000006000000
   taskTemplates: []

@@ -7,6 +7,8 @@ Each queue entry contains:
 - A client prefab reference.
 - A generated ClientTask.
 - A spawned-client reference, which stays empty until that entry is spawned.
+- An assigned OperationChair reference, which stays Unassigned until a bed
+  spawns that entry.
 
 Each individual body-part request is limited to 1, 2, or 3 parts.
 The complete client task is still limited to 6 parts in total.
@@ -53,6 +55,7 @@ foreach (ClientTaskQueueEntry entry in clientList.GeneratedTaskList)
     Debug.Log(entry.ClientPrefab.name);
     Debug.Log(entry.Task.GetDialogue());
     Debug.Log(entry.IsSpawned);
+    Debug.Log(entry.AssignedChairName);
 }
 
 
@@ -63,8 +66,9 @@ GameObject client = clientList.SpawnNextClient(operationChair);
 Spawning does not generate a new task. It takes the first pending queue entry,
 instantiates its prefab, and assigns its existing task to ClientTaskHolder.
 
-The client is spawned at the chair position and rotation without being
-parented to the chair, so chair scaling does not affect client size.
+The client copies the chair's Client Pose Proxy position, rotation, and world
+scale without being parented to the chair. The queue entry records the
+OperationChair that spawned it.
 
 
 6. COMPLETE A CLIENT TASK
