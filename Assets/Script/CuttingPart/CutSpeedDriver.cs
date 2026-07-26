@@ -64,10 +64,10 @@ public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
     {
         if (AcceptsBackwardInput) return false;
 
-        float scroll = CuttingManager.move != null ? CuttingManager.move.ReadValue<Vector2>().y : 0f;
+        float scroll = GameInputActions.Scroll != null ? GameInputActions.Scroll.ReadValue<Vector2>().y : 0f;
         if (Mathf.Abs(scroll) > 0.01f && Mathf.Sign(scroll) != Mathf.Sign(Direction)) return true;
 
-        float keys = CuttingManager.arrows != null ? CuttingManager.arrows.ReadValue<Vector2>().y : 0f;
+        float keys = GameInputActions.Arrows != null ? GameInputActions.Arrows.ReadValue<Vector2>().y : 0f;
         return keys * Direction < 0f;
     }
 
@@ -76,10 +76,10 @@ public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
         // enabled between EnterMinigame and quit, but the preset only lands when a cut claims the
         // driver; without it there is no speed cap or kick size to work from.
         if (preset == null) return;
-        if (CuttingManager.move == null || CuttingManager.arrows == null) return;
+        if (GameInputActions.Scroll == null || GameInputActions.Arrows == null) return;
 
-        float scroll = CuttingManager.move.ReadValue<Vector2>().y;
-        float keys = CuttingManager.arrows.ReadValue<Vector2>().y;
+        float scroll = GameInputActions.Scroll.ReadValue<Vector2>().y;
+        float keys = GameInputActions.Arrows.ReadValue<Vector2>().y;
 
         int direction = Direction;
         bool acceptsBackward = AcceptsBackwardInput;

@@ -11,7 +11,7 @@ public class MouseMovement : MonoBehaviour
   float YRotation = 0f;
 
   /// <summary>Whether the mouse drives the camera; <c>false</c> for as long as a cut has it.</summary>
-  private bool active = true;
+  public bool active = true;
 
   void Start(){
     //Locking the cursor to the middle of the screen and making it invisible
@@ -20,10 +20,15 @@ public class MouseMovement : MonoBehaviour
   }
 
   void Update(){
-    // the action is static and built by CuttingManager.Start, so it is null in a scene with no cut
-    if(!active || CuttingManager.mouseDelta == null  || PauseMenu.isPaused) return;
-
-    Vector2 move = CuttingManager.mouseDelta.ReadValue<Vector2>();
+    // owned by GameInputActions, built at startup, so it is live even in a scene with no cut
+    if(GameInputActions.MouseDelta == null){
+            Debug.Log("mouseDelta is null");
+        }
+    if( PauseMenu.isPaused){
+            Debug.Log("Paused");
+        }
+    if(!active || GameInputActions.MouseDelta == null  || PauseMenu.isPaused) return;
+    Vector2 move = GameInputActions.MouseDelta.ReadValue<Vector2>();
     
     
     float mouseX = move.x * mouseSensitivity * 0.01f;
@@ -60,6 +65,7 @@ public class MouseMovement : MonoBehaviour
 
     void Resume(CuttingManager cm)
     {
+        Debug.Log("resuming for some reason");
       //AdjustCamera();
       // reapply our own stored rotation instead of reading it back from the transform
       transform.localRotation = Quaternion.Euler(xRotation, YRotation, 0f);

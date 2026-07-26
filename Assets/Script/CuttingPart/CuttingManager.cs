@@ -173,14 +173,6 @@ public enum CuttingState
     /// <summary>Point count the loop is warped and drawn at, from the preset when there is one.</summary>
     public int GuideResolution => minigamePreset != null ? minigamePreset.curveResolution : guideResolution;
 
-    public static InputAction move;
-
-    /// <summary>Arrow-key drive, built in code so it needs no entry in the input asset. Same effect as the wheel.</summary>
-    public static InputAction arrows;
-
-    /// <summary>Per-frame mouse motion in pixels, both axes: x = horizontal, y = vertical.</summary>
-    public static InputAction mouseDelta;
-
     public MoveCamera moveCamera;
 
     /// <summary>The camera's orbit -- the live angle that IS the cut progress, and that the scalpel slaves to.</summary>
@@ -445,9 +437,24 @@ public enum CuttingState
         // ExecuteAlways also runs this in edit mode; input + camera setup is play-only.
         if (!Application.isPlaying) return;
 
-        InstantiateActions();
-        
-           
+        // free-look is one scene-wide component, so bind the live scene instance rather than trusting the
+        // serialized slot: a copied cut, or one authored in a prefab, carries a reference to whichever
+        // MoveCamera it was made against, which is not the one driving this scene's camera.
+        moveCamera = FindFirstObjectByType<MoveCamera>(FindObjectsInactive.Include);
+        if (moveCamera == null)
+        {
+            // none in the scene -- a scene assembled without the setup menu, or one whose free-look was
+            // never authored. Make one so aiming still lights up; a single instance is shared by every
+            // cut, and MoveCamera resolves its own camera, so nothing else needs wiring.
+            GameObject go = new GameObject("MoveCamera");
+            if (gameObject.scene.IsValid())
+            {
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, gameObject.scene);
+            }
+            moveCamera = go.AddComponent<MoveCamera>();
+        }
+
+        // input actions are owned by GameInputActions, built at startup independent of any cut.
 
         // park the rig in free-look; not QuitMinigame, which would report quitting a game
         // that never started and fire OnMinigameQuit at every listener on load. Instant, not
@@ -1277,41 +1284,6 @@ public enum CuttingState
             }
         }
     }
-    void InstantiateActions()
-    {
-         if(move == null){
-            move = new InputAction(
-            name: "MouseScroll",
-            type: InputActionType.Value,
-            binding: "<Mouse>/scroll"
-        );
-        move.Enable();
-        }
-        if(arrows == null){
-            // arrow keys as a 2D vector, same role as the wheel; built here so the input asset needs no change
-            arrows = new InputAction("Arrows", InputActionType.Value, expectedControlType: "Vector2");
-            arrows.AddCompositeBinding("2DVector")
-                .With("Up", "<Keyboard>/upArrow")
-                .With("Up", "<Keyboard>/w")
-                .With("Down", "<Keyboard>/downArrow")
-                .With("Down", "<Keyboard>/s")
-                .With("Left", "<Keyboard>/leftArrow")
-                .With("Left", "<Keyboard>/a")
-                .With("Right", "<Keyboard>/d")
-                .With("Right", "<Keyboard>/rightArrow");
-            arrows.Enable();
-        }
-        if(mouseDelta == null){
-            // raw pointer motion, both axes; readers pick the component they need
-            mouseDelta = new InputAction(
-                name: "MouseDelta",
-                type: InputActionType.Value,
-                binding: "<Mouse>/delta",
-                expectedControlType: "Vector2"
-            );
-            mouseDelta.Enable();
-        }
-    }
     void Reset()
     {
         AutoWire();
@@ -1339,14 +1311,8 @@ public enum CuttingState
         // the preview mesh is generated, not an asset: nothing else will collect it.
         ReleaseSeveredPreview();
 
-        // null them out too: statics survive a scene reload, and the `== null` guards in
-        // InstantiateActions would otherwise keep a disposed action.
-        arrows?.Dispose();
-        arrows = null;
-        move?.Dispose();
-        move = null;
-        mouseDelta?.Dispose();
-        mouseDelta = null;
+        // the shared input actions are not touched here: GameInputActions owns them for the whole play
+        // session, so disposing them when one cut is destroyed would kill input for every other reader.
     }
 
     public CuttingState getState()
