@@ -162,6 +162,9 @@ Current implementation:
   implemented.
 - The doctor processes one client batch at a time in configured chair order:
   Bed A, Bed B, then back to Bed A: implemented.
+- `WalkState` reads `ToolRequestManager.FocusedChair`, selects that bed's
+  navigation waypoints, and faces its current client after arriving:
+  implemented.
 - Only the focused client's requirements populate the doctor queue. All
   requests in that batch retain the focused client and chair: implemented.
 - When the focused batch reaches zero, the manager completes that client's
@@ -173,7 +176,7 @@ Current implementation:
 - Secret versus required cutting classification: planned.
 - Doctor detection and heart penalty: planned.
 - Countdown and timeout penalty: planned.
-- Physical body-part item registration: planned.
+- Chute registration and per-chute debug entry counting: implemented.
 - Freezer/storage/decay integration: planned.
 
 ## End of Day
