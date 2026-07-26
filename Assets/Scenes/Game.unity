@@ -3958,18 +3958,6 @@ PrefabInstance:
     m_TransformParent: {fileID: 1910695550}
     m_Modifications:
     - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -4009,41 +3997,9 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1530801955803110900, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 2.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 3581334051904518441, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.61
-      objectReference: {fileID: 0}
-    - target: {fileID: 4089809289082357492, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.48
-      objectReference: {fileID: 0}
-    - target: {fileID: 4089809289082357492, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 2.01
-      objectReference: {fileID: 0}
-    - target: {fileID: 4089809289082357492, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 1.99
-      objectReference: {fileID: 0}
     - target: {fileID: 6878925314053301928, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_Name
       value: Player
-      objectReference: {fileID: 0}
-    - target: {fileID: 8482258869713044024, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_Height
-      value: 7
-      objectReference: {fileID: 0}
-    - target: {fileID: 8567155823793440528, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 9081844400141631352, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      propertyPath: maxRange
-      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
