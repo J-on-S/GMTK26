@@ -140,6 +140,72 @@ public class RandomizedClientList : MonoBehaviour
     }
 
     /// <summary>
+    /// Debug shortcut that completes every generated client task through the
+    /// normal delivery API. This preserves completion, removal, chair-refill,
+    /// and TaskListEmptied events.
+    /// </summary>
+    [ContextMenu("Debug/Complete All Client Tasks")]
+    public void CompleteAllClientTasks()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning(
+                "Enter Play Mode before completing all client tasks.",
+                this);
+            return;
+        }
+
+        if (generatedTaskList.Count == 0)
+        {
+            Debug.LogWarning(
+                "There are no generated client tasks to complete.",
+                this);
+            return;
+        }
+
+        // Completing an entry removes it and may make a chair spawn another
+        // pending entry, so iterate over a stable snapshot of the same entries.
+        List<ClientTaskQueueEntry> entries =
+            new(generatedTaskList);
+
+        foreach (ClientTaskQueueEntry entry in entries)
+        {
+            if (entry?.Task == null ||
+                !generatedTaskList.Contains(entry))
+            {
+                continue;
+            }
+
+            HashSet<BodyPartType> completedBodyParts = new();
+
+            foreach (BodyPartRequest request in entry.Task.Requests)
+            {
+                BodyPartType bodyPart = request.BodyPart;
+                if (!completedBodyParts.Add(bodyPart))
+                    continue;
+
+                while (generatedTaskList.Contains(entry) &&
+                       entry.Task.GetRemainingAmount(bodyPart) > 0)
+                {
+                    if (RemoveOneFromTask(entry, bodyPart))
+                        continue;
+
+                    Debug.LogError(
+                        $"Could not debug-complete {bodyPart} for " +
+                        $"{GetPersonName(entry)}.",
+                        this);
+                    return;
+                }
+            }
+        }
+
+        Debug.Log(
+            $"Debug-completed all client tasks. " +
+            $"Remaining entries: {generatedTaskList.Count}.",
+            this);
+    }
+
+    /// <summary>
     /// Removes one required body part from a specific spawned client's task.
     /// Call this only after the doctor has accepted the delivered body part.
     /// </summary>

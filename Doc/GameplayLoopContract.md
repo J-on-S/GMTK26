@@ -147,25 +147,28 @@ Current implementation:
 - Client task dialogue requests through a decoupled event channel: implemented.
 - Queued client dialogue UI receiver: implemented.
 - Empty client list triggers end-of-day validation: implemented.
-- Accepted doctor body parts can decrement a targeted client task: implemented.
+- A doctor-request batch completes its focused client task when the batch
+  reaches zero: implemented.
 - Inspector gameplay-loop debug harness for accepted-order and fast-forward
   testing: implemented.
+- `RandomizedClientList` provides an editor context command that completes
+  every generated task through the normal delivery API and consequently
+  raises `TaskListEmptied`: implemented.
 - Occupied chairs provide an editor-only context command that completes their
   current client's remaining requirements through the normal task API:
   implemented.
 - `ToolRequestManager` provides an editor-only context command that
   force-completes its active request and starts the normal cooldown:
   implemented.
-- The doctor handles one request at a time from one shared queue. Body-part
-  requests retain their target client and chair, while ordinary tools have no
-  client target: implemented.
-- Spawned client requirements are automatically added through
-  `ClientSpawnedOnChair`: implemented.
-- Accepted or debug-completed body-part requests decrement the exact targeted
-  client task. Completion then follows the existing client-removal and
-  chair-refill event chain: implemented.
-- Failed body-part requests return to the queue so their client remains
-  completable: implemented.
+- The doctor processes one client batch at a time in configured chair order:
+  Bed A, Bed B, then back to Bed A: implemented.
+- Only the focused client's requirements populate the doctor queue. All
+  requests in that batch retain the focused client and chair: implemented.
+- When the focused batch reaches zero, the manager completes that client's
+  remaining `ClientTask`, allowing the normal removal and chair-refill events
+  to run before focus advances: implemented.
+- Failed requests return to the current batch and must succeed before the
+  focused client completes: implemented.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
 - Doctor detection and heart penalty: planned.

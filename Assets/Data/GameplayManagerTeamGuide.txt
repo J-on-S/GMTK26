@@ -25,10 +25,9 @@ At the end of the day it changes the state to Ended and sends DayEnded.
 GameplayManager does NOT perform cutting, move the doctor, manage tools, or
 decide whether the doctor accepted an item.
 
-Automatic transfer of a spawned client's body-part requirements into
-ToolRequestManager listens to RandomizedClientList.ClientSpawnedOnChair.
-Every spawned client's remaining body-part requirements are added to the
-shared doctor queue with references to the exact client and bed.
+ToolRequestManager processes one occupied bed at a time. It starts with Bed A,
+finishes that client's complete doctor-request batch, completes/removes that
+client, then moves to Bed B. It alternates A, B, A, B while clients remain.
 
 
 ============================================================
@@ -67,48 +66,35 @@ remain unparented and copy the proxy's complete world pose.
 
 RandomizedClientList must have:
 
-- Client prefabs.
+- A CustomersAsset containing the possible customer prefabs.
 - A ClientTaskList task generator.
 - Prepare On Start disabled.
 
 GameplayManager is responsible for generating the list.
+
+On ToolRequestManager, assign Operation Chairs in processing order:
+
+1. Bed A
+2. Bed B
+
+If this list is empty, chairs are discovered and sorted by GameObject name.
 
 
 ============================================================
 3. WHAT THE DOCTOR/ORDER SCRIPT MUST IMPLEMENT
 ============================================================
 
-The doctor system decides whether an item is correct.
+ToolRequestManager builds one request batch from the currently focused
+client. Every body-part and tool request in that batch records the focused
+client and chair.
 
-When the doctor accepts a body part, its event/function must provide:
+The doctor asks one request at a time. Successful requests leave the batch.
+Failed requests return to the batch and must be attempted again.
 
-- The exact patient GameObject.
-- The accepted body-part type or name.
-
-Then call:
-
-clientList.RemoveOneFromTask(
-    targetClient,
-    BodyPartType.Eye
-);
-
-The current string system may call:
-
-clientList.RemoveOneFromTask(
-    targetClient,
-    submittedName
-);
-
-Use singular names:
-
-Eye, Leg, Heart, Arm, Ear, Hand, or Nose.
-
-IMPORTANT:
-
-Do not update a task using only "Eye" without identifying the patient.
-Both beds may have patients requesting eyes.
-
-If the doctor rejects the item, do not call RemoveOneFromTask.
+When the batch reaches zero, ToolRequestManager completes every remaining
+requirement on the focused ClientTask through RandomizedClientList. The normal
+completion events remove the client and refill that bed. ToolRequestManager
+then advances to the next occupied bed.
 
 
 ============================================================
@@ -269,6 +255,12 @@ WARNING-PATH TEST:
 
 OTHER DEBUG ACTIONS:
 
+- Select RandomizedClientList and run
+  "Debug/Complete All Client Tasks".
+  This completes every pending and spawned client through the normal task
+  API. It removes the clients, empties the generated list, and triggers the
+  normal end-of-day check. Use this only in Play Mode.
+
 - Select an occupied OperationChair and run
   "Debug/Complete Current Client Task".
   This fulfills the current patient's remaining requirements through the
@@ -295,9 +287,9 @@ during Play Mode and choose:
 
 Debug > Force Complete Active Request
 
-This skips the required item and starts the normal doctor cooldown. It does
-count as accepted. For a body-part request, it decreases the targeted client's
-requirement and can complete that client.
+This counts the active request as successful. If it empties the focused
+client's batch, that client is completed and the doctor advances to the next
+bed.
 
 
 ============================================================
