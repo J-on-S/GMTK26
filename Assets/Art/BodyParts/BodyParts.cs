@@ -15,7 +15,7 @@ public class BodyParts : ScriptableObject
                 return bodyPart;
             }
         }
-        Debug.LogError("We didn't found BodyPart, need to assign in the scriptable");
+        Debug.LogError("We didn't found BodyPart, need to assign in the scriptable: "+bodyPartType);
         return null;
     }
 }

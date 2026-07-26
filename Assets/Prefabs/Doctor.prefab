@@ -1510,9 +1510,9 @@ GameObject:
   - component: {fileID: 264942017431276350}
   - component: {fileID: 4037502183312625495}
   - component: {fileID: 8207978196295689558}
-  - component: {fileID: 2510575858409312631}
-  - component: {fileID: 2236101053996777319}
-  - component: {fileID: 3877165446652754313}
+  - component: {fileID: 7953782567705911876}
+  - component: {fileID: 1390945864971356416}
+  - component: {fileID: 7309803597861253452}
   m_Layer: 0
   m_Name: Doctor
   m_TagString: Untagged
@@ -1615,7 +1615,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &2510575858409312631
+--- !u!114 &7953782567705911876
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1628,7 +1628,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoctorAccepting
   angerSound: {fileID: 0}
---- !u!136 &2236101053996777319
+--- !u!136 &1390945864971356416
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1651,7 +1651,7 @@ CapsuleCollider:
   m_Height: 0.68
   m_Direction: 1
   m_Center: {x: 0.000000059604645, y: 0.27, z: -0.00000008940697}
---- !u!114 &3877165446652754313
+--- !u!114 &7309803597861253452
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

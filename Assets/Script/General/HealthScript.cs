@@ -13,6 +13,8 @@ public class HealthScript : MonoBehaviour
     [SerializeField] private Sprite fullHeartSprite;
     [SerializeField] private Sprite brokenHeartSprite;
     [SerializeField] private int waitSecond = 1;
+    [Header("Test")]
+    [SerializeField] private bool testInifiteLife = false;
     private void Awake()
     {
         if (Instance == null)
@@ -29,6 +31,7 @@ public class HealthScript : MonoBehaviour
     }
     public void TakeDamage(int amount = 1)
     {
+        if(testInifiteLife) return;
         HP = Mathf.Max(0, HP - amount);
         UpdateHealthUI();
         if(HP <= 0)

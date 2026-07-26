@@ -8,6 +8,7 @@ public class GenerateClientInfoUI : MonoBehaviour
     [SerializeField] private List<GameObject> cardsParent = new List<GameObject>();
     [SerializeField] private List<Card> cards = new List<Card>();
     [SerializeField] private BodyParts bodyParts;
+    private bool hasInitiate = false;
     public void Start()
     {
         foreach (GameObject cardParent in cardsParent)
@@ -22,6 +23,7 @@ public class GenerateClientInfoUI : MonoBehaviour
                 }
                 else
                 {
+                    child.GetComponent<Image>().enabled = false;
                     newCard.images.Add(child.GetComponent<Image>());
                 }
             }
@@ -30,7 +32,8 @@ public class GenerateClientInfoUI : MonoBehaviour
     }
     public void GenerateUI()
     {
-
+        if(hasInitiate) return;
+        hasInitiate = true;
         for(int i=0; i<RandomizedClientList.Instance.GeneratedTaskList.Count; i++)
         {
             ClientTaskQueueEntry client = RandomizedClientList.Instance.GeneratedTaskList[i];
@@ -43,8 +46,9 @@ public class GenerateClientInfoUI : MonoBehaviour
             {
                 text+="+"+bodyPartRequest.Amount+"\n";
                 BodyPart bodyPart = bodyParts.SearchBodyPart(bodyPartRequest.BodyPart);
-                
+        
                 card.images[indexImg].sprite = bodyPart.bodyPartImg;
+                card.images[indexImg].enabled = true;
             }
             
             card.text.text = text;
