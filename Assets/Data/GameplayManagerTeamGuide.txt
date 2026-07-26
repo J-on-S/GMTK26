@@ -25,12 +25,21 @@ At the end of the day it changes the state to Ended and sends DayEnded.
 GameplayManager does NOT perform cutting, move the doctor, manage tools, or
 decide whether the doctor accepted an item.
 
+ToolRequestManager listens to RandomizedClientList.ClientSpawned. Whenever a
+bed or another system spawns a queued client, it reads that client's assigned
+ClientTaskHolder task, adds the required body parts to the shared doctor queue,
+and fills remaining minimum slots with random tools. Beds do not generate
+doctor requests themselves.
+
 
 ============================================================
 2. REQUIRED UNITY OBJECTS
 ============================================================
 
-GameplayAssetChecker must have:
+GameplayAssetChecker is optional by default.
+
+Enable Require Asset Validation on GameplayManager when the complete gameplay
+scene should be checked before starting. When enabled, the checker must have:
 
 - Exactly 2 different OperationChair references.
 - 1 trapdoor or chute GameObject.
@@ -42,13 +51,16 @@ Optional:
 - A client-list poster.
 
 A missing optional poster only creates a warning.
-Missing any required object prevents the day from starting.
+Missing any required object prevents the day from starting only when
+Require Asset Validation is enabled.
 
 Each OperationChair must have:
 
-- The shared RandomizedClientList.
 - The shared GameplayManager.
 - A Client Spawn Point where the patient should lie.
+
+The scene must contain exactly one RandomizedClientList. GameplayManager and
+both OperationChair components access it through RandomizedClientList.Instance.
 
 RandomizedClientList must have:
 
@@ -148,7 +160,7 @@ Required function:
 
 BlackMarketTask GenerateTask(int dayNumber);
 
-TemporaryBlackMarketTaskGenerator currently provides this function for tests.
+BlackMarketGenerator currently provides this function.
 Replace that component with the real black-market manager later. (or the temporary might be the final one)
 
 
@@ -209,7 +221,8 @@ SETUP:
 
 1. Put GameplayLoopDebugTester on the same GameObject as GameplayManager.
 2. Assign Gameplay Manager if it is not filled automatically.
-3. Configure GameplayAssetChecker with every required object.
+3. If Require Asset Validation is enabled, configure GameplayAssetChecker
+   with every required object.
 4. Make sure both beds are configured.
 5. Make sure every client prefab has ClientTaskHolder.
 6. Enter Play Mode.
@@ -269,7 +282,7 @@ Read the first red error in the Console.
 
 Most common causes:
 
-- GameplayAssetChecker is missing.
+- Require Asset Validation is enabled but GameplayAssetChecker is missing.
 - One of the two bed slots is empty.
 - Both slots reference the same bed.
 - Trapdoor is missing.

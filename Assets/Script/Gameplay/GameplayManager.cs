@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum GameplayDayState
 {
@@ -16,9 +17,10 @@ public enum GameplayDayState
 public class GameplayManager : MonoBehaviour
 {
     [Header("Beginning of day")]
-    [SerializeField] private RandomizedClientList clientList;
-    [Tooltip("Must implement IBlackMarketTaskGenerator.")]
-    [SerializeField] private MonoBehaviour blackMarketTaskGenerator;
+    [Tooltip("When enabled, GameplayAssetChecker must exist and pass before the day starts.")]
+    [SerializeField] private bool requireAssetValidation;
+    [FormerlySerializedAs("blackMarketTaskGenerator")]
+    [SerializeField] private BlackMarketGenerator blackMarketGenerator;
     [SerializeField] private bool beginFirstDayOnStart = true;
 
     [Header("Runtime")]
@@ -35,7 +37,8 @@ public class GameplayManager : MonoBehaviour
     public int CurrentDay => currentDay;
     public GameplayDayState State => state;
     public BlackMarketTask CurrentBlackMarketTask => currentBlackMarketTask;
-    public RandomizedClientList ClientList => clientList;
+    public RandomizedClientList ClientList => RandomizedClientList.Instance;
+    public bool RequireAssetValidation => requireAssetValidation;
     public int NumberOfLives => numberOfLives;
     public float CountdownRemaining => countdownRemaining;
 
@@ -45,14 +48,14 @@ public class GameplayManager : MonoBehaviour
 
     private void OnEnable()
     {
-        if (clientList != null)
-            clientList.TaskListEmptied += HandleClientTaskListEmptied;
+        if (ClientList != null)
+            ClientList.TaskListEmptied += HandleClientTaskListEmptied;
     }
 
     private void OnDisable()
     {
-        if (clientList != null)
-            clientList.TaskListEmptied -= HandleClientTaskListEmptied;
+        if (ClientList != null)
+            ClientList.TaskListEmptied -= HandleClientTaskListEmptied;
     }
 
     private void Start()
@@ -64,22 +67,8 @@ public class GameplayManager : MonoBehaviour
     [ContextMenu("Begin Day")]
     public void BeginDay()
     {
-        GameplayAssetChecker assetChecker =
-            GetComponent<GameplayAssetChecker>();
-
-        if (assetChecker == null)
+        if (requireAssetValidation && !ValidateRequiredAssets())
         {
-            Debug.LogError(
-                "GameplayManager requires GameplayAssetChecker and will not start.",
-                this);
-            return;
-        }
-
-        if (!assetChecker.ValidateSetup(this))
-        {
-            Debug.LogError(
-                "Day startup stopped because required scene assets are missing.",
-                this);
             return;
         }
 
@@ -92,15 +81,15 @@ public class GameplayManager : MonoBehaviour
             return;
         }
 
-        if (clientList == null)
+        if (ClientList == null)
         {
             Debug.LogError(
-                "GameplayManager needs a RandomizedClientList.",
+                "GameplayManager needs a RandomizedClientList singleton in the scene.",
                 this);
             return;
         }
 
-        if (clientList.ActiveClientCount > 0)
+        if (ClientList.ActiveClientCount > 0)
         {
             Debug.LogError(
                 "Cannot begin a new day while clients are still spawned.",
@@ -108,23 +97,21 @@ public class GameplayManager : MonoBehaviour
             return;
         }
 
-        IBlackMarketTaskGenerator generator =
-            blackMarketTaskGenerator as IBlackMarketTaskGenerator;
+        IBlackMarketTaskGenerator generator = blackMarketGenerator;
 
         if (generator == null)
         {
             Debug.LogError(
-                "Black Market Task Generator must implement " +
-                "IBlackMarketTaskGenerator.",
+                "GameplayManager needs a BlackMarketGenerator.",
                 this);
             return;
         }
 
         SetState(GameplayDayState.Preparing);
         Debug.Log($"[Day {currentDay}] Generating client/task list.", this);
-        clientList.GenerateList();
+        ClientList.GenerateList();
 
-        if (clientList.TaskListCount == 0)
+        if (ClientList.TaskListCount == 0)
         {
             Debug.LogError(
                 $"[Day {currentDay}] Client/task list generation failed.",
@@ -135,7 +122,7 @@ public class GameplayManager : MonoBehaviour
 
         Debug.Log(
             $"[Day {currentDay}] Generated " +
-            $"{clientList.TaskListCount} client/task entries.",
+            $"{ClientList.TaskListCount} client/task entries.",
             this);
 
         Debug.Log($"[Day {currentDay}] Generating black-market task.", this);
@@ -160,6 +147,29 @@ public class GameplayManager : MonoBehaviour
         SetState(GameplayDayState.InProgress);
         DayStarted?.Invoke(currentDay);
         Debug.Log($"[Day {currentDay}] Day started.", this);
+    }
+
+    private bool ValidateRequiredAssets()
+    {
+        GameplayAssetChecker assetChecker =
+            GetComponent<GameplayAssetChecker>();
+
+        if (assetChecker == null)
+        {
+            Debug.LogError(
+                "Require Asset Validation is enabled, but " +
+                "GameplayAssetChecker is missing.",
+                this);
+            return false;
+        }
+
+        if (assetChecker.ValidateSetup(this))
+            return true;
+
+        Debug.LogError(
+            "Day startup stopped because required scene assets are missing.",
+            this);
+        return false;
     }
 
     [ContextMenu("End Day")]

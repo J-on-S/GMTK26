@@ -8,7 +8,6 @@ using UnityEngine;
 public class OperationChair : MonoBehaviour
 {
     [Header("Required references")]
-    [SerializeField] private RandomizedClientList clientList;
     [SerializeField] private GameplayManager gameplayManager;
     [SerializeField] private Transform clientSpawnPoint;
 
@@ -17,7 +16,7 @@ public class OperationChair : MonoBehaviour
 
     public GameObject CurrentClient => currentClient;
     public bool IsOccupied => currentClient != null;
-    public RandomizedClientList ClientList => clientList;
+    public RandomizedClientList ClientList => RandomizedClientList.Instance;
     public GameplayManager GameplayManager => gameplayManager;
     public Transform ClientSpawnPoint => clientSpawnPoint;
 
@@ -34,9 +33,9 @@ public class OperationChair : MonoBehaviour
         RandomizedClientList expectedClientList,
         out string error)
     {
-        if (clientList == null)
+        if (ClientList == null)
         {
-            error = $"{name} has no Client List assigned.";
+            error = "The scene has no RandomizedClientList singleton.";
             return false;
         }
 
@@ -58,7 +57,7 @@ public class OperationChair : MonoBehaviour
             return false;
         }
 
-        if (expectedClientList != null && clientList != expectedClientList)
+        if (expectedClientList != null && ClientList != expectedClientList)
         {
             error = $"{name} references a different Client List.";
             return false;
@@ -70,8 +69,8 @@ public class OperationChair : MonoBehaviour
 
     private void OnEnable()
     {
-        if (clientList != null)
-            clientList.ClientRemoved += HandleClientRemoved;
+        if (ClientList != null)
+            ClientList.ClientRemoved += HandleClientRemoved;
 
         if (gameplayManager != null)
             gameplayManager.DayStarted += HandleDayStarted;
@@ -86,8 +85,8 @@ public class OperationChair : MonoBehaviour
 
     private void OnDisable()
     {
-        if (clientList != null)
-            clientList.ClientRemoved -= HandleClientRemoved;
+        if (ClientList != null)
+            ClientList.ClientRemoved -= HandleClientRemoved;
 
         if (gameplayManager != null)
             gameplayManager.DayStarted -= HandleDayStarted;
@@ -102,10 +101,10 @@ public class OperationChair : MonoBehaviour
         if (IsOccupied)
             return false;
 
-        if (clientList == null)
+        if (ClientList == null)
         {
             Debug.LogWarning(
-                $"{name} needs a RandomizedClientList reference.",
+                $"{name} needs a RandomizedClientList singleton in the scene.",
                 this);
             return false;
         }
@@ -116,7 +115,7 @@ public class OperationChair : MonoBehaviour
             return false;
         }
 
-        if (clientList.PendingClientCount == 0)
+        if (ClientList.PendingClientCount == 0)
         {
             Debug.Log(
                 $"{name} is empty because no pending clients remain.",
@@ -127,7 +126,7 @@ public class OperationChair : MonoBehaviour
         Transform spawnPoint =
             clientSpawnPoint != null ? clientSpawnPoint : transform;
 
-        currentClient = clientList.SpawnNextClient(spawnPoint);
+        currentClient = ClientList.SpawnNextClient(spawnPoint);
         if (currentClient == null)
             return false;
 

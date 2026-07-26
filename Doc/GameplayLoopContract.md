@@ -27,9 +27,10 @@ Every integration must identify:
 
 Required sequence:
 
-1. Validate all required scene references: exactly two distinct beds, one
-   trapdoor/chute, one storage object, and at least one cutting tool.
-2. Stop immediately and log an error if validation fails.
+1. If `Require Asset Validation` is enabled, validate all required scene
+   references: exactly two distinct beds, one trapdoor/chute, one storage
+   object, and at least one cutting tool.
+2. When validation is enabled, stop immediately and log an error if it fails.
 3. Enter `Preparing`.
 4. Generate the client/task queue without spawning clients.
 5. Generate the black-market body-part order.
@@ -51,9 +52,9 @@ gameplayManager.DayStarted += HandleDayStarted;
 
 Current implementation:
 
-- Required two-bed validation before day startup: implemented.
+- Optional asset validation before day startup: implemented.
 - Client/task queue generation: implemented.
-- Temporary black-market task generation: implemented.
+- Black-market task generation: implemented.
 - `GameplayManager` phase/state changes: implemented.
 - Operation chairs filling on `DayStarted`: implemented.
 - Client-list world-space UI: planned.
@@ -63,11 +64,17 @@ Current implementation:
 
 Important configuration:
 
-- `GameplayAssetChecker` must contain exactly two distinct `OperationChair`
-  references. Missing or incorrectly wired beds prevent the day from starting.
+- `GameplayAssetChecker` is optional when `Require Asset Validation` is off.
+- When `Require Asset Validation` is on, the checker must contain exactly two
+  distinct `OperationChair` references. Missing or incorrectly wired beds
+  prevent the day from starting.
 - `GameplayAssetChecker` also requires trapdoor, storage, and at least one
   cutting-tool reference. A missing client-list poster only produces a warning.
-- `GameplayManager` owns beginning-of-day generation.
+- `GameplayManager` owns beginning-of-day generation and requires a
+  `BlackMarketGenerator` reference.
+- Exactly one scene-scoped `RandomizedClientList` owns the shared queue.
+  GameplayManager and both chairs access it through
+  `RandomizedClientList.Instance`.
 - Disable `Prepare On Start` on `RandomizedClientList`.
 - Pre-generated clients are data only; no client GameObject exists until an
   operation chair calls `SpawnNextClient`.
@@ -97,6 +104,7 @@ bool accepted = clientTaskHolder.GiveBodyPart(bodyPart);
 bool updated = clientList.RemoveOneFromTask(targetClient, bodyPart);
 bool removed = clientList.DespawnPerson(client);
 bool spawned = operationChair.TrySpawnNextClient();
+toolRequestManager.BuildRequestsForClient(spawnedClient);
 ```
 
 Current events:
@@ -125,7 +133,11 @@ Current implementation:
 - Accepted doctor body parts can decrement a targeted client task: implemented.
 - Inspector gameplay-loop debug harness for accepted-order and fast-forward
   testing: implemented.
-- Doctor item requests: exists separately; integration not confirmed.
+- Spawned clients automatically add their required body parts to the shared
+  doctor request queue through `RandomizedClientList.ClientSpawned`: implemented.
+- Random tools fill the shared doctor queue up to its configured minimum after
+  each client contributes its body-part requests: implemented.
+- Doctor request acceptance targeting the correct client task: planned.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
 - Doctor detection and heart penalty: planned.
@@ -184,10 +196,10 @@ Temporary integration:
 
 ## Black-market integration boundary
 
-The temporary generator exists only so the beginning-of-day loop can run
-before the final black-market system is ready.
+`BlackMarketGenerator` is the current implementation used by the
+beginning-of-day loop.
 
-The final implementation must implement:
+The generator implements:
 
 ```csharp
 public interface IBlackMarketTaskGenerator
@@ -196,8 +208,7 @@ public interface IBlackMarketTaskGenerator
 }
 ```
 
-Then assign that implementation to `GameplayManager`. The day coordinator
-should not require changes.
+Assign the `BlackMarketGenerator` component to `GameplayManager`.
 
 ## Change checklist
 
