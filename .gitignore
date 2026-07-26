@@ -18,6 +18,9 @@
 !.vscode/*.code-snippets
 !*.code-workspace
 
+# Ignore internal documentation
+*.docx
+
 .utmp/
 /[Ll]ibrary/
 /[Tt]emp/

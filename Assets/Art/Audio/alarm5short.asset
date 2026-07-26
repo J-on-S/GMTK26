@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 60834d41c5f1b8846b0be01492d2c418, type: 3}
-  m_Name: Cloth_Pickup
+  m_Name: alarm5short
   m_EditorClassIdentifier: Assembly-CSharp::Audio
-  AudioClip: {fileID: 8300000, guid: f5b31bc9950cfca94b3f1d5f1ee01847, type: 3}
+  AudioClip: {fileID: 8300000, guid: ded793961d014840eb3cdf9174b64d08, type: 3}
   Volume: 1
   Loop: 0
   Pan: 0
