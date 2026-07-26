@@ -174,9 +174,11 @@ Current implementation:
   to run before focus advances: implemented.
 - Failed requests return to the current batch and must succeed before the
   focused client completes: implemented.
-- Successful doctor requests add their unused request time to the normal
-  cooldown. The final request delays client completion by that rewarded
-  cooldown, creating a storage/chute preparation window: implemented.
+- Every doctor request receives a random 50-to-60-second time limit.
+  Successful requests add unused request time to the normal cooldown, capped
+  at 10 seconds per request. The final request delays client completion by
+  that rewarded cooldown, creating a bounded storage/chute preparation
+  window: implemented.
 - `CameraSwitch` owns `MainGame` and `BlackMarket` view states. Entering the
   black-market camera pauses scaled gameplay; returning restores the previous
   time scale. Doctor request and cooldown counters therefore retain their

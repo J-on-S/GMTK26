@@ -23,6 +23,11 @@ public class ToolRequestManager : MonoBehaviour
     public float timeBetweenRequests = 5f; // oooldown before next order from doctor
     public float numberOfRequests = 5;  // minimum size of the focused client's batch
 
+    [Header("Request timing")]
+    [Tooltip("Every doctor request receives a random limit within this range.")]
+    [SerializeField, Min(0f)] private float minimumRequestTime = 50f;
+    [SerializeField, Min(0f)] private float maximumRequestTime = 60f;
+
     [Header("Early completion reward")]
     [Tooltip(
         "When a request succeeds, add its remaining request time to the " +
@@ -30,6 +35,10 @@ public class ToolRequestManager : MonoBehaviour
     [SerializeField] private bool rewardEarlyCompletion = true;
     [SerializeField, Min(0f)]
     private float earlyCompletionBonusMultiplier = 1f;
+    [Tooltip(
+        "Prevents a long request from creating an equally long cooldown.")]
+    [SerializeField, Min(0f)]
+    private float maximumEarlyCompletionBonus = 10f;
 
     [Header("Client processing order")]
     [Tooltip("Assign Bed A first, then Bed B. If empty, chairs are found and sorted by name.")]
@@ -162,7 +171,7 @@ public class ToolRequestManager : MonoBehaviour
         {
             itemName = bodyPartName,
             itemType = ItemType.BodyPart,
-            timeLimit = UnityEngine.Random.Range(20f, 25f),
+            timeLimit = GenerateRequestTimeLimit(),
             targetClient = targetClient,
             targetChair = targetChair
         });
@@ -187,6 +196,7 @@ public class ToolRequestManager : MonoBehaviour
         {
             int choice = Random.Range(0, allTools.Count);
             ToolRequest toolRequest = allTools[choice];
+            toolRequest.timeLimit = GenerateRequestTimeLimit();
             toolRequest.targetClient = focusedClient;
             toolRequest.targetChair = focusedChair;
             availableRequests.Add(toolRequest);
@@ -292,7 +302,9 @@ public class ToolRequestManager : MonoBehaviour
 
         int index = Random.Range(0, availableRequests.Count);
         currentRequest = availableRequests[index];
-        remainingTime = availableRequests[index].timeLimit;
+        currentRequest.timeLimit = ClampRequestTimeLimit(
+            currentRequest.timeLimit);
+        remainingTime = currentRequest.timeLimit;
         currentState = State.ActiveRequest;
 
         string itemCategory = currentRequest.itemType.ToString();
@@ -386,8 +398,10 @@ public class ToolRequestManager : MonoBehaviour
             0f,
             completedRequest.timeLimit - safeRemainingTime);
         lastEarlyCompletionBonus = rewardEarlyCompletion
-            ? safeRemainingTime *
-              Mathf.Max(0f, earlyCompletionBonusMultiplier)
+            ? Mathf.Min(
+                safeRemainingTime *
+                Mathf.Max(0f, earlyCompletionBonusMultiplier),
+                Mathf.Max(0f, maximumEarlyCompletionBonus))
             : 0f;
 
         if (completedRequest.itemType == ItemType.BodyPart)
@@ -690,6 +704,24 @@ public class ToolRequestManager : MonoBehaviour
     {
         yield return null;
         TryStartNextClientBatch();
+    }
+
+    private float GenerateRequestTimeLimit()
+    {
+        float minimum = Mathf.Max(0f, minimumRequestTime);
+        float maximum = Mathf.Max(minimum, maximumRequestTime);
+        return Random.Range(minimum, maximum);
+    }
+
+    private float ClampRequestTimeLimit(float timeLimit)
+    {
+        float minimum = Mathf.Max(0f, minimumRequestTime);
+        float maximum = Mathf.Max(minimum, maximumRequestTime);
+
+        if (timeLimit < minimum || timeLimit > maximum)
+            return GenerateRequestTimeLimit();
+
+        return timeLimit;
     }
 
     private static bool CompleteAllClientRequirements(
