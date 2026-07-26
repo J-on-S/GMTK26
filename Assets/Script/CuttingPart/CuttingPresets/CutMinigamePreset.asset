@@ -20,5 +20,5 @@ MonoBehaviour:
   cameraOrbitPreset: {fileID: 11400000, guid: a5c08a62c8d04cc40b6536ff1a9fc119, type: 2}
   scalpelOrbitPreset: {fileID: 11400000, guid: c7b8777cac06ca145b48ea82682e0ac3, type: 2}
   curveWidth: 0.02
-  curveHoverLength: 0
+  curveHoverLength: 0.02
   curveResolution: 64

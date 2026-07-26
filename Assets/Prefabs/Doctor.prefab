@@ -1513,6 +1513,7 @@ GameObject:
   - component: {fileID: 7953782567705911876}
   - component: {fileID: 1390945864971356416}
   - component: {fileID: 7309803597861253452}
+  - component: {fileID: 7375749645735773164}
   m_Layer: 0
   m_Name: Doctor
   m_TagString: Untagged
@@ -1627,7 +1628,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59c5f1de79dfc4015af0154ddef88074, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoctorAccepting
-  angerSound: {fileID: 0}
+  angerSound: {fileID: 7375749645735773164}
 --- !u!136 &1390945864971356416
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1668,7 +1669,28 @@ MonoBehaviour:
   timerText: {fileID: 0}
   timeRemaining: 0
   flashThreshold: 10
+  maxIntensity: 3
   flashLight: {fileID: 0}
+--- !u!114 &7375749645735773164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2112398837450586553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46c6db39aba9b6b4b9499367412e4b88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitSound
+  hitSounds:
+  - {fileID: 11400000, guid: 3c8a9169e06af4f5991c12943974da12, type: 2}
+  - {fileID: 11400000, guid: 5d2f2652751ee4dcfb7b41125b71a5e8, type: 2}
+  - {fileID: 11400000, guid: 6b20f7e8a913a45549bb12f3547e2749, type: 2}
+  - {fileID: 11400000, guid: 31dc5a78f70634d07b622cd22fef94af, type: 2}
+  - {fileID: 11400000, guid: 253094b26ab6749e2b36b591b1feebcf, type: 2}
+  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  decider: 1
 --- !u!1 &2152321910453675204
 GameObject:
   m_ObjectHideFlags: 0
@@ -6196,9 +6218,9 @@ MonoBehaviour:
     weight: 4
   moveSpeed: 3
   stoppingDistance: 0.1
+  toolRequestManager: {fileID: 0}
   surgeryTableATransform: {fileID: 0}
   surgeryTableBTransform: {fileID: 0}
-  testIsATable: 0
   rotationSpeed: 90
   bedA: {fileID: 0}
   bedB: {fileID: 0}

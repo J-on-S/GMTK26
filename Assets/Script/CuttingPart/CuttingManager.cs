@@ -152,9 +152,6 @@ public enum CuttingState
     [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane + curvePreset.")]
     public LoopGuideBuilder loopGuide;
 
-    [Tooltip("Draw this cut's guide lines in play mode as well as in edit mode. Off, they are an authoring aid only. The curved target loop ignores this and always draws -- it is what the player aims at.")]
-    public bool showGuideLinesInPlay = true;
-
     [Tooltip("Drawn width of every guide line this cut owns, in world units. The scalpel's own trace keeps its own width.")]
     public float guideLineWidth = 0.005f;
 
@@ -1229,7 +1226,14 @@ public enum CuttingState
             // applied here and not left to the next draw: OnValidate calls this, and an author dragging
             // the width wants the line to change under the cursor.
             loopGuide.ApplyLineWidth();
-            loopGuide.showInPlayMode = showGuideLinesInPlay;
+
+            // guide lines are always shown in play, and only the straight (flat) loop is drawn -- the
+            // curved target line is hidden. Forced every push so it holds for every cut, whatever an
+            // older guide serialized. Hiding the curved line is draw-only: TryGetCurvedLoop still
+            // rebuilds it on demand for the camera, finisher and scorer.
+            loopGuide.showInPlayMode = true;
+            loopGuide.showFlatLoop = true;
+            loopGuide.showCurvedLoop = false;
         }
 
         // cutting speed driver reads the camera-moves preset.
@@ -1288,11 +1292,38 @@ public enum CuttingState
     {
         AutoWire();
     }
+#if UNITY_EDITOR
+    // guards against stacking one deferred push per OnValidate call; not serialized, purely edit-time.
+    [System.NonSerialized] private bool _validatePushQueued;
+#endif
+
     void OnValidate()
     {
+#if UNITY_EDITOR
+        // OnValidate also fires during a prefab Apply and the reimport it triggers. Writing to other
+        // objects from here (PushParameters, DriveScalpelStartAngle) fights that operation -- an override
+        // applied to the prefab reverts immediately -- and Unity documents that OnValidate must not modify
+        // other objects. So the push is deferred out of validation: the apply/import settles first, then
+        // the delegate runs once and re-checks the object still exists. Universal: every field validates
+        // without side effects, so applying any of them to a prefab now sticks.
+        if (_validatePushQueued) return;
+        _validatePushQueued = true;
+        UnityEditor.EditorApplication.delayCall += RunDeferredValidatePush;
+#endif
+    }
+
+#if UNITY_EDITOR
+    private void RunDeferredValidatePush()
+    {
+        _validatePushQueued = false;
+
+        if (this == null) return;           // destroyed between the validate and this callback
+        if (Application.isPlaying) return;   // play pushes run through Start/entry, not validation
+
         DriveScalpelStartAngle();
         PushParameters();
     }
+#endif
     void OnEnable()
     {
         // the registry maps bodies back to their cuts by one scene sweep; tell it the set moved.
