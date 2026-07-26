@@ -52,6 +52,7 @@ public class CountdownUI : MonoBehaviour
             timeRemaining = 0;
             UpdateTimerDisplay(timeRemaining);
             // heart loss could also happen here idk
+            // 
         }
     }
 

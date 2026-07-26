@@ -7,6 +7,7 @@ public class PlayerMovement : MonoBehaviour
   public CharacterController controller;
  
   public float speed = 12f;
+  public float gravity = -9.81f; 
  
   public Transform groundCheck;
   public float groundDistance = 0.4f;
@@ -29,11 +30,15 @@ public class PlayerMovement : MonoBehaviour
  
     float x = Input.GetAxis("Horizontal"); // if we press a or d -> +1 or -1
     float z = Input.GetAxis("Vertical"); // if we press w or s -> +1 or -1 
- 
     //right is the red Axis(x), foward is the blue axis (z)
+    // horizontal speed
     Vector3 move = transform.right * x + transform.forward * z;
 
     // use Time.deltaTime to be consisted with frames
     controller.Move(move * speed * Time.deltaTime);
+
+    // vertical speed
+    velocity.y += gravity * Time.deltaTime; // acceleration -> speed
+    controller.Move(velocity * Time.deltaTime); // speed -> distance
     }
 }

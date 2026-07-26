@@ -161,6 +161,7 @@ public class ToolRequestManager : MonoBehaviour
     {
         Debug.Log("Time is up! You failed the request.");
         myTextLabel.text = "Ran out of time";
+        //TODO: LOOSE LIFE
         StartCooldown();
     }
 

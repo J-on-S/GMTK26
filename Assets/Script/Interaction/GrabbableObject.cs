@@ -20,7 +20,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable{
     if (player.heldObject == null){ 
       // make an object as a child for holdPoint
       Debug.Log("player holdp"+player.holdPoint);
-      transform.parent = player.holdPoint;
+      transform.SetParent(player.holdPoint, true);
 
       // local means relative to the parent
       this.transform.localPosition = Vector3.zero; // centre of holdPoint
