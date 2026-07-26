@@ -2,21 +2,59 @@ using UnityEngine;
 
 /// <summary>Manages the cut travel speed: turns wheel/key input into <see cref="currentSpeed"/>, with coast and friction. Owns nothing else -- consumers (camera, tracer) read the speed.</summary>
 /// <remarks>
-/// Shared by every <see cref="CuttingManager"/> and not authored by hand: reach it through
-/// <see cref="Shared"/>, which finds the scene's driver or makes one. It holds no tuning of its own
-/// -- direction, speeds and the backward-input rules all come from the <see cref="CameraMovesPreset"/>
-/// the entering cut assigns, which is what lets one driver serve cuts that travel different ways.
-/// Its only state is the live speed, and that is wiped on both enter and quit.
+/// Shared by every <see cref="CuttingManager"/>: reach it through <see cref="Shared"/>, which finds the
+/// scene's driver or makes one. The entering cut assigns a <see cref="CameraMovesPreset"/> that carries
+/// its direction, speeds and backward-input rules, which is what lets one driver serve cuts that travel
+/// different ways. With no preset assigned, the inline fields below stand in -- the same preset-over-inline
+/// fallback the rest of the cutting components use, so a driver dropped in a scene can be tuned by hand and
+/// a cut with no CameraMovesPreset still moves. Its only per-run state is the live speed, wiped on enter
+/// and quit.
 /// </remarks>
 public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
 
-    [Tooltip("Tuning for the cut currently running. Assigned by the CuttingManager on entry, not by hand.")]
+    [Tooltip("Tuning for the cut currently running. Assigned by the CuttingManager on entry, not by hand. When null, the inline fields below are used instead.")]
     [HideInInspector] public CameraMovesPreset preset;
+
+    [Header("Fallback tuning (used when no preset is assigned)")]
+
+    [Tooltip("Time for the camera to complete one full loop (360 deg) at top speed, in seconds. The speed cap derives from this.")]
+    public float secondsPerLoop = 12f;
+
+    [Tooltip("Continuous push rate while an arrow key is held (units/sec added to speed).")]
+    public float acceleration = 4f;
+
+    [Tooltip("Speed added per mouse-wheel ridge (one kick, like a skateboard foot push).")]
+    public float wheelKick = 3f;
+
+    [Tooltip("Friction rate once coasting ends. Negative = slows down.")]
+    public float deceleration = -0.1f;
+
+    [Tooltip("Glide time after the last push before friction starts, in seconds.")]
+    public float coastTime = 0.3f;
+
+    [Tooltip("Which way the cut travels around the ring: 1 or -1. Scroll and keys are read relative to it.")]
+    public int directionMainScroll = 1;
+
+    [Tooltip("Let the player travel backwards along the cut. Off, the speed floor is 0.")]
+    public bool canGoBackwards = false;
+
+    [Tooltip("Let input against the travel direction brake down to a stop, but never reverse. Ignored when Can Go Backwards is on.")]
+    public bool canDecelerateManually = false;
 
     /// <summary>Seconds since the last push; friction only applies past <c>coastTime</c>.</summary>
     private float idleTimer;
 
     [ReadOnly] public float currentSpeed;
+
+    // Every number below reads from the assigned preset when there is one, and from the inline field
+    // otherwise -- the same fallback pattern as the other cutting components.
+    private float MaxSpeed => preset != null ? preset.MaxSpeed : (secondsPerLoop > 0f ? 360f / secondsPerLoop : float.MaxValue);
+    private float Acceleration => preset != null ? preset.acceleration : acceleration;
+    private float WheelKick => preset != null ? preset.wheelKick : wheelKick;
+    private float Deceleration => preset != null ? preset.deceleration : deceleration;
+    private float CoastTime => preset != null ? preset.coastTime : coastTime;
+    private bool CanGoBackwards => preset != null ? preset.canGoBackwards : canGoBackwards;
+    private bool CanDecelerateManually => preset != null ? preset.canDecelerateManually : canDecelerateManually;
 
     /// <summary>The scene's driver, found once and remembered.</summary>
     private static CutSpeedDriver shared;
@@ -41,11 +79,11 @@ public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
         }
     }
 
-    /// <summary>Which way the running cut travels around the ring, as a sign. 1 when no preset is assigned yet.</summary>
-    private int Direction => preset != null ? preset.DirectionMainScroll : 1;
+    /// <summary>Which way the running cut travels around the ring, as a sign, from the preset or the inline field.</summary>
+    private int Direction => preset != null ? preset.DirectionMainScroll : directionMainScroll;
 
     /// <summary>Whether input against the travel direction is read at all, either to reverse or to brake.</summary>
-    private bool AcceptsBackwardInput => preset != null && (preset.canGoBackwards || preset.canDecelerateManually);
+    private bool AcceptsBackwardInput => CanGoBackwards || CanDecelerateManually;
 
     /// <summary>Speed signed by the main travel direction; what a follower orbits at. Consumers read this instead of being pushed to.</summary>
     void Update()
@@ -73,9 +111,8 @@ public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
 
     void UpdateCameraSpeed()
     {
-        // enabled between EnterMinigame and quit, but the preset only lands when a cut claims the
-        // driver; without it there is no speed cap or kick size to work from.
-        if (preset == null) return;
+        // enabled between EnterMinigame and quit. Tuning comes from the assigned preset, or the inline
+        // fields when a cut runs with none, so there is always a speed cap and kick size to work from.
         if (GameInputActions.Scroll == null || GameInputActions.Arrows == null) return;
 
         float scroll = GameInputActions.Scroll.ReadValue<Vector2>().y;
@@ -92,7 +129,7 @@ public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
         // the clamp at the bottom is what stops a brake from turning into a reverse.
         if (Mathf.Abs(scroll) > 0.01f &&( sameDirection || acceptsBackward))
         {
-            currentSpeed += preset.wheelKick * Mathf.Sign(scroll) * Mathf.Sign(direction);
+            currentSpeed += WheelKick * Mathf.Sign(scroll) * Mathf.Sign(direction);
             pushed = true;
         }
 
@@ -101,7 +138,7 @@ public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
         sameDirection = Mathf.Sign(keys) == Mathf.Sign(direction);
         if (Mathf.Abs(keys) > 0 &&( sameDirection || acceptsBackward) )
         {
-            currentSpeed += preset.acceleration * keyFwd * Time.deltaTime;
+            currentSpeed += Acceleration * keyFwd * Time.deltaTime;
             pushed = true;
         }
 
@@ -114,13 +151,13 @@ public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
         {
             idleTimer += Time.deltaTime;
             // only decelerate if the currentSpeed is the same sign as where we are going
-            if (idleTimer >= preset.coastTime &&  Mathf.Sign(currentSpeed) == Mathf.Sign(direction) )
+            if (idleTimer >= CoastTime &&  Mathf.Sign(currentSpeed) == Mathf.Sign(direction) )
             {
-                currentSpeed += preset.deceleration * Time.deltaTime;
+                currentSpeed += Deceleration * Time.deltaTime;
             }
         }
-        float minSpeed = preset.canGoBackwards ? -preset.MaxSpeed : 0;
-        currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, preset.MaxSpeed);
+        float minSpeed = CanGoBackwards ? -MaxSpeed : 0;
+        currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, MaxSpeed);
     }
 
     /// <summary>Wipes every field that carries over between cuts: the live speed and the coast timer.</summary>
