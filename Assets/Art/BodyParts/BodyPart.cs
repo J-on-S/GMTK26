@@ -6,6 +6,7 @@ public class BodyPart : ScriptableObject
 {
     [SerializeField] private BodyPartType bodyPartType;
     [SerializeField] private GameObject bodyPartPrefab;
+    [SerializeField] private GameObject BodyPart2DPrefab;
     public Vector3 rotation;
     public float size;
     public Sprite bodyPartImg;

@@ -18,7 +18,7 @@ public class CountdownUI : MonoBehaviour
 
     // flashing lights section
     public float flashThreshold = 10f;          // this is how much remaining time will be when the screen starts flashing
-    private float maxIntensity = 15f;     // max intensity of the light
+    public float maxIntensity = 15f;     // max intensity of the light
 
 
     // change to light instead of UI

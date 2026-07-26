@@ -71,7 +71,7 @@ public class OperationChairCuttingHandler : MonoBehaviour
     private void OnClientPlaced(OperationChair chair, GameObject client)
     {
         if (client == null) return;
-
+        
         CuttableObject[] bodies = client.GetComponentsInChildren<CuttableObject>(true);
         if (bodies.Length == 0)
         {

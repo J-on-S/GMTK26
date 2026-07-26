@@ -15,6 +15,7 @@ public class BlackMarketGenerator :
     [SerializeField] private int maxNbBodyParts = 3;
     [SerializeField] private Material notFoundMat; 
     [SerializeField] private int totalParts = 12;
+    [SerializeField] private GameObject bodyPart2DPrefab;
     //[SerializeField, Range(1, 3)] private int maximumDifferentPartTypes = 3;
     [SerializeField] private List<BodyPartType> availableBodyParts = new()
     {
@@ -194,6 +195,12 @@ public class BlackMarketGenerator :
                 newBodyPartObj.transform.localPosition = Vector3.zero;
                 newBodyPartObj.transform.localRotation = Quaternion.Euler(bodyPart.rotation);
                 newBodyPartObj.transform.localScale = Vector3.one * bodyPart.size;
+                newBodyPartObj.SetActive(false);
+                GameObject newBodyPart2DObj = Instantiate(bodyPart2DPrefab, bodyPartsTransform);
+                newBodyPart2DObj.GetComponent<SpriteRenderer>().sprite = bodyPart.bodyPartImg;
+                newBodyPart2DObj.transform.rotation = Quaternion.Euler(90, 0, 0);
+                newBodyPart2DObj.GetComponent<SpriteRenderer>().color = Color.black;// = Quaternion.Euler(90, 0, 0);
+                newBodyPart2DObj.transform.localScale *=0.2f;
                 Renderer renderer;
                 if (newBodyPartObj.transform.childCount > 0)
                 {
@@ -203,7 +210,6 @@ public class BlackMarketGenerator :
                 {
                     renderer = newBodyPartObj.GetComponent<Renderer>();
                 }
-                 
                 Material originalMat =
                     renderer != null ? renderer.material : null;
                 if (renderer != null)
@@ -252,6 +258,7 @@ public class BlackMarketGenerator :
                         renderer.material = bodyPartContain.OriginalMat;
                     }
                     bodyPartContain.HasBodyPart = true;
+                    spawnedBodyPartObj.SetActive(true);
                     return;
                 }
             }
