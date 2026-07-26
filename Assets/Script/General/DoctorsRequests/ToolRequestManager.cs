@@ -47,6 +47,9 @@ public class ToolRequestManager : MonoBehaviour
         SubscribeToClientList();
     }
 
+    // request sound
+    public PlayerHitSound confusedDoctor;
+
     private void Start()
     {
         SubscribeToClientList();
@@ -237,6 +240,7 @@ public class ToolRequestManager : MonoBehaviour
                 chairText;
         }
 
+       confusedDoctor.playAudio();
         availableRequests.Remove(currentRequest);
         RequestStarted?.Invoke(currentRequest);
         Debug.Log(
