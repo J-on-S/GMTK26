@@ -101,6 +101,11 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         detachedBodyPart.health = startingHealth;
         detachedBodyPart.maxHealth = maxHealth;
         detachedBodyPart.bodyPart = bodyPart;
+        detachedBodyPart.item = bodyPart;
+        if (bodyPart == null)
+        {
+            Debug.LogError("bodypart null");
+        }
         detachedBodyPart.audioPreset = preset;
 
         if (!string.IsNullOrWhiteSpace(itemName))

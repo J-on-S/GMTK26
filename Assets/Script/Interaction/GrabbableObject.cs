@@ -48,8 +48,22 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   public Vector3 StartWorldScale => startWorldScale;
 
   /// <summary>What the description HUD calls this item: its authored <see cref="itemName"/>, or the GameObject's name when that is blank.</summary>
-  public string DisplayName => string.IsNullOrWhiteSpace(item.Name) ? gameObject.name : item.Name;
+  public string DisplayName
+  {
+      get
+      {
+          if (item == null)
+        {
+          Debug.LogError("item is null: current gameObject: "+gameObject.name);
+          return gameObject.name;
+        }
+              
 
+          return string.IsNullOrWhiteSpace(item.Name)
+              ? gameObject.name
+              : item.Name;
+      }
+  }
   /// <summary>Set the frame the player is looking at this, cleared in LateUpdate: the interactor calls HoverOver every such frame, so a frame with no call means the aim left.</summary>
   private bool hovering;
 
@@ -142,6 +156,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
       EnsureRigidbody().isKinematic = true; // no physics for object;
       SetCollidersEnabled(false);
       player.heldObject = this;
+      player.heldObject.item = item;
       holder = player;
     }
   }
