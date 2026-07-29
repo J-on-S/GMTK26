@@ -126,8 +126,8 @@ public class ClientTaskDebugTester : MonoBehaviour
         // Give every still-required body part through the normal client API.
         foreach (BodyPartRequest request in task.Requests)
         {
-            while (task.GetRemainingAmount(request.BodyPart) > 0)
-                holder.GiveBodyPart(request.BodyPart);
+            while (task.GetRemainingAmount(request.BodyPartType) > 0)
+                holder.GiveBodyPart(request.BodyPartType);
         }
     }
 
@@ -186,7 +186,7 @@ public class ClientTaskDebugTester : MonoBehaviour
         {
             data.AppendLine(
                 $"- {request.BodyPart}: {request.Amount} requested, " +
-                $"{task.GetRemainingAmount(request.BodyPart)} remaining");
+                $"{task.GetRemainingAmount(request.BodyPartType)} remaining");
         }
 
         data.AppendLine($"Complete: {task.IsComplete}");

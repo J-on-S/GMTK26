@@ -15,19 +15,23 @@ public class RequestDeliveryTarget : MonoBehaviour
     }
 
     // returns boolean indicating if the item was correctly received
-    public bool ReceiveItem(string itemName, ItemType itemType)
+    public bool ReceiveItem(Item item)
     {
         if (manager != null)
         {
             // only respawn once the item is given to the doctor
 
             // check its correct item
-            bool isCorrectItem = manager.PlayerSubmittedTool(itemName, itemType);
+            bool isCorrectItem = manager.PlayerSubmittedTool(item);
 
+            
             if (isCorrectItem)
             {
-                // trigger respawn for that item
-                TriggerWorldItemRespawn(itemName, itemType);
+                if (item is Tool tool)
+                {
+                    // trigger respawn for that item
+                    TriggerWorldItemRespawn(tool);
+                }
                 return true;
             }
             else
@@ -41,13 +45,13 @@ public class RequestDeliveryTarget : MonoBehaviour
     }
 
     // find object and trigger its respawn
-    private void TriggerWorldItemRespawn(string targetName, ItemType targetType)
+    private void TriggerWorldItemRespawn(Tool targetTool)
     {
         ToolPickup[] allPickups = FindObjectsByType<ToolPickup>(FindObjectsSortMode.None);
 
         foreach (ToolPickup pickup in allPickups)
         {
-            if (pickup.itemName == targetName && pickup.itemType ==targetType)
+            if (pickup.tool.toolType == targetTool.toolType)
             {
                 pickup.StartRespawnTimer();
                 return;

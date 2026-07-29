@@ -70,7 +70,7 @@ public class TemporaryBlackMarketTaskGenerator :
             BodyPartType part = choices[UnityEngine.Random.Range(0, choices.Count)];
 
             // Find an existing request for that type
-            BodyPartRequest request = requests.Find(r => r.BodyPart == part);
+            BodyPartRequest request = requests.Find(r => r.BodyPartType == part);
 
             if (request == null)
             {
@@ -135,9 +135,8 @@ public class TemporaryBlackMarketTaskGenerator :
         int pos_index = 0;
         foreach (BodyPartRequest bodyPartRequest in currentBlackMarketTask.RequestedParts)
         {
-            BodyPartType bodyPartType = bodyPartRequest.BodyPart;
             int amountBodyPartOfThisType = bodyPartRequest.Amount;
-            BodyPart bodyPart = bodyParts.SearchBodyPart(bodyPartType);
+            BodyPart bodyPart = bodyPartRequest.BodyPart;
             if(!bodyPart) continue;
             List<BodyPartContain> currentBodyPartTypeContains = new List<BodyPartContain>();
 
@@ -156,7 +155,7 @@ public class TemporaryBlackMarketTaskGenerator :
                 BodyPartContain newBodyPartContain = new BodyPartContain(bodyPart, newBodyPartObj, originalMat);
                 currentBodyPartTypeContains.Add(newBodyPartContain);
             }
-            bodyPartsContainByType.Add(bodyPartType, currentBodyPartTypeContains);
+            bodyPartsContainByType.Add(bodyPart.BodyPartType, currentBodyPartTypeContains);
         }
     }
     [ContextMenu("Add BodyPart in test")]

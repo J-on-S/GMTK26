@@ -34,7 +34,7 @@ public class BlackMarketTask
                 text.Append(i == requestedParts.Count - 1 ? " and " : ", ");
 
             BodyPartRequest request = requestedParts[i];
-            string partName = request.BodyPart.ToString().ToLowerInvariant();
+            string partName = request.BodyPart.Name.ToLowerInvariant();
 
             text.Append(request.Amount);
             text.Append(' ');

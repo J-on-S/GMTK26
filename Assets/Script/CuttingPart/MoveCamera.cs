@@ -99,7 +99,7 @@ public class MoveCamera : MonoBehaviour
             return;
         }
 
-        string heldItem = interactor != null && interactor.heldObject != null ? interactor.heldObject.itemName : null;
+        string heldItem = interactor != null && interactor.heldObject != null ? interactor.heldObject.item.Name : null;
         bool hasTool = aimed.HasRequiredTool(heldItem);
 
         // completed wins: a finished cut reads as done whatever the player happens to be holding.

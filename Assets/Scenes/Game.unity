@@ -851,6 +851,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClientTaskList
   database: {fileID: 11400000, guid: 105c1d89afe6ec64fb9b72b581300238, type: 2}
+  bodyParts: {fileID: 0}
 --- !u!1 &221404785
 GameObject:
   m_ObjectHideFlags: 0
@@ -1530,68 +1531,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f990f0cdd3660264e8eb5ac3a50e0caa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ToolRequestManager
-  availableRequests:
-  - itemName: Injector
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  allTools:
-  - itemName: Injector
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  - itemName: LargeScissors
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  - itemName: MediumScissors
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  - itemName: SmallScissors
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  - itemName: Scalpel
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  - itemName: Saw
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  - itemName: Syringe
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  - itemName: Tweezers
-    itemType: 0
-    timeLimit: 30
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
-  timeBetweenRequests: 5
-  numberOfRequests: 5
-  minimumRequestTime: 50
-  maximumRequestTime: 60
+  availableTools: {fileID: 0}
+  timeBetweenRequests:
+    min: 5
+    max: 7
+    currentValue: 0
+  numberOfRequests:
+    min: 5
+    max: 6
+    currentValue: 0
+  requestTime:
+    min: 50
+    max: 60
+    currentValue: 0
   rewardEarlyCompletion: 1
   earlyCompletionBonusMultiplier: 1
   maximumEarlyCompletionBonus: 10
   operationChairs: []
   currentState: 0
-  currentRequest:
-    itemName: 
-    itemType: 0
-    timeLimit: 0
-    targetClient: {fileID: 0}
-    targetChair: {fileID: 0}
   remainingTime: 0
   remainingCooldown: 0
   lastRequestElapsedTime: 0
@@ -1611,11 +1568,11 @@ Transform:
   m_GameObject: {fileID: 379738029}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 9.55381, y: 0, z: 16.37572}
+  m_LocalPosition: {x: -4.28928, y: 0, z: -19.31143}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1610928620}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &384836009
 GameObject:
@@ -5957,6 +5914,7 @@ Transform:
   - {fileID: 209822995}
   - {fileID: 1125092165}
   - {fileID: 826281314}
+  - {fileID: 379738031}
   m_Father: {fileID: 1514884827}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1614912152
@@ -9257,6 +9215,14 @@ PrefabInstance:
       value: HeroProp_Needle
       objectReference: {fileID: 0}
     - target: {fileID: 7617368673359838790, guid: 9448ef3130f42354ba1134b38713b018, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: 71fde8227c678ac48b46859ac9ab6ef9, type: 2}
+    - target: {fileID: 7617368673359838790, guid: 9448ef3130f42354ba1134b38713b018, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: 71fde8227c678ac48b46859ac9ab6ef9, type: 2}
+    - target: {fileID: 7617368673359838790, guid: 9448ef3130f42354ba1134b38713b018, type: 3}
       propertyPath: channel
       value: 
       objectReference: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
@@ -9358,6 +9324,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: HeroProp_SmallScissors
       objectReference: {fileID: 0}
+    - target: {fileID: 3999663407534106999, guid: 917d7e06be165ed4c928f88d918092f7, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: 042c05b8d87751944aa98c197f714ff4, type: 2}
+    - target: {fileID: 3999663407534106999, guid: 917d7e06be165ed4c928f88d918092f7, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: 042c05b8d87751944aa98c197f714ff4, type: 2}
     - target: {fileID: 3999663407534106999, guid: 917d7e06be165ed4c928f88d918092f7, type: 3}
       propertyPath: channel
       value: 
@@ -9766,6 +9740,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8056053254657921675, guid: d19502f2b76b22746ae713e32ea2133e, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: bc605df18e661e3459551e02384bb378, type: 2}
+    - target: {fileID: 8056053254657921675, guid: d19502f2b76b22746ae713e32ea2133e, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: bc605df18e661e3459551e02384bb378, type: 2}
     - target: {fileID: 8056053254657921675, guid: d19502f2b76b22746ae713e32ea2133e, type: 3}
       propertyPath: channel
       value: 
@@ -10367,12 +10349,24 @@ PrefabInstance:
     m_TransformParent: {fileID: 7753190469920628640}
     m_Modifications:
     - target: {fileID: 278141424829363044, guid: b29d580b4c4a2b249bb80944bec6fe56, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: dce751b01cd520646a25793b8aa762dc, type: 2}
+    - target: {fileID: 278141424829363044, guid: b29d580b4c4a2b249bb80944bec6fe56, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: dce751b01cd520646a25793b8aa762dc, type: 2}
+    - target: {fileID: 278141424829363044, guid: b29d580b4c4a2b249bb80944bec6fe56, type: 3}
       propertyPath: channel
       value: 
       objectReference: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
     - target: {fileID: 278141424829363044, guid: b29d580b4c4a2b249bb80944bec6fe56, type: 3}
       propertyPath: itemName
       value: LargeScissors
+      objectReference: {fileID: 0}
+    - target: {fileID: 278141424829363044, guid: b29d580b4c4a2b249bb80944bec6fe56, type: 3}
+      propertyPath: itemType
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 278141424829363044, guid: b29d580b4c4a2b249bb80944bec6fe56, type: 3}
       propertyPath: audioPreset
@@ -10502,6 +10496,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5846179299688006383, guid: 2f0e06942902ebc4bb627b5078395a94, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: 27dc36a193cefba42be2efe8a9944597, type: 2}
+    - target: {fileID: 5846179299688006383, guid: 2f0e06942902ebc4bb627b5078395a94, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: 27dc36a193cefba42be2efe8a9944597, type: 2}
     - target: {fileID: 5846179299688006383, guid: 2f0e06942902ebc4bb627b5078395a94, type: 3}
       propertyPath: channel
       value: 
@@ -10913,6 +10915,14 @@ PrefabInstance:
       value: HeroProp_Scalpel
       objectReference: {fileID: 0}
     - target: {fileID: 9115308940188587761, guid: 26251fe0f43e9db42934be3b4b578b84, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: 4a3bdcfd9f4033a43bdf750fe72fe2f9, type: 2}
+    - target: {fileID: 9115308940188587761, guid: 26251fe0f43e9db42934be3b4b578b84, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: 4a3bdcfd9f4033a43bdf750fe72fe2f9, type: 2}
+    - target: {fileID: 9115308940188587761, guid: 26251fe0f43e9db42934be3b4b578b84, type: 3}
       propertyPath: channel
       value: 
       objectReference: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
@@ -11159,6 +11169,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 7753190469920628640}
     m_Modifications:
     - target: {fileID: 3001473648001833767, guid: c0374154152b6f24a884f5d528f5ea45, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.3274576
+      objectReference: {fileID: 0}
+    - target: {fileID: 3001473648001833767, guid: c0374154152b6f24a884f5d528f5ea45, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.3274576
+      objectReference: {fileID: 0}
+    - target: {fileID: 3001473648001833767, guid: c0374154152b6f24a884f5d528f5ea45, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.3274576
+      objectReference: {fileID: 0}
+    - target: {fileID: 3001473648001833767, guid: c0374154152b6f24a884f5d528f5ea45, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.67789304
       objectReference: {fileID: 0}
@@ -11198,6 +11220,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8464920944978077747, guid: c0374154152b6f24a884f5d528f5ea45, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: f02f443d52a821c4080a7f82bfc513d7, type: 2}
+    - target: {fileID: 8464920944978077747, guid: c0374154152b6f24a884f5d528f5ea45, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: f02f443d52a821c4080a7f82bfc513d7, type: 2}
     - target: {fileID: 8464920944978077747, guid: c0374154152b6f24a884f5d528f5ea45, type: 3}
       propertyPath: channel
       value: 
@@ -11805,6 +11835,14 @@ PrefabInstance:
     m_TransformParent: {fileID: 7753190469920628640}
     m_Modifications:
     - target: {fileID: 1098980084849576541, guid: 6cc872927bfd0f748b72bb3e9bacab88, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: 5bd47e947db46c14ca7bffd46b772f27, type: 2}
+    - target: {fileID: 1098980084849576541, guid: 6cc872927bfd0f748b72bb3e9bacab88, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: 5bd47e947db46c14ca7bffd46b772f27, type: 2}
+    - target: {fileID: 1098980084849576541, guid: 6cc872927bfd0f748b72bb3e9bacab88, type: 3}
       propertyPath: channel
       value: 
       objectReference: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
@@ -12336,7 +12374,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2738810542452939130}
   - {fileID: 4743756232699155812}
   - {fileID: 6825120405588280451}
   - {fileID: 8758092690256793358}
@@ -12345,6 +12382,7 @@ Transform:
   - {fileID: 847493852832516933}
   - {fileID: 6104347803333127738}
   - {fileID: 3565909981171409460}
+  - {fileID: 2738810542452939130}
   m_Father: {fileID: 543450651859203499}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &7821021865062984629
@@ -12543,6 +12581,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753190469920628640}
     m_Modifications:
+    - target: {fileID: 1990174249423453295, guid: 3de484647b87a73408d263c1929ab68c, type: 3}
+      propertyPath: item
+      value: 
+      objectReference: {fileID: 11400000, guid: 76cb953c4a44581498fd18635af97404, type: 2}
+    - target: {fileID: 1990174249423453295, guid: 3de484647b87a73408d263c1929ab68c, type: 3}
+      propertyPath: tool
+      value: 
+      objectReference: {fileID: 11400000, guid: 76cb953c4a44581498fd18635af97404, type: 2}
     - target: {fileID: 1990174249423453295, guid: 3de484647b87a73408d263c1929ab68c, type: 3}
       propertyPath: channel
       value: 
@@ -13241,7 +13287,6 @@ SceneRoots:
   - {fileID: 1910695550}
   - {fileID: 1638025470}
   - {fileID: 338945034}
-  - {fileID: 379738031}
   - {fileID: 1062407667}
   - {fileID: 155493466}
   - {fileID: 1514884827}

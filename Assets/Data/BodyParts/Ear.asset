@@ -12,8 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee0679e81b92e5645800d6722bbd5819, type: 3}
   m_Name: Ear
   m_EditorClassIdentifier: Assembly-CSharp::BodyPart
+  itemName: Ear
+  itemType: 1
   bodyPartType: 4
   bodyPartPrefab: {fileID: 4808031800649710372, guid: bc14e9a08ce674640b97dddafff3106d, type: 3}
+  BodyPart2DPrefab: {fileID: 0}
+  bodyPartTime:
+    min: 50
+    max: 50
+    currentValue: 0
   rotation: {x: -90, y: 0, z: 0}
   size: 20
   bodyPartImg: {fileID: 1524335077, guid: a21385345aaddba48a1eb48b71fe69ad, type: 3}

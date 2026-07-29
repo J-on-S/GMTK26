@@ -2,9 +2,7 @@ using UnityEngine;
 using System.Collections;
 
 public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
-  public string itemName;
-  public ItemType itemType;
-  public BodyPartType bodyPartType;
+  public Item item;
   public float respawnTime = 3f;
 
   [Tooltip("Channel and clips this object plays on grab and drop. When set, it wins over the four fields below; they stay as the fallback so objects placed before presets existed keep sounding the same.")]
@@ -50,7 +48,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   public Vector3 StartWorldScale => startWorldScale;
 
   /// <summary>What the description HUD calls this item: its authored <see cref="itemName"/>, or the GameObject's name when that is blank.</summary>
-  public string DisplayName => string.IsNullOrWhiteSpace(itemName) ? gameObject.name : itemName;
+  public string DisplayName => string.IsNullOrWhiteSpace(item.Name) ? gameObject.name : item.Name;
 
   /// <summary>Set the frame the player is looking at this, cleared in LateUpdate: the interactor calls HoverOver every such frame, so a frame with no call means the aim left.</summary>
   private bool hovering;
@@ -150,20 +148,20 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
 
   private void PlayPickupSound(){
     if (audioPreset != null){
-      audioPreset.PlayPickup(itemType);
+      audioPreset.PlayPickup(item.Type);
       return;
     }
     if (channel == null) return;
-    channel.Play(itemType == ItemType.Tool ? metalPickupAudio : clothPickupAudio);
+    channel.Play(item.Type == ItemType.Tool ? metalPickupAudio : clothPickupAudio);
   }
 
   private void PlayDropSound(){
     if (audioPreset != null){
-      audioPreset.PlayDrop(itemType);
+      audioPreset.PlayDrop(item.Type);
       return;
     }
     if (channel == null) return;
-    channel.Play(itemType == ItemType.Tool ? metalDropAudio : clothDropAudio);
+    channel.Play(item.Type == ItemType.Tool ? metalDropAudio : clothDropAudio);
   }
 
   private Rigidbody EnsureRigidbody(){
@@ -209,7 +207,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
 
   /// <summary>What this item puts on the description HUD while hovered. Base shows just the name, and only for a tool; a body part overrides this to add its decay bar.</summary>
   protected virtual void ShowHudDescription(){
-    if (itemType == ItemType.BodyPart) return; // parts override; a plain grabbable that is not a tool shows nothing
+    if (item.Type == ItemType.BodyPart) return; // parts override; a plain grabbable that is not a tool shows nothing
     BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
     if (hud != null) hud.ShowName(this);
   }

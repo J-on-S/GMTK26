@@ -207,13 +207,13 @@ public class OperationChair : MonoBehaviour
         foreach (BodyPartRequest request in task.Requests)
         {
             int remaining =
-                task.GetRemainingAmount(request.BodyPart);
+                task.GetRemainingAmount(request.BodyPartType);
 
             for (int i = 0; i < remaining; i++)
             {
                 if (ClientList.RemoveOneFromTask(
                         clientToComplete,
-                        request.BodyPart))
+                        request.BodyPartType))
                 {
                     continue;
                 }

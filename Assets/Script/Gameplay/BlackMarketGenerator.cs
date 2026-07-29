@@ -70,7 +70,7 @@ public class BlackMarketGenerator :
             BodyPartType part = choices[UnityEngine.Random.Range(0, choices.Count)];
 
             // Find an existing request for that type
-            BodyPartRequest request = requests.Find(r => r.BodyPart == part);
+            BodyPartRequest request = requests.Find(r => r.BodyPartType == part);
 
             if (request == null)
             {
@@ -85,7 +85,7 @@ public class BlackMarketGenerator :
                 continue;
 
             request.AddAmount();
-            Debug.Log($"{request.BodyPart}: {request.Amount}");
+            Debug.Log($"{request.BodyPartType}: {request.Amount}");
             currentNbParts--;
             Debug.Log("currentNbParts: "+currentNbParts);
         }
@@ -107,7 +107,7 @@ public class BlackMarketGenerator :
                  currentBlackMarketTask.RequestedParts)
         {
             if (!bodyPartsContainByType.TryGetValue(
-                    request.BodyPart,
+                    request.BodyPartType,
                     out List<BodyPartContain> containers) ||
                 containers.Count < request.Amount)
             {
@@ -169,9 +169,8 @@ public class BlackMarketGenerator :
 
         foreach (BodyPartRequest bodyPartRequest in currentBlackMarketTask.RequestedParts)
         {
-            BodyPartType bodyPartType = bodyPartRequest.BodyPart;
             int amountBodyPartOfThisType = bodyPartRequest.Amount;
-            BodyPart bodyPart = bodyParts.SearchBodyPart(bodyPartType);
+            BodyPart bodyPart = bodyPartRequest.BodyPart;
             if(!bodyPart) continue;
             List<BodyPartContain> currentBodyPartTypeContains = new List<BodyPartContain>();
 
@@ -222,7 +221,7 @@ public class BlackMarketGenerator :
                 newBodyPartContain.obj2d = newBodyPart2DObj;
                 currentBodyPartTypeContains.Add(newBodyPartContain);
             }
-            bodyPartsContainByType.Add(bodyPartType, currentBodyPartTypeContains);
+            bodyPartsContainByType.Add(bodyPart.BodyPartType, currentBodyPartTypeContains);
         }
     }
 

@@ -19,11 +19,21 @@ public class GrabbableObjectEditor : Editor
     private Quaternion parkedLocalRotation;
     private Vector3 parkedLocalScale;
     private bool previewing;
+    SerializedProperty itemTypeProp;
+    SerializedProperty toolProp;
+    SerializedProperty bodyPartProp;
+
+    private void OnEnable()
+    {
+        itemTypeProp = serializedObject.FindProperty("itemType");
+        toolProp = serializedObject.FindProperty("tool");
+        bodyPartProp = serializedObject.FindProperty("bodyPart");
+    }
 
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
-
+        //DrawItem();
         var grabbable = (GrabbableObject)target;
 
         EditorGUILayout.Space();
@@ -63,6 +73,36 @@ public class GrabbableObjectEditor : Editor
         {
             StopPreview(grabbable);
         }
+    }
+    private void DrawItem()
+    {
+        serializedObject.Update();
+
+        EditorGUILayout.PropertyField(itemTypeProp);
+
+        ItemType itemType = (ItemType)itemTypeProp.enumValueIndex;
+
+        switch (itemType)
+        {
+            case ItemType.Tool:
+                EditorGUILayout.PropertyField(toolProp);
+                break;
+
+            case ItemType.BodyPart:
+                EditorGUILayout.PropertyField(bodyPartProp);
+                break;
+        }
+
+        // Draw the rest of the fields automatically
+        DrawPropertiesExcluding(
+            serializedObject,
+            "m_Script",
+            "itemType",
+            "tool",
+            "bodyPart"
+        );
+
+        serializedObject.ApplyModifiedProperties();
     }
 
     /// <summary>Snapshots where the object lives, then hands it to the hand.</summary>

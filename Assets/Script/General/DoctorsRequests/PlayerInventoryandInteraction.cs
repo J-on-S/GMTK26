@@ -4,8 +4,7 @@ public class PlayerInventoryandInteraction : MonoBehaviour
 {
     // inventory stuff
     public bool isHoldingItem = false;
-    public string heldItemName;
-    public ItemType heldItemType;
+    public Item heldItem;
 
     public LayerMask interactionLayers;
     public float interactionDistance = 100f;  // idk what number to set here probably this is too high
@@ -57,12 +56,10 @@ public class PlayerInventoryandInteraction : MonoBehaviour
             return;
         }
 
-        // get the item data goodness
-        heldItemName = pickup.itemName;
-        heldItemType = pickup.itemType;
+        heldItem = pickup.tool;
         isHoldingItem = true;
 
-        Debug.Log($"Picked up {heldItemType}: {heldItemName}");
+        Debug.Log($"Picked up {heldItem.Type}: {heldItem.Name}");
 
 
         // starts respawn thing
@@ -83,19 +80,19 @@ public class PlayerInventoryandInteraction : MonoBehaviour
         //
         // try give item 
         //heldobj info:
-        bool deliveryAccepted = target.ReceiveItem(heldItemName, heldItemType);
+        bool deliveryAccepted = target.ReceiveItem(heldItem);
         //held obj = null;
         if (deliveryAccepted)
         {
             // remove from inventory if item is accepted
             isHoldingItem = false;
-            heldItemName = "";
+            heldItem = null;
             Debug.Log("Item accepted. Inventory cleared.");
         }
         else
         {
             // just keep the item otherwise -- would need to drop it
-            Debug.Log($"The doctor rejected the {heldItemName}. It's still in the player's hand.");
+            Debug.Log($"The doctor rejected the {heldItem.Name}. It's still in the player's hand.");
 
         }
     }

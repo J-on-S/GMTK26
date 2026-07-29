@@ -109,9 +109,9 @@ public class GameplayLoopDebugTester : MonoBehaviour
             foreach (BodyPartRequest request in entry.Task.Requests)
             {
                 int remaining =
-                    entry.Task.GetRemainingAmount(request.BodyPart);
+                    entry.Task.GetRemainingAmount(request.BodyPartType);
                 text.AppendLine(
-                    $"   - {request.BodyPart}: {remaining}/{request.Amount} remaining");
+                    $"   - {request.BodyPartType}: {remaining}/{request.Amount} remaining");
             }
 
             entryNumber++;
@@ -189,13 +189,13 @@ public class GameplayLoopDebugTester : MonoBehaviour
 
         foreach (BodyPartRequest request in task.Requests)
         {
-            if (task.GetRemainingAmount(request.BodyPart) <= 0)
+            if (task.GetRemainingAmount(request.BodyPartType) <= 0)
                 continue;
 
-            acceptedBodyPart = request.BodyPart;
+            acceptedBodyPart = request.BodyPartType;
             clientList.RemoveOneFromTask(
                 chair.CurrentClient,
-                request.BodyPart);
+                request.BodyPartType);
             RefreshDebugList();
             return;
         }
@@ -224,11 +224,11 @@ public class GameplayLoopDebugTester : MonoBehaviour
 
         foreach (BodyPartRequest request in task.Requests)
         {
-            while (task.GetRemainingAmount(request.BodyPart) > 0)
+            while (task.GetRemainingAmount(request.BodyPartType) > 0)
             {
                 if (!clientList.RemoveOneFromTask(
                         targetClient,
-                        request.BodyPart))
+                        request.BodyPartType))
                 {
                     break;
                 }
@@ -253,11 +253,11 @@ public class GameplayLoopDebugTester : MonoBehaviour
         {
             foreach (BodyPartRequest request in entry.Task.Requests)
             {
-                while (entry.Task.GetRemainingAmount(request.BodyPart) > 0)
+                while (entry.Task.GetRemainingAmount(request.BodyPartType) > 0)
                 {
                     if (!clientList.RemoveOneFromTask(
                             entry,
-                            request.BodyPart))
+                            request.BodyPartType))
                     {
                         break;
                     }

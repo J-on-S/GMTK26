@@ -3,30 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class ToolRequestManager : MonoBehaviour
 {
-    [System.Serializable]
-    public struct ToolRequest
-    {
-        public string itemName;
-        public ItemType itemType;
-        public float timeLimit;
-        public GameObject targetClient;
-        public OperationChair targetChair;
-    }
-
     // request stuff
-    public List<ToolRequest> availableRequests = new List<ToolRequest>();   // this contains the active doctor's requests
-    public List<ToolRequest> allTools = new List<ToolRequest>();            // this contains the list of ALL TOOLS that will be used to randomly select items for the doctor's requests
-    public float timeBetweenRequests = 5f; // oooldown before next order from doctor
-    public float numberOfRequests = 5;  // minimum size of the focused client's batch
+    public DoctorRequest doctorCurrentRequests;// this contains the active doctor's requests
+    public TimeRange timeBetweenRequests = new TimeRange(5f);
+    public IntRange numberOfRequests = new IntRange(5);  // minimum size of the focused client's batch
 
     [Header("Request timing")]
     [Tooltip("Every doctor request receives a random limit within this range.")]
-    [SerializeField, Min(0f)] private float minimumRequestTime = 50f;
-    [SerializeField, Min(0f)] private float maximumRequestTime = 60f;
+    [SerializeField] private TimeRange requestTime = new TimeRange(50f, 60f);
 
     [Header("Early completion reward")]
     [Tooltip(
@@ -50,7 +37,7 @@ public class ToolRequestManager : MonoBehaviour
     [Header("Runtime debug")]
     [SerializeField] private State currentState = State.Idle;
 
-    [SerializeField] private ToolRequest currentRequest;
+    [SerializeField] private Request currentRequest;
     [SerializeField] private float remainingTime;
     [SerializeField] private float remainingCooldown;
     [SerializeField] private float lastRequestElapsedTime;
@@ -62,9 +49,9 @@ public class ToolRequestManager : MonoBehaviour
     private bool isCompletingFocusedClient;
     private bool completeFocusedClientAfterCooldown;
 
-    public event Action<ToolRequest> RequestStarted;
-    public event Action<ToolRequest> RequestCompleted;
-    public event Action<ToolRequest> RequestFailed;
+    public event Action<Request> RequestStarted;
+    public event Action<Request> RequestCompleted;
+    public event Action<Request> RequestFailed;
     public event Action<float> EarlyCompletionBonusAwarded;
     public event Action RequestQueueEmptied;
     public OperationChair FocusedChair => focusedChair;
@@ -95,7 +82,6 @@ public class ToolRequestManager : MonoBehaviour
     private void Awake()
     {
         InitializeChairOrder();
-        availableRequests.Clear();
         currentRequest = default;
     }
 
@@ -157,7 +143,7 @@ public class ToolRequestManager : MonoBehaviour
         }
     }
 
-    public void AddToDoctorRequestList(string bodyPartName)
+    /*public void AddToDoctorRequestList(string bodyPartName)
     {
         AddToDoctorRequestList(bodyPartName, null, null);
     }
@@ -167,24 +153,24 @@ public class ToolRequestManager : MonoBehaviour
         GameObject targetClient,
         OperationChair targetChair)
     {
-        availableRequests.Add(new ToolRequest
-        {
-            itemName = bodyPartName,
-            itemType = ItemType.BodyPart,
-            timeLimit = GenerateRequestTimeLimit(),
-            targetClient = targetClient,
-            targetChair = targetChair
-        });
+        // currentRequests.Add(new ToolRequest
+        // {
+        //     itemName = bodyPartName,
+        //     itemType = ItemType.BodyPart,
+        //     timeLimit = GenerateRequestTimeLimit(),
+        //     targetClient = targetClient,
+        //     targetChair = targetChair
+        // });
     }
-
-    public void FinishDoctorRequestList()
+*/
+    public void GenerateDoctorRequestsTools()
     {
         int minimumQueueSize =
-            Mathf.Max(0, Mathf.RoundToInt(numberOfRequests));
-        if (availableRequests.Count >= minimumQueueSize)
+            Mathf.Max(0, Mathf.RoundToInt(numberOfRequests.RandomValue()));
+        if (doctorCurrentRequests.Count >= minimumQueueSize)
             return;
 
-        if (allTools.Count == 0)
+        if (Tools.Instance.tools.Count == 0)
         {
             Debug.LogError(
                 "ToolRequestManager cannot fill the queue because All Tools is empty.",
@@ -192,14 +178,12 @@ public class ToolRequestManager : MonoBehaviour
             return;
         }
 
-        while (availableRequests.Count < minimumQueueSize)
+        while (doctorCurrentRequests.Count < minimumQueueSize)
         {
-            int choice = Random.Range(0, allTools.Count);
-            ToolRequest toolRequest = allTools[choice];
-            toolRequest.timeLimit = GenerateRequestTimeLimit();
-            toolRequest.targetClient = focusedClient;
-            toolRequest.targetChair = focusedChair;
-            availableRequests.Add(toolRequest);
+            Tool currentTool = Tools.Instance.RandomTool();
+            float timeLimit = currentTool.toolTime.RandomValue();
+            ToolRequest currentToolRequest = new ToolRequest(currentTool, timeLimit);
+            doctorCurrentRequests.AddRequest(currentToolRequest);
         }
     }
 
@@ -228,35 +212,38 @@ public class ToolRequestManager : MonoBehaviour
             return;
         }
 
-        availableRequests.Clear();
         focusedChair = chair;
         focusedClient = client;
+        doctorCurrentRequests = new DoctorRequest(focusedClient, focusedChair); 
 
+        //Add Body Part
         ClientTask task = holder.AssignedTask;
         HashSet<BodyPartType> addedTypes = new();
 
-        foreach (BodyPartRequest request in task.Requests)
+        foreach (BodyPartRequest bodyPartRequest in task.Requests)
         {
-            if (!addedTypes.Add(request.BodyPart))
+            if (!addedTypes.Add(bodyPartRequest.BodyPartType))
                 continue;
-
-            int remaining = task.GetRemainingAmount(request.BodyPart);
+            
+            int remaining = task.GetRemainingAmount(bodyPartRequest.BodyPartType);
             for (int i = 0; i < remaining; i++)
             {
-                AddToDoctorRequestList(
-                    request.BodyPart.ToString(),
-                    client,
-                    chair);
+                bodyPartRequest.RequestTime = bodyPartRequest.BodyPart.bodyPartTime.RandomValue();
+                doctorCurrentRequests.AddRequest(bodyPartRequest);
             }
         }
 
-        FinishDoctorRequestList();
+        GenerateDoctorRequestsTools();
         Debug.Log(
             $"Doctor is now processing {client.name} on {chair.name}. " +
-            $"Batch size: {availableRequests.Count}.",
+            $"Batch size: {doctorCurrentRequests.Count}.",
             this);
 
         StartCooldown();
+    }
+    private void GenerateDoctorCurrentRequests()
+    {
+        
     }
 
     // countdown and then failure of request if not fulfilled within time
@@ -291,7 +278,7 @@ public class ToolRequestManager : MonoBehaviour
     // randomize the requests
     public void StartNewRandomRequest()
     {
-        if (availableRequests.Count == 0)
+        if (doctorCurrentRequests.Count == 0)
         {
             currentState = State.Idle;
             remainingTime = 0f;
@@ -300,19 +287,19 @@ public class ToolRequestManager : MonoBehaviour
             return;
         }
 
-        int index = Random.Range(0, availableRequests.Count);
-        currentRequest = availableRequests[index];
-        currentRequest.timeLimit = ClampRequestTimeLimit(
-            currentRequest.timeLimit);
-        remainingTime = currentRequest.timeLimit;
+        currentRequest = doctorCurrentRequests.ChosenRequest();
+
+        // currentRequest.tool.timeLimit = ClampRequestTimeLimit(
+        //     currentRequest.tool.timeLimit);
+        remainingTime = currentRequest.RequestTime;
         currentState = State.ActiveRequest;
 
-        string itemCategory = currentRequest.itemType.ToString();
-        string chairText = currentRequest.targetChair != null
-            ? $" for {currentRequest.targetChair.name}"
+        string itemCategory = currentRequest.ItemType.ToString();
+        string chairText = doctorCurrentRequests.targetChair != null
+            ? $" for {doctorCurrentRequests.targetChair.name}"
             : string.Empty;
         Debug.Log(
-            $"Hey, hand me a {itemCategory}: [{currentRequest.itemName}]" +
+            $"Hey, hand me a {itemCategory}: [{currentRequest.ItemName}]" +
             $"{chairText} within {remainingTime:F1} seconds!",
             this);
 
@@ -320,41 +307,55 @@ public class ToolRequestManager : MonoBehaviour
         {
             myTextLabel.text =
                 "Hey, hand me a " + itemCategory +
-                ":<color=\"red\"> " + currentRequest.itemName + "</color>" +
+                ":<color=\"red\"> " + currentRequest.ItemName + "</color>" +
                 chairText;
         }
 
-       confusedDoctor?.playAudio();
-        availableRequests.Remove(currentRequest);
+        confusedDoctor?.playAudio();
         RequestStarted?.Invoke(currentRequest);
         Debug.Log(
-            $"Doctor requests remaining in queue: {availableRequests.Count}.",
+            $"Doctor requests remaining in queue: {doctorCurrentRequests.Count}.",
             this);
     }
 
     // check if player submitted the tool correctly, returns true if correctly submitted
-    public bool PlayerSubmittedTool(string submittedName, ItemType submittedType)
+    public bool PlayerSubmittedTool(Item receivedItem)
     {
         if (currentState != State.ActiveRequest)
             return false;
+        if(currentRequest.ItemType != receivedItem.Type) return false;
 
-        if (submittedName == currentRequest.itemName && submittedType == currentRequest.itemType)
+        if (receivedItem is BodyPart bodyPart)
         {
-            Debug.Log("Dude thanks for giving me that.");
+            if(currentRequest is BodyPartRequest bodyPartRequest)
+            {
+                if(bodyPart.BodyPartType == bodyPartRequest.BodyPartType) return Succeed();
+            }
+            
+        }else if(receivedItem is Tool tool)
+        {
+            if(currentRequest is ToolRequest toolRequest)
+            {
+                if(tool.toolType == toolRequest.Tool.toolType) return Succeed();
+            }
+        }
+        return Failure(receivedItem);
+    }
+    private bool Succeed()
+    {
+        Debug.Log("Dude thanks for giving me that.");
             SetRequestText("Dude thanks for giving me that.");
             if (myTextLabel != null)
                 myTextLabel.text = "Dude thanks for giving me that.";
-
-            CompleteActiveRequest();
-            return true;
-        }
-        else
-        {   
-            Debug.Log($"Nah man wrong tool. I needed {currentRequest.itemType} named {currentRequest.itemName}, but you gave me {submittedType} named {submittedName}.");
+        CompleteActiveRequest();
+        return true;
+    }
+    private bool Failure(Item receivedItem)
+    {
+        Debug.Log($"Nah man wrong tool. I needed {currentRequest.ItemType} named {currentRequest.ItemName}, but you gave me {receivedItem.Type} named {receivedItem.Name}.");
             if (myTextLabel != null)
                 SetRequestText("Nah man wrong tool.");
-            return false;
-        }
+        return false;
     }
 
 #if UNITY_EDITOR
@@ -379,7 +380,7 @@ public class ToolRequestManager : MonoBehaviour
 
         Debug.Log(
             $"Debug-completed doctor request: " +
-            $"{currentRequest.itemType} [{currentRequest.itemName}].",
+            $"{currentRequest.ItemType} [{currentRequest.ItemName}].",
             this);
 
         if (myTextLabel != null)
@@ -391,11 +392,11 @@ public class ToolRequestManager : MonoBehaviour
 
     private void CompleteActiveRequest()
     {
-        ToolRequest completedRequest = currentRequest;
+        Request completedRequest = currentRequest;
         float safeRemainingTime = Mathf.Max(0f, remainingTime);
         lastRequestElapsedTime = Mathf.Max(
             0f,
-            completedRequest.timeLimit - safeRemainingTime);
+            completedRequest.RequestTime - safeRemainingTime);
         lastEarlyCompletionBonus = rewardEarlyCompletion
             ? Mathf.Min(
                 safeRemainingTime *
@@ -403,17 +404,25 @@ public class ToolRequestManager : MonoBehaviour
                 Mathf.Max(0f, maximumEarlyCompletionBonus))
             : 0f;
 
-        if (completedRequest.itemType == ItemType.BodyPart)
+        if (completedRequest is BodyPartRequest bodyRequest)
         {
-            if (completedRequest.targetClient != null)
+            if (doctorCurrentRequests.targetClient != null)
             {
                 SpawnBodyPartCustomer bodyPartVisual =
-                    completedRequest.targetClient
+                    doctorCurrentRequests.targetClient
                         .GetComponent<SpawnBodyPartCustomer>();
                 if (bodyPartVisual == null)
                     bodyPartVisual = spawnBodyPartCustomer;
-                bodyPartVisual?.AddBodyPart(completedRequest.itemName);
+                bodyPartVisual?.AddBodyPart(bodyRequest.BodyPartType);
             }
+        }
+        else if (completedRequest is ToolRequest toolRequest)
+        {
+            Debug.Log(toolRequest.Tool);
+        }
+        else
+        {
+            Debug.LogError("Request is Request type");
         }
 
         remainingTime = 0f;
@@ -426,7 +435,7 @@ public class ToolRequestManager : MonoBehaviour
         }
 
         bool finishedClientBatch =
-            availableRequests.Count == 0;
+            doctorCurrentRequests.Count == 0;
         if (finishedClientBatch)
             RequestQueueEmptied?.Invoke();
 
@@ -437,15 +446,15 @@ public class ToolRequestManager : MonoBehaviour
 
     private void FailRequest()
     {
-        ToolRequest failedRequest = currentRequest;
+        Request failedRequest = currentRequest;
         Debug.Log("Time is up! You failed the request.");
         SetRequestText("Ran out of time");
-        //TODO: LOOSE LIFE
+
         if (myTextLabel != null)
             myTextLabel.text = "Ran out of time";
 
         // Every request stays in this client's batch until it succeeds.
-        availableRequests.Add(failedRequest);
+        doctorCurrentRequests.AddRequest(failedRequest);
 
         remainingTime = 0f;
         lastEarlyCompletionBonus = 0f;
@@ -459,7 +468,7 @@ public class ToolRequestManager : MonoBehaviour
         float bonusTime = 0f,
         bool finishClientAfterCooldown = false)
     {
-        float baseCooldown = Mathf.Max(0f, timeBetweenRequests);
+        float baseCooldown = Mathf.Max(0f, timeBetweenRequests.RandomValue());
         float safeBonus = Mathf.Max(0f, bonusTime);
         remainingCooldown = baseCooldown + safeBonus;
         completeFocusedClientAfterCooldown =
@@ -547,8 +556,9 @@ public class ToolRequestManager : MonoBehaviour
 
     private void HandleClientRemoved(GameObject client)
     {
-        availableRequests.RemoveAll(
-            request => request.targetClient == client);
+        doctorCurrentRequests = null;
+        // currentRequests.RemoveAll(
+        //     request => request.targetClient == client);
 
         if (client != focusedClient || isCompletingFocusedClient)
             return;
@@ -705,23 +715,16 @@ public class ToolRequestManager : MonoBehaviour
         TryStartNextClientBatch();
     }
 
-    private float GenerateRequestTimeLimit()
-    {
-        float minimum = Mathf.Max(0f, minimumRequestTime);
-        float maximum = Mathf.Max(minimum, maximumRequestTime);
-        return Random.Range(minimum, maximum);
-    }
+    // private float ClampRequestTimeLimit(float timeLimit)
+    // {
+    //     float minimum = Mathf.Max(0f, minimumRequestTime);
+    //     float maximum = Mathf.Max(minimum, maximumRequestTime);
 
-    private float ClampRequestTimeLimit(float timeLimit)
-    {
-        float minimum = Mathf.Max(0f, minimumRequestTime);
-        float maximum = Mathf.Max(minimum, maximumRequestTime);
+    //     if (timeLimit < minimum || timeLimit > maximum)
+    //         return GenerateRequestTimeLimit();
 
-        if (timeLimit < minimum || timeLimit > maximum)
-            return GenerateRequestTimeLimit();
-
-        return timeLimit;
-    }
+    //     return timeLimit;
+    // }
 
     private static bool CompleteAllClientRequirements(
         GameObject client,
@@ -735,16 +738,16 @@ public class ToolRequestManager : MonoBehaviour
         HashSet<BodyPartType> completedTypes = new();
         foreach (BodyPartRequest request in task.Requests)
         {
-            if (!completedTypes.Add(request.BodyPart))
+            if (!completedTypes.Add(request.BodyPartType))
                 continue;
 
             int remaining =
-                task.GetRemainingAmount(request.BodyPart);
+                task.GetRemainingAmount(request.BodyPartType);
             for (int i = 0; i < remaining; i++)
             {
                 if (!clientList.RemoveOneFromTask(
                         client,
-                        request.BodyPart))
+                        request.BodyPartType))
                 {
                     return false;
                 }

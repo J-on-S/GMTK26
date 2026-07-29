@@ -46,7 +46,7 @@ public class GenerateClientInfoUI : MonoBehaviour
             foreach(BodyPartRequest bodyPartRequest in clientTask.Requests)
             {
                 text+="+"+bodyPartRequest.Amount+"\n";
-                BodyPart bodyPart = bodyParts.SearchBodyPart(bodyPartRequest.BodyPart);
+                BodyPart bodyPart = bodyPartRequest.BodyPart;
         
                 card.images[indexImg].sprite = bodyPart.bodyPartImg;
                 card.images[indexImg].enabled = true;

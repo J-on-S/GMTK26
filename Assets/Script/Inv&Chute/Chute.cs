@@ -102,19 +102,27 @@ public class Chute : MonoBehaviour, IInteractable
         }
         
         GrabbableObject grabbableObject = player.heldObject;
-        if(grabbableObject.itemType != ItemType.BodyPart) return;
+        if(grabbableObject.item.Type != ItemType.BodyPart) return;
         GameObject grabbableGO = grabbableObject.gameObject;
 
         DetachedBodyPart detachedBodyPart = grabbableGO.GetComponent<DetachedBodyPart>();
 
+        
+
         if (detachedBodyPart == null) {
-            RecordTrapdoorEntry(
-                grabbableGO,
-                grabbableObject.bodyPartType);
-            AddToBlackMarket(grabbableObject.bodyPartType, 100);
-            CheckBlackMarket();
-            grabbableObject.ReleaseFromHolder();
-            Destroy(grabbableGO);
+            if (grabbableObject.item is BodyPart bodyPart)
+            {
+                RecordTrapdoorEntry(
+                    grabbableGO,
+                    bodyPart.BodyPartType);
+
+                AddToBlackMarket(
+                    bodyPart.BodyPartType,
+                    100);
+                CheckBlackMarket();
+                grabbableObject.ReleaseFromHolder();
+                Destroy(grabbableGO);
+            }
             return;
         }
 
