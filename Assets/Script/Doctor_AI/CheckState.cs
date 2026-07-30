@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,23 +8,25 @@ public class CheckState : State
     [SerializeField] private float minCheckTime;
     [SerializeField] private float maxCheckTime;
     [SerializeField] private bool isTestSawIllegal;
+    [SerializeField] private float desiredStartCheckDuration = 3f;
     [ReadOnly] [SerializeField] private float checkTime;
+    
     
     private float waitCheckTime;
     private bool checkIsLooping = false;
     private bool isFinishCheck = false;
-    public AudioEventChannel channel;
     public Audio startCheckHintAudio;
+    
 
     public override void EnterState()
     {
+        Debug.Log("Doctor check you");
         checkTime = 0f;
-        channel.Play(startCheckHintAudio);
         isFinishCheck = false;
         checkIsLooping = false;
+        AudioEventChannel.Instance.Play(startCheckHintAudio);
         waitCheckTime = Random.Range(minCheckTime, maxCheckTime);
-        Debug.Log("Doctor check you");
-        anim.Play(animName);
+        stateManager.AdjustAnimationTime(anim, animName, desiredStartCheckDuration);
     }
     
     public override State UpdateState()
@@ -37,7 +40,7 @@ public class CheckState : State
         {
             if (DisabledDuringMinigame.IsMinigameActive)
             {
-                Debug.LogError("Loook?");
+                Debug.LogError("Saw it");
                 HealthScript.Instance.TakeDamage(1);
                 return stateManager.RandomState(states);
             }
@@ -55,14 +58,13 @@ public class CheckState : State
     public void SetGetCheckLooping()
     {
         checkIsLooping = true;
+        AudioEventChannel.Instance.Stop(startCheckHintAudio);
     }
     public void SetFinishCheck()
     {
         isFinishCheck = true;
     }
     
-
-
     public override void ExitState()
     {
         //some issue with the exit state

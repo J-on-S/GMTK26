@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class StateManager : MonoBehaviour
@@ -45,28 +46,39 @@ public class StateManager : MonoBehaviour
 
     public State RandomState(List<StateWeight> states)
     {
-    // Calculate total weight
-    int totalWeight = 0;
-    foreach (StateWeight state in states)
-    {
-        totalWeight += state.GetWeight();
-    }
-
-    // Pick a random value
-    int random = Random.Range(0, totalWeight);
-
-    // Find the selected state
-    foreach (StateWeight state in states)
-    {
-        if (random < state.GetWeight())
+        // Calculate total weight
+        int totalWeight = 0;
+        foreach (StateWeight state in states)
         {
-            return state.GetState();
+            totalWeight += state.GetWeight();
         }
 
-        random -= state.GetWeight();
-    }
+        // Pick a random value
+        int random = Random.Range(0, totalWeight);
 
-    // Should never happen
-    return states[0].GetState();
-}
+        // Find the selected state
+        foreach (StateWeight state in states)
+        {
+            if (random < state.GetWeight())
+            {
+                return state.GetState();
+            }
+
+            random -= state.GetWeight();
+        }
+
+        // Should never happen
+        return states[0].GetState();
+    }
+    public void AdjustAnimationTime(Animator anim, string animName, float desiredAnimationTime)
+    {
+        AnimationClip clip = anim.runtimeAnimatorController.animationClips.FirstOrDefault(c => c.name == animName);
+
+        if (clip != null)
+        {
+            anim.speed = clip.length / desiredAnimationTime;
+            anim.Play(animName);
+        }
+        anim.Play(animName);
+    }
 }
