@@ -12,7 +12,6 @@ public class Chute : MonoBehaviour, IInteractable
     [SerializeField] private AudioEventChannel audioEventChannel;
     [SerializeField] private Audio dropSoundEffect;
     [SerializeField] private BlackMarketGenerator temporaryBlackMarketTaskGenerator;
-    [SerializeField] private CameraSwitch cameraSwitch;
     [SerializeField] private ReturnMain returnMain;
 
     [Serializable] public class PartSoldEvent : UnityEvent<BodyPart> {}
@@ -44,8 +43,6 @@ public class Chute : MonoBehaviour, IInteractable
             Debug.LogError($"{name}: Chute has no dropSoundEffect assigned; the drop sound will not play.", this);
         if (temporaryBlackMarketTaskGenerator == null)
             Debug.LogError($"{name}: Chute has no BlackMarketGenerator assigned; sold parts will not be registered.", this);
-        if (cameraSwitch == null)
-            Debug.LogError($"{name}: Chute has no CameraSwitch assigned; the black market view will not open.", this);
         if (returnMain == null)
             Debug.LogError($"{name}: Chute has no ReturnMain assigned; the player will not be able to leave the black market view.", this);
     }
@@ -159,13 +156,7 @@ public class Chute : MonoBehaviour, IInteractable
 
     private void CheckBlackMarket()
     {
-        if (cameraSwitch == null)
-        {
-            Debug.LogError($"{name}: no CameraSwitch assigned, so the black market view cannot be opened.", this);
-            return;
-        }
-
-        cameraSwitch.SwitchToOtherCamera();
+        CameraSwitch.Instance.SwitchCamera(CameraType.BlackMarket);
 
         if (returnMain == null)
         {

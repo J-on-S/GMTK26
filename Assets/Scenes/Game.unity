@@ -2644,7 +2644,7 @@ GameObject:
   - component: {fileID: 658666553}
   m_Layer: 0
   m_Name: BlackMarket Camera
-  m_TagString: MainCamera
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2997,12 +2997,20 @@ PrefabInstance:
       value: DoctorRequest
       objectReference: {fileID: 0}
     - target: {fileID: 9070917584670709061, guid: dc6bf7012d4484b4eb2c37c88733079a, type: 3}
+      propertyPath: m_fontSize
+      value: 24
+      objectReference: {fileID: 0}
+    - target: {fileID: 9070917584670709061, guid: dc6bf7012d4484b4eb2c37c88733079a, type: 3}
       propertyPath: m_fontAsset
       value: 
       objectReference: {fileID: 11400000, guid: fcd52697543a82174973292105e99ee9, type: 2}
     - target: {fileID: 9070917584670709061, guid: dc6bf7012d4484b4eb2c37c88733079a, type: 3}
       propertyPath: m_fontStyle
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9070917584670709061, guid: dc6bf7012d4484b4eb2c37c88733079a, type: 3}
+      propertyPath: m_fontSizeBase
+      value: 24
       objectReference: {fileID: 0}
     - target: {fileID: 9070917584670709061, guid: dc6bf7012d4484b4eb2c37c88733079a, type: 3}
       propertyPath: m_sharedMaterial
@@ -3532,6 +3540,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1600775015}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!20 &888954062 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 7696554692003225640, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+  m_PrefabInstance: {fileID: 1991736019}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &921735046
 GameObject:
   m_ObjectHideFlags: 0
@@ -4147,6 +4160,7 @@ GameObject:
   - component: {fileID: 1125092165}
   - component: {fileID: 1125092164}
   - component: {fileID: 1125092167}
+  - component: {fileID: 1125092168}
   m_Layer: 0
   m_Name: GameplayManager
   m_TagString: Untagged
@@ -4214,6 +4228,27 @@ MonoBehaviour:
   brokenHeartSprite: {fileID: -1452905731, guid: 0988e6f2dee28df4d93a1606693ed6b6, type: 3}
   waitSecond: 1
   testInifiteLife: 0
+--- !u!114 &1125092168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1125092163}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b5389403c99eaf40a8d8638a835d5e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraSwitch
+  cameras:
+  - cameraType: 0
+    camera: {fileID: 324369630}
+  - cameraType: 1
+    camera: {fileID: 658666551}
+  - cameraType: 2
+    camera: {fileID: 888954062}
+  pauseGameInBlackMarket: 1
+  currentStateType: 0
 --- !u!1 &1128493942
 GameObject:
   m_ObjectHideFlags: 0
@@ -4902,6 +4937,17 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1253011897 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4724078581359780543, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+  m_PrefabInstance: {fileID: 1991736019}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98366665a26e9dc4e80521856599914c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IdleState
 --- !u!65 &1255490865
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7902,6 +7948,22 @@ PrefabInstance:
       value: Doctor
       objectReference: {fileID: 0}
     - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: idleState
+      value: 
+      objectReference: {fileID: 1253011897}
+    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: doctorDialogue
+      value: 
+      objectReference: {fileID: 762544826}
+    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: doctorAngryDialogue
+      value: <color=red>What are you doing!!!</color>
+      objectReference: {fileID: 0}
+    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: waitSwitchBackSecond
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
       propertyPath: desiredStartCheckDuration
       value: 3
       objectReference: {fileID: 0}
@@ -7921,6 +7983,42 @@ PrefabInstance:
       propertyPath: surgeryTableBTransform
       value: 
       objectReference: {fileID: 413890736}
+    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.001
+      objectReference: {fileID: 0}
+    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.624
+      objectReference: {fileID: 0}
+    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.309
+      objectReference: {fileID: 0}
+    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.9859086
+      objectReference: {fileID: 0}
+    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.16728498
+      objectReference: {fileID: 0}
+    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 19.26
+      objectReference: {fileID: 0}
+    - target: {fileID: 4911956609683891140, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_Name
+      value: Doctor Camera
+      objectReference: {fileID: 0}
+    - target: {fileID: 4911956609683891140, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4911956609683891140, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_TagString
+      value: Untagged
+      objectReference: {fileID: 0}
     - target: {fileID: 6147473892293745811, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
       propertyPath: m_LocalPosition.x
       value: -53.75
@@ -7969,6 +8067,10 @@ PrefabInstance:
       propertyPath: flashLight
       value: 
       objectReference: {fileID: 1544463956}
+    - target: {fileID: 7696554692003225640, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -12915,7 +13017,6 @@ GameObject:
   - component: {fileID: 6064211896309646420}
   - component: {fileID: 8704601295310553094}
   - component: {fileID: 8704601295310553095}
-  - component: {fileID: 8704601295310553097}
   - component: {fileID: 8704601295310553096}
   m_Layer: 0
   m_Name: Prop_Chute1
@@ -12942,7 +13043,6 @@ MonoBehaviour:
   audioEventChannel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
   dropSoundEffect: {fileID: 11400000, guid: 0d7c4b1b78bf1462eacef2952b352037, type: 2}
   temporaryBlackMarketTaskGenerator: {fileID: 338945033}
-  cameraSwitch: {fileID: 8704601295310553097}
   returnMain: {fileID: 8704601295310553096}
   onPartSold:
     m_PersistentCalls:
@@ -12984,23 +13084,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 643bd14ebd9bcbc4e9780c88184fc1df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ReturnMain
-  cameraSwitch: {fileID: 8704601295310553097}
---- !u!114 &8704601295310553097
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8704601295310553093}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b5389403c99eaf40a8d8638a835d5e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraSwitch
-  mainCamera: {fileID: 324369630}
-  otherCamera: {fileID: 658666551}
-  pauseGameInBlackMarket: 1
-  currentState: 0
+  cameraSwitch: {fileID: 0}
 --- !u!4 &8757348572635722193
 Transform:
   m_ObjectHideFlags: 0

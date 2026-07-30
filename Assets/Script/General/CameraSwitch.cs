@@ -1,37 +1,49 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
-public enum CameraViewState
+[Serializable]
+public enum CameraType
 {
     MainGame,
-    BlackMarket
+    BlackMarket,
+    Doctor
+}
+[Serializable]
+public class CameraViewState
+{
+    public CameraType cameraType;
+    public Camera camera;
 }
 
 public class CameraSwitch : MonoBehaviour
 {
-    [SerializeField] private Camera mainCamera;
-    [SerializeField] private Camera otherCamera;
+    public static CameraSwitch Instance { get; private set; }
+    [SerializeField] private List<CameraViewState> cameras;
 
     [Header("Black-market state")]
     [SerializeField] private bool pauseGameInBlackMarket = true;
     [ReadOnly, SerializeField]
-    private CameraViewState currentState =
-        CameraViewState.MainGame;
+    private CameraType currentStateType = CameraType.MainGame;
 
     private float timeScaleBeforeBlackMarket = 1f;
     private bool ownsBlackMarketPause;
 
-    public CameraViewState CurrentState => currentState;
+    public CameraType CurrentState => currentStateType;
     public bool IsBlackMarketOpen =>
-        currentState == CameraViewState.BlackMarket;
+        currentStateType == CameraType.BlackMarket;
 
-    public event Action<CameraViewState> ViewStateChanged;
-
+    public event Action<CameraType> ViewStateChanged;
+    private void Awake()
+    {
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
+    }
     private void Start()
     {
-        SetCameraEnabled(mainCamera, true);
-        SetCameraEnabled(otherCamera, false);
-        currentState = CameraViewState.MainGame;
+        SwitchCamera();
     }
 
     private void Update()
@@ -51,45 +63,50 @@ public class CameraSwitch : MonoBehaviour
     {
         RestoreTimeScale();
     }
-
-    public void SwitchToOtherCamera()
+    public void SwitchCamera(CameraType newCameraType = CameraType.MainGame)
     {
-        SetCameraEnabled(mainCamera, false);
-        SetCameraEnabled(otherCamera, true);
-
-        if (IsBlackMarketOpen)
-            return;
-
-        if (pauseGameInBlackMarket)
+    
+        foreach(CameraViewState cameraState in cameras)
         {
-            timeScaleBeforeBlackMarket = Time.timeScale;
-            ownsBlackMarketPause = true;
-            Time.timeScale = 0f;
+            if(newCameraType == cameraState.cameraType)
+            {
+                cameraState.camera.enabled = true;
+                currentStateType = cameraState.cameraType;
+            }
+            else
+            {
+                cameraState.camera.enabled = false;
+            }
         }
+        ViewStateChanged?.Invoke(currentStateType);
 
-        currentState = CameraViewState.BlackMarket;
-        ViewStateChanged?.Invoke(currentState);
-        Debug.Log(
+        if (currentStateType == CameraType.BlackMarket)
+        {
+            if (IsBlackMarketOpen) return;
+
+            if (pauseGameInBlackMarket)
+            {
+                timeScaleBeforeBlackMarket = Time.timeScale;
+                ownsBlackMarketPause = true;
+                Time.timeScale = 0f;
+            }
+            Debug.Log(
             "Entered BlackMarket state. Scaled gameplay and doctor " +
             "request timers are paused.",
             this);
-    }
-
-    public void SwitchToMainCamera()
-    {
-        SetCameraEnabled(otherCamera, false);
-        SetCameraEnabled(mainCamera, true);
-
-        if (!IsBlackMarketOpen)
+        }
+        else
+        {
+            if (!IsBlackMarketOpen)
             return;
 
-        RestoreTimeScale();
-        currentState = CameraViewState.MainGame;
-        ViewStateChanged?.Invoke(currentState);
-        Debug.Log(
+            RestoreTimeScale();
+            Debug.Log(
             "Returned to MainGame state. Scaled gameplay and doctor " +
             "request timers resumed.",
             this);
+        }
+        
     }
 
     private void RestoreTimeScale()
@@ -99,13 +116,5 @@ public class CameraSwitch : MonoBehaviour
 
         Time.timeScale = timeScaleBeforeBlackMarket;
         ownsBlackMarketPause = false;
-    }
-
-    private static void SetCameraEnabled(
-        Camera targetCamera,
-        bool enabled)
-    {
-        if (targetCamera != null)
-            targetCamera.enabled = enabled;
     }
 }

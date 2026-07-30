@@ -186,7 +186,6 @@ public class BlackMarketGenerator :
                 }
 
                 //TODO: rotation of bodypart in black market
-                Debug.Log("pos_index: "+pos_index);
                 Transform bodyPartsTransform = bodyPartsPos[pos_index];
                 // GameObject newBodyPartObj = Instantiate(bodyPart.BodyPartPrefab, bodyPartsTransform.position, Quaternion.identity, bodyPartsTransform);
                 // newBodyPartObj.position = 

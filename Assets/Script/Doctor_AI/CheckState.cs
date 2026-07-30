@@ -1,6 +1,7 @@
-using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
+using System.Collections;
 
 public class CheckState : State
 {
@@ -9,6 +10,9 @@ public class CheckState : State
     [SerializeField] private float maxCheckTime;
     [SerializeField] private bool isTestSawIllegal;
     [SerializeField] private float desiredStartCheckDuration = 3f;
+    [SerializeField] private TextMeshProUGUI doctorDialogue;
+    [SerializeField] private string doctorAngryDialogue;
+    [SerializeField] private IdleState idleState;
     [ReadOnly] [SerializeField] private float checkTime;
     
     
@@ -40,9 +44,8 @@ public class CheckState : State
         {
             if (DisabledDuringMinigame.IsMinigameActive)
             {
-                Debug.LogError("Saw it");
-                HealthScript.Instance.TakeDamage(1);
-                return stateManager.RandomState(states);
+                SawStealBodyPart();
+                return idleState;//stateManager.RandomState(states);
             }
 
             checkTime += Time.deltaTime;
@@ -55,6 +58,25 @@ public class CheckState : State
         }
         return this;
     }
+    private string previousDialogue;
+    private void SawStealBodyPart()
+    {
+        Debug.LogError("Saw it");
+        CameraSwitch.Instance.SwitchCamera(CameraType.Doctor);
+        HealthScript.Instance.TakeDamage(1);
+        previousDialogue = doctorDialogue.text;
+        doctorDialogue.text = doctorAngryDialogue;
+        StartCoroutine(WaitForSwitchBack());
+
+    }
+    [SerializeField] private float waitSwitchBackSecond;
+    IEnumerator WaitForSwitchBack()
+    {
+        yield return new WaitForSeconds(waitSwitchBackSecond);
+        doctorDialogue.text = previousDialogue;
+        CameraSwitch.Instance.SwitchCamera();
+    }
+
     public void SetGetCheckLooping()
     {
         checkIsLooping = true;
@@ -68,12 +90,12 @@ public class CheckState : State
     public override void ExitState()
     {
         //some issue with the exit state
-        Debug.Log("Doctor found a task.");
-        AnimatorStateInfo stateInfo = anim.GetCurrentAnimatorStateInfo(0);
+        Debug.Log("Doctor finish check state.");
+        /*AnimatorStateInfo stateInfo = anim.GetCurrentAnimatorStateInfo(0);
         if (!stateInfo.IsName("doctor_checkEnd"))
         {
             anim.SetTrigger("EndCheck");
-        }
+        }*/
     } 
     
 }
