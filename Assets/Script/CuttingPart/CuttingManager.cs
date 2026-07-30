@@ -941,7 +941,7 @@ public enum CuttingState
         // Menu open: suspend the loop where it is and decide nothing else. Update still runs at
         // timeScale 0, so without this the speed test below keeps its own verdict and the blade
         // goes on sawing behind the pause screen.
-        if (PauseMenu.isPaused)
+        if (PauseMenu.IsPaused())
         {
             if (cutSoundOn && !cutSoundPaused && cutLoop != null && Channel != null)
             {

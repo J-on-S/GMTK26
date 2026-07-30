@@ -108,7 +108,7 @@ public class PlaySceneMusic : MonoBehaviour
     }
 
     public void Resume()
-    {
+            {
         if (_playing == null) return;
 
         // the reigning clip was taken over by another scene's component: it owns it now, leave it playing.
@@ -121,7 +121,7 @@ public class PlaySceneMusic : MonoBehaviour
     
     public void Pause()
     {
-        if (_playing != null) return;
+        if (_playing == null) return;
         
         bool adoptedByOther = _playing == _current && _owner != this;
         if (!adoptedByOther)

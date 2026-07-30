@@ -24,10 +24,10 @@ public class MouseMovement : MonoBehaviour
     if(GameInputActions.MouseDelta == null){
             Debug.Log("mouseDelta is null");
         }
-    if( PauseMenu.isPaused){
+    if( PauseMenu.IsPaused()){
             Debug.Log("Paused");
         }
-    if(!active || GameInputActions.MouseDelta == null  || PauseMenu.isPaused) return;
+    if(!active || GameInputActions.MouseDelta == null  || PauseMenu.IsPaused()) return;
     Vector2 move = GameInputActions.MouseDelta.ReadValue<Vector2>();
     
     
