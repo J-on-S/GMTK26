@@ -107,6 +107,29 @@ public class PlaySceneMusic : MonoBehaviour
         _playing = null;
     }
 
+    public void Resume()
+    {
+        if (_playing == null) return;
+
+        // the reigning clip was taken over by another scene's component: it owns it now, leave it playing.
+        bool adoptedByOther = _playing == _current && _owner != this;
+        if (!adoptedByOther)
+        {
+            channel.Resume(_playing);
+        }
+    }
+    
+    public void Pause()
+    {
+        if (_playing != null) return;
+        
+        bool adoptedByOther = _playing == _current && _owner != this;
+        if (!adoptedByOther)
+        {
+            channel.Pause(_playing);
+        }
+    }  
+
     /// <summary>Leaving this scene silences its music. Skips this scene's own activation, so the fade-in is not cut the instant it starts.</summary>
     private void OnActiveSceneChanged(Scene from, Scene to)
     {
