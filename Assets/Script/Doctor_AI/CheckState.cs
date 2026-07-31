@@ -45,7 +45,7 @@ public class CheckState : State
             
         }
         
-        return false;
+        return true;
     }
     public override State UpdateState()
     {

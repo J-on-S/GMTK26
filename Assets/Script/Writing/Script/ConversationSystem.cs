@@ -8,6 +8,7 @@ public class ConversationSystem : MonoBehaviour
     [SerializeField] private TextMeshProUGUI text;
     private float currentTypingSpeed = 0.05f;
     [SerializeField] private float waitSecondAfterTyping = 3f;
+    [SerializeField] private GameObject currentDialogueCanvas;
 
     
     private Conversation currentConversation;
@@ -21,13 +22,14 @@ public class ConversationSystem : MonoBehaviour
     }
     private void Awake()
     {
-        if(Instance == null)
+        if (Instance == null)
         {
             Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
-            Destroy(this);
+            Destroy(gameObject);
         }
         if (!text)
         {
@@ -37,6 +39,7 @@ public class ConversationSystem : MonoBehaviour
     private bool isCurrentDialogueLineFinished = false;
     public IEnumerator TypeText()
     {
+        currentTypingSpeed = currentConversation.GetCurrentNPC().GetTypingSpeed();
         NPC currentNPC = currentConversation.GetCurrentNPC();
         currentDialogue_line = currentConversation.GetCurrentDialogueLine();
         //string currentDialogue_text = 
@@ -73,8 +76,10 @@ public class ConversationSystem : MonoBehaviour
         yield return new WaitForSeconds(waitSecondAfterTyping);
         text.text = "";
         text.maxVisibleCharacters = 0;
+        //
         Debug.Log("Stop");
-        //currentDayCanvas.SetActive(false);
+        ConversationFlow.Instance.FinishCurrentConversation();
+        currentDialogueCanvas.SetActive(false);
         //Do Something
     }
     private void WriteText()
@@ -87,23 +92,12 @@ public class ConversationSystem : MonoBehaviour
     {
         currentConversation = conversation;
         currentConversation.Reset();
+        currentDialogueCanvas.SetActive(true);
         currentTypingSpeed = currentConversation.GetCurrentNPC().GetTypingSpeed();
         WriteText();
         checkForNextDialogueCoroutine = StartCoroutine(CheckForNextDialogue());
         //applyEffectsCoroutine = StartCoroutine(CheckApplyTextEffects());
     }
-    // private IEnumerator CheckApplyTextEffects()
-    // {
-    //     while (true)
-    //     {
-    //         if (text.maxVisibleCharacters > 0 && currentDialogue_line != null)
-    //         {
-    //             ApplyTextEffects();
-    //         }
-
-    //         yield return WaitForEndOfFrame();//null;
-    //     }
-    // }
     private void LateUpdate()
     {
         if (currentDialogue_line == null)
@@ -236,7 +230,7 @@ public class ConversationSystem : MonoBehaviour
     }
     public void SkipText()
     {
-        currentTypingSpeed = 0.01f;
+        currentTypingSpeed = 0.001f;
         
         //StopAllCoroutines();
         //text.text = textToShow;

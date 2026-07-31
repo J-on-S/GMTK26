@@ -157,7 +157,7 @@ public class MenuController : MonoBehaviour
     // play button -- forces the player to see credits first
     public void PlayButton()
     {
-        SceneManager.LoadScene("Game");
+        SceneManager.LoadScene("Scenes/Game");
     }
 
     // exits the game
@@ -169,20 +169,26 @@ public class MenuController : MonoBehaviour
     // takes player back to menu
     public void BackToMenu()
     {
-        SceneManager.LoadScene("StartScreen");
+        SceneManager.LoadScene("Scenes/StartScreen");
     }
+    public void GoToCredit()
+    {
+        SceneManager.LoadScene("Scenes/Credits");
+    }
+    
 
     // takes player to the tutorial scene (comes after credits)
     public void GoToTutorial()
     {
-        SceneManager.LoadScene("Tutorial");
+        SceneManager.LoadScene("Scenes/Story");
+        //SceneManager.LoadScene("Tutorial");
     }
 
 
     // starts game -- only called after tutorial
     public void StartGameProper()
     {
-        SceneManager.LoadScene("Game");
+        SceneManager.LoadScene("Scenes/Game");
     }
     public void SetVolume()
     {

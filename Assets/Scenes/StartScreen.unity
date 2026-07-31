@@ -1125,7 +1125,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1459046108}
         m_TargetAssemblyTypeName: MenuController, Assembly-CSharp
-        m_MethodName: GoToTutorial
+        m_MethodName: GoToCredit
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
