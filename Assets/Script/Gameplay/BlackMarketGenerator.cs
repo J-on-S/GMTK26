@@ -63,7 +63,22 @@ public class BlackMarketGenerator :
 
         
         List<BodyPartRequest> requests = new();
-        int currentNbParts = totalParts;
+        int effectiveMaxPerType = Mathf.Max(1, MaxPerType);
+        int maximumPossibleParts =
+            choices.Count * effectiveMaxPerType;
+        int currentNbParts = Mathf.Min(
+            Mathf.Max(0, totalParts),
+            maximumPossibleParts);
+        if (currentNbParts < totalParts)
+        {
+            Debug.LogWarning(
+                $"Black-market generation requested {totalParts} parts, " +
+                $"but the enabled types can provide at most " +
+                $"{maximumPossibleParts}. Generating " +
+                $"{currentNbParts} parts.",
+                this);
+        }
+
         while (currentNbParts > 0)
         {
             // Pick a random body part type
@@ -74,7 +89,10 @@ public class BlackMarketGenerator :
 
             if (request == null)
             {
-                request = new BodyPartRequest(part, 0, MaxPerType);
+                request = new BodyPartRequest(
+                    part,
+                    0,
+                    effectiveMaxPerType);
                 requests.Add(request);
                 currentNbParts--;
                 continue;
@@ -130,7 +148,13 @@ public class BlackMarketGenerator :
 
         foreach (BodyPartType part in availableBodyParts)
         {
-            if (!result.Contains(part))
+            BodyParts generationRules =
+                bodyParts != null ? bodyParts : BodyParts.Instance;
+            bool generationEnabled =
+                generationRules == null ||
+                generationRules.IsTaskGenerationEnabled(part);
+
+            if (generationEnabled && !result.Contains(part))
                 result.Add(part);
         }
 
