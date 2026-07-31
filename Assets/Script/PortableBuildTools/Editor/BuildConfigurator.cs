@@ -114,7 +114,11 @@ namespace BuildTools
             }
         }
 
-        private static string[] BuildExtraDefines(BuildConfig cfg)
+        /// <summary>Scripting defines this config adds, for this build only.</summary>
+        /// <remarks>Internal rather than private so <see cref="BatchBuild"/> composes the same options
+        /// the Build button does: a headless build that assembled its own would drift from this one the
+        /// first time either changed.</remarks>
+        internal static string[] BuildExtraDefines(BuildConfig cfg)
         {
             List<string> defines = new List<string>();
             foreach (ScriptingFlag flag in cfg.scriptingFlags)
@@ -125,7 +129,8 @@ namespace BuildTools
             return defines.ToArray();
         }
 
-        private static string[] GetEnabledScenes()
+        /// <summary>The scenes Build Settings has ticked, in order. Shared with <see cref="BatchBuild"/>.</summary>
+        internal static string[] GetEnabledScenes()
         {
             List<string> scenes = new List<string>();
             foreach (EditorBuildSettingsScene scene in EditorBuildSettings.scenes)
@@ -135,7 +140,8 @@ namespace BuildTools
             return scenes.ToArray();
         }
 
-        private static string ResolveLocationPath(BuildConfig cfg, BuildTarget target)
+        /// <summary>Where the player is written: the config's output folder, plus an exe name on Windows. Shared with <see cref="BatchBuild"/>.</summary>
+        internal static string ResolveLocationPath(BuildConfig cfg, BuildTarget target)
         {
             string product = cfg.ResolveProductName();
             string folder = string.IsNullOrEmpty(cfg.outputPath) ? $"Builds/{product}" : cfg.outputPath;

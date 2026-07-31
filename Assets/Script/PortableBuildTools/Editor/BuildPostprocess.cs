@@ -71,7 +71,10 @@ namespace BuildTools
                 if (File.Exists(zipPath)) File.Delete(zipPath);
                 ZipFile.CreateFromDirectory(buildFolder, zipPath, CompressionLevel.Optimal, includeBaseDirectory: true);
                 Debug.Log($"[ZipPostprocess] Zipped build to: {zipPath}");
-                EditorUtility.RevealInFinder(zipPath);
+
+                // a headless build has nobody to show it to, and popping a file browser out of a
+                // terminal or a CI step is noise at best.
+                if (!UnityEngine.Application.isBatchMode) EditorUtility.RevealInFinder(zipPath);
             }
             catch (Exception e)
             {
