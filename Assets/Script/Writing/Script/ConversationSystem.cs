@@ -208,7 +208,7 @@ public class ConversationSystem : MonoBehaviour
     {
         while (!currentConversation.isConversationFinished())
         {
-            if (Input.GetKeyDown(KeyCode.E))
+            if (Input.GetMouseButtonDown(0))
             {
                 if (!isCurrentDialogueLineFinished)
                 {
