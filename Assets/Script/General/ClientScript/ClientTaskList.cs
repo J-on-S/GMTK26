@@ -268,7 +268,15 @@ public class ClientTaskList : MonoBehaviour
             return CreateGeneratedTask();
         }
 
-        return ClampAndCopy(template);
+        ClientTask filteredTask = ClampAndCopy(template);
+        if (filteredTask.TotalParts > 0)
+            return filteredTask;
+
+        Debug.LogWarning(
+            "The selected hand-made task only contains globally disabled " +
+            "body parts. Generating a random enabled task instead.",
+            database);
+        return CreateGeneratedTask();
     }
 
     public bool DeliverBodyPart(BodyPartType bodyPart)
@@ -362,6 +370,9 @@ public class ClientTaskList : MonoBehaviour
             if (remaining <= 0)
                 break;
 
+            if (!IsTaskGenerationEnabled(request.BodyPartType))
+                continue;
+
             int amount = Mathf.Clamp(
                 request.Amount,
                 1,
@@ -378,10 +389,21 @@ public class ClientTaskList : MonoBehaviour
         List<BodyPartType> uniqueParts = new();
         foreach (BodyPartType part in database.AvailableBodyParts)
         {
-            if (!uniqueParts.Contains(part))
+            if (IsTaskGenerationEnabled(part) &&
+                !uniqueParts.Contains(part))
+            {
                 uniqueParts.Add(part);
+            }
         }
         return uniqueParts;
+    }
+
+    private bool IsTaskGenerationEnabled(BodyPartType bodyPartType)
+    {
+        BodyParts generationRules =
+            bodyParts != null ? bodyParts : BodyParts.Instance;
+        return generationRules == null ||
+               generationRules.IsTaskGenerationEnabled(bodyPartType);
     }
 
     private static void Shuffle<T>(IList<T> list)

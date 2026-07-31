@@ -1,6 +1,6 @@
 # Gameplay Loop Contract
 
-Last updated: 2026-07-24
+Last updated: 2026-07-31
 
 This is the persistent source of truth for the main gameplay loop. Read it
 before implementing or changing gameplay systems.
@@ -81,6 +81,9 @@ Important configuration:
 - `RandomizedClientList` obtains each queue entry's prefab from
   `CustomersAsset.GetRandomCustomerAsset()` and stores the returned prefab on
   that entry before spawning.
+- `Assets/Resources/BodyParts.asset` owns the global disabled-generation list.
+  A disabled type is excluded from generated client tasks, hand-made client
+  templates, and black-market tasks. Nose is currently disabled.
 - When a spawned customer prefab has no `ClientTaskHolder`,
   `RandomizedClientList` adds the component to the runtime instance before
   assigning its task.

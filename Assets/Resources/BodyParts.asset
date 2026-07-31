@@ -17,3 +17,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bde6326a9c871a94191f240f3f890b52, type: 2}
   - {fileID: 11400000, guid: e6b1d3878067aa542902929cefeee1a4, type: 2}
   - {fileID: 11400000, guid: 4e40eff1886a30f499a3c5f5d62a13dd, type: 2}
+  disabledTaskBodyParts: 06000000
