@@ -6,7 +6,7 @@ using UnityEngine;
 public class Tool: Item//ScriptableObject
 {
     public ToolType toolType;
-    public TimeRange toolTime = new TimeRange(30f);
+    public TimeRange toolTime = new TimeRange(50f,90f);
     private void OnValidate()
     {
         itemType = ItemType.Tool;
