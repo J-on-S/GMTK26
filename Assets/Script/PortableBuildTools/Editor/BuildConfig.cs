@@ -16,9 +16,6 @@ namespace BuildTools
     {
         // ---------- Output ----------
         [Header("Output")]
-        [Tooltip("Blank = use Player Settings product name. Used for the exe name and default folders.")]
-        public string productNameOverride = "";
-
         [Tooltip("Build folder. Relative paths resolve against the project root. Use Browse to pick.")]
         public string outputPath = "Builds/Game";
 
@@ -60,13 +57,10 @@ namespace BuildTools
         public int itchTimeoutSeconds = 300;
 
         /// <summary>Picks the name used for the executable and the default build folder.</summary>
-        /// <returns>The trimmed <c>productNameOverride</c>, or Unity's product name when the
-        /// override is blank.</returns>
+        /// <returns>Unity's Player Settings product name.</returns>
         public string ResolveProductName()
         {
-            return string.IsNullOrWhiteSpace(productNameOverride)
-                ? Application.productName
-                : productNameOverride.Trim();
+            return Application.productName;
         }
     }
 

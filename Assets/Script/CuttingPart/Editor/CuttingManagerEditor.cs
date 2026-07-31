@@ -31,10 +31,11 @@ public class CuttingManagerEditor : Editor
     };
 
     // sceneCamera and speedDriver are absent on purpose: the manager finds the camera in the
-    // scene and provisions the shared driver itself, so neither is a serialized property.
+    // scene and provisions the shared driver itself, so neither is a serialized property. The aim
+    // highlight moved onto CuttableObject (IHoverable), so there is no free-look field here either.
     private static readonly string[] HardwareFields =
     {
-        "moveCamera", "scalpelFollow",
+        "scalpelFollow",
     };
 
     /// <summary>Stops this cut's preview when the inspector is torn down, so deselecting it puts the camera and rig back.</summary>
@@ -63,7 +64,7 @@ public class CuttingManagerEditor : Editor
         DrawPlaySection(manager);
         DrawCameraTravelSection();
         DrawSoundSection();
-        DrawSeveredPieceSection();
+        DrawSeveredPieceSection(manager);
         DrawFinisherSection();
         DrawHardwareSection();
         DrawPreviewSection(manager);
@@ -88,7 +89,7 @@ public class CuttingManagerEditor : Editor
             // identity: what the piece is called and what it takes to cut it. Per-cut, never from a preset.
             Draw("itemName");
             Draw("bodyPartType");
-            Draw("requiredToolName");
+            Draw("requiredTool");
 
             // geometry, so it sits with the target rather than in the tuning block: it is fixed by
             // where this cut's plane is, and a preset must never move it.
@@ -148,15 +149,31 @@ public class CuttingManagerEditor : Editor
         }
     }
 
-    private void DrawSeveredPieceSection()
+    /// <summary>Draws the severed-piece tuning, which lives on the <see cref="SeveredPiece"/> sibling now, not the manager.</summary>
+    /// <remarks>Drawn through a nested SerializedObject so this one inspector still edits both components,
+    /// rather than making the author select the sibling to reach a handful of fields.</remarks>
+    private void DrawSeveredPieceSection(CuttingManager manager)
     {
+        SeveredPiece piece = manager.SeveredPieceOutfitter;
+
         using (var section = new Section("severed", "Severed piece", false))
         {
             if (!section.Open) return;
-            Draw("severedPieceAudioPreset");
-            Draw("SeveredPieceHealth");
-            Draw("severedPiecePositionOffset");
-            Draw("severedPieceRotationOffset");
+
+            if (piece == null)
+            {
+                EditorGUILayout.HelpBox("No SeveredPiece component. It is required and normally added automatically; re-select this object to add it.", MessageType.Warning);
+                return;
+            }
+
+            var pieceObject = new SerializedObject(piece);
+            pieceObject.Update();
+            EditorGUILayout.PropertyField(pieceObject.FindProperty("health"));
+            EditorGUILayout.PropertyField(pieceObject.FindProperty("audioPreset"));
+            EditorGUILayout.PropertyField(pieceObject.FindProperty("positionOffset"));
+            EditorGUILayout.PropertyField(pieceObject.FindProperty("rotationOffset"));
+            EditorGUILayout.PropertyField(pieceObject.FindProperty("holdScaleMultiplier"));
+            pieceObject.ApplyModifiedProperties();
         }
     }
 

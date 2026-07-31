@@ -12,6 +12,9 @@ public static class CuttingSetupMenu
     /// <summary>Material asset the guide lines use, created on first use.</summary>
     private const string GuideMaterialPath = "Assets/Script/CuttingPart/CutGuideLine.mat";
 
+    /// <summary>Material asset the scalpel trace line uses, created on first use. One shared asset for every cut, since the trace always looks the same.</summary>
+    private const string ScalpelTraceMaterialPath = "Assets/Script/CuttingPart/ScalpelTraceLine.mat";
+
     [MenuItem("GameObject/Cutting/New Cut Minigame", false, 10)]
     private static void CreateCutMinigame(MenuCommand command)
     {
@@ -49,9 +52,8 @@ public static class CuttingSetupMenu
         // effect: the component has to exist for the cut to have an orbit to drive.
         EnsureCameraFollow(manager);
 
-        // free-look, which the cut switches off on entry and back on when it exits. Unlike the
-        // orbit this one is assigned, since the manager holds it in a slot.
-        EnsureMoveCamera(manager);
+        // the aim highlight now rides on each CuttableObject (IHoverable), so there is no scene-wide
+        // free-look component to create or wire here anymore.
 
         // this cut's own scalpel and surface driver, built as a child so it travels with the cut.
         EnsureScalpelDriver(manager);
@@ -71,9 +73,10 @@ public static class CuttingSetupMenu
         // wired; its shot and tool are still the author's to set (a scene-specific choice).
         EnsureFinisher(manager);
 
-        // the shared audio presets, if the project has them: found and assigned here, left empty when
-        // there is none so the components fall back to their inline clip fields exactly as before.
-        WireFoundSounds(manager, root);
+        // cut defaults: this body's own seeds first, then the project's shared presets, then empty.
+        // Only body-universal things (sounds, freshness) -- the camera move is per part, so it is never
+        // seeded and stays the author's to tune on each cut.
+        WireCutDefaults(manager, root, target);
 
         // fills anything the steps above could not resolve, and pushes the tuning down.
         manager.AutoWire();
@@ -89,21 +92,24 @@ public static class CuttingSetupMenu
         }
     }
 
-    /// <summary>Assigns the shared audio presets the project already holds -- the cut's sounds and the grabbable sounds -- leaving each slot empty when no such asset exists.</summary>
+    /// <summary>Seeds a new cut's body-universal defaults: cutting sounds, severed-piece sounds and freshness. The body's own defaults win; failing that, the project's shared presets; failing that, the slot is left empty and the component keeps its inline fallback.</summary>
     /// <remarks>
-    /// "If found" is deliberate: these presets are shared assets an author makes once, not something the
-    /// tool can invent. When one is in the project it is a safe bet the new cut wants it, so wiring it
-    /// saves the drag; when there is none the slot stays empty and the component keeps its inline-field
-    /// fallback, so a project without presets behaves exactly as it did before.
+    /// Body first is the point of this: a body can carry its own feel (a robot cuts unlike flesh) and a
+    /// cut authored on it should start with that, not the project average. Only things that are the same
+    /// wherever you cut this body are seeded -- the camera move and framing differ per part, so they are
+    /// never touched here and stay per-cut.
     /// <para>An already-assigned slot is never overwritten -- a hand-picked preset survives re-running
     /// the tool. Grabbable sounds go onto every <see cref="GrabbableObject"/> in the new cut (a scalpel
     /// authored as one, say), since that is the component that plays them.</para>
     /// </remarks>
-    private static void WireFoundSounds(CuttingManager manager, GameObject root)
+    private static void WireCutDefaults(CuttingManager manager, GameObject root, CuttableObject body)
     {
+        // cutting sounds: this body's default, else the project's shared one.
         if (manager.soundPreset == null)
         {
-            CutSoundPreset cutSounds = FindFirstAsset<CutSoundPreset>();
+            CutSoundPreset cutSounds = body != null && body.defaultSoundPreset != null
+                ? body.defaultSoundPreset
+                : FindFirstAsset<CutSoundPreset>();
             if (cutSounds != null)
             {
                 manager.soundPreset = cutSounds;
@@ -111,13 +117,44 @@ public static class CuttingSetupMenu
             }
         }
 
+        // severed-piece sounds and freshness live on the SeveredPiece sibling now.
+        SeveredPiece piece = manager.SeveredPieceOutfitter;
+        if (piece != null)
+        {
+            if (piece.audioPreset == null)
+            {
+                AudioGrappablePreset severedAudio = body != null && body.defaultSeveredPieceAudio != null
+                    ? body.defaultSeveredPieceAudio
+                    : FindFirstAsset<AudioGrappablePreset>();
+                if (severedAudio != null)
+                {
+                    piece.audioPreset = severedAudio;
+                    Debug.Log($"Wired severed-piece sounds '{severedAudio.name}' into {manager.name}.", severedAudio);
+                }
+            }
+
+            // 0 on the body means "no per-body freshness", so the piece keeps its own default.
+            if (body != null && body.defaultSeveredPieceHealth > 0f)
+            {
+                piece.health = body.defaultSeveredPieceHealth;
+            }
+        }
+
+        // scalpel/held grabbable sounds: body default first, then project.
         AudioGrappablePreset grabSounds = null;
+        bool grabResolved = false;
         foreach (GrabbableObject grabbable in root.GetComponentsInChildren<GrabbableObject>(true))
         {
             if (grabbable.audioPreset != null) continue;
 
             // resolved once, only when there is actually a grabbable to give it to.
-            if (grabSounds == null) grabSounds = FindFirstAsset<AudioGrappablePreset>();
+            if (!grabResolved)
+            {
+                grabSounds = body != null && body.defaultSeveredPieceAudio != null
+                    ? body.defaultSeveredPieceAudio
+                    : FindFirstAsset<AudioGrappablePreset>();
+                grabResolved = true;
+            }
             if (grabSounds == null) break;
 
             grabbable.audioPreset = grabSounds;
@@ -259,44 +296,9 @@ public static class CuttingSetupMenu
         return follow;
     }
 
-    /// <summary>The scene's free-look, created on its own GameObject when there isn't one, and wired into the manager either way.</summary>
-    /// <remarks>
-    /// One per scene rather than one per cut: <see cref="MoveCamera"/> resolves its own camera and
-    /// every manager only ever toggles it, so a second instance would fight the first over the same
-    /// aim highlight. Created here rather than in <c>AutoWire</c> because this is the one entry point
-    /// that is a deliberate authoring action -- <c>AutoWire</c> also runs from <c>Reset</c>, where
-    /// spawning objects would be a surprise.
-    /// </remarks>
-    private static MoveCamera EnsureMoveCamera(CuttingManager manager)
-    {
-        MoveCamera existing = Object.FindFirstObjectByType<MoveCamera>(FindObjectsInactive.Include);
-        if (existing != null)
-        {
-            manager.moveCamera = existing;
-            return existing;
-        }
-
-        GameObject go = new GameObject("MoveCamera");
-
-        // the manager's own scene, not whichever happens to be active: with more than one scene
-        // loaded a free-look in the wrong one is unloaded out from under the cut.
-        if (manager.gameObject.scene.IsValid())
-        {
-            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, manager.gameObject.scene);
-        }
-
-        MoveCamera created = go.AddComponent<MoveCamera>();
-        manager.moveCamera = created;
-
-        Undo.RegisterCreatedObjectUndo(go, "Create Cut Minigame");
-
-        Debug.Log("No free-look in the scene, so a MoveCamera was created for this cut.", go);
-        return created;
-    }
-
     /// <summary>The scalpel this cut drives and its surface driver, created under the cut when it has none, and wired into the manager either way.</summary>
     /// <remarks>
-    /// One scalpel per CUT, unlike the free-look: the driver snaps the transform it sits on onto the
+    /// One scalpel per CUT: the driver snaps the transform it sits on onto the
     /// body and draws that cut's trail into its own LineRenderer, so a shared one could only ever hold
     /// one cut's trace and would have to be re-pointed at whichever cut ran last. Cuts on different
     /// bodies then cannot keep their own lines at all.
@@ -324,6 +326,8 @@ public static class CuttingSetupMenu
             ScalpelSurfaceDriver created = go.AddComponent<ScalpelSurfaceDriver>();
             manager.scalpelFollow = go.GetComponent<CameraFollow>();
 
+            AssignTraceMaterial(created);
+
             Undo.RegisterCreatedObjectUndo(go, "Create Cut Minigame");
 
             Debug.Log($"A Scalpel was created for {manager.name}. Give it a mesh, then place it.", go);
@@ -332,10 +336,12 @@ public static class CuttingSetupMenu
 
         if (follow.TryGetComponent(out ScalpelSurfaceDriver driver))
         {
+            AssignTraceMaterial(driver);
             return driver;
         }
 
         driver = Undo.AddComponent<ScalpelSurfaceDriver>(follow.gameObject);
+        AssignTraceMaterial(driver);
         Debug.Log($"Added a ScalpelSurfaceDriver to {follow.name} for this cut.", follow);
         return driver;
     }
@@ -355,6 +361,34 @@ public static class CuttingSetupMenu
         lr.receiveShadows = false;
         lr.sharedMaterial = GuideMaterial();
         return lr;
+    }
+
+    /// <summary>Gives the scalpel trace the shared material, when it hasn't got one already. The trace is identical across cuts, so nobody should have to pick it.</summary>
+    private static void AssignTraceMaterial(ScalpelSurfaceDriver driver)
+    {
+        if (driver == null || driver.traceMaterial != null) return;
+        driver.traceMaterial = ScalpelTraceMaterial();
+        Debug.Log($"Wired the shared scalpel trace material into {driver.name}.", driver);
+    }
+
+    /// <summary>The shared material for the scalpel trace line, created as an asset on first use so it survives a scene reload. Distinct colour from the guide so the drawn cut reads apart from the target loop.</summary>
+    private static Material ScalpelTraceMaterial()
+    {
+        Material existing = AssetDatabase.LoadAssetAtPath<Material>(ScalpelTraceMaterialPath);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null) shader = Shader.Find("Sprites/Default");
+        if (shader == null) shader = Shader.Find("Unlit/Color");
+
+        Material mat = new Material(shader) { name = "ScalpelTraceLine" };
+        mat.color = Color.red;
+        AssetDatabase.CreateAsset(mat, ScalpelTraceMaterialPath);
+        AssetDatabase.SaveAssets();
+        return mat;
     }
 
     /// <summary>The shared unlit material for guide lines, created as an asset on first use so it survives a scene reload.</summary>

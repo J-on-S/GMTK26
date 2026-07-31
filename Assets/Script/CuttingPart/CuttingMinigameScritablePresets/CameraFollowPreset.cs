@@ -11,6 +11,18 @@ using UnityEngine;
 /// and the component's own fields stay the storage. That keeps the per-frame path untouched, and
 /// means a scene authored before presets existed keeps its values until a preset is assigned.
 /// </para>
+/// <para>
+/// What belongs here is framing that reads the same on any cut. A distance in world units does
+/// not: the same 1.0 orbit radius is a wide shot of a wrist and a camera inside a thigh. Set
+/// <see cref="framingUnits"/> to Loop Radius and the distances become multiples of the cut's own
+/// ring, which is what makes one asset genuinely shareable; the mode stays World by default so
+/// presets authored against a single cut keep their exact framing.
+/// </para>
+/// <para>
+/// Still per-cut, and to be left alone in a shared asset: <see cref="angleOffset"/>. Where a cut
+/// opens around its ring is fixed by its own cutting plane, the same reason
+/// <c>CuttingManager.startAngle</c> is not preset-backed.
+/// </para>
 /// </remarks>
 [CreateAssetMenu(fileName = "CameraFollowPreset", menuName = "Cutting/Camera Follow Preset")]
 public class CameraFollowPreset : ScriptableObject
@@ -22,16 +34,22 @@ public class CameraFollowPreset : ScriptableObject
     [Tooltip("Orbit path: a perfect circle, or the loop's own shape offset outward.")]
     public CameraFollow.MoveMode moveMode = CameraFollow.MoveMode.Circle;
 
-    [Tooltip("Orbit radius from the centre, in world units.")]
+    [Tooltip("What every distance in this asset (orbit radius, height, pivot, drift, position offset) is measured in. World = fixed world units, so this preset only suits cuts of one size. Loop Radius = multiples of the cut's own ring, which is what lets one preset frame a wrist, a thigh and a body scaled up or down.")]
+    public CameraFollow.FramingUnits framingUnits = CameraFollow.FramingUnits.World;
+
+    [Tooltip("Orbit radius from the centre, in the units above.")]
     public float scale = 1f;
 
-    [Tooltip("Lift above the cutting plane along its normal, in world units. Raises the camera off the plane so it views the cut at an angle instead of edge-on.")]
+    [Tooltip("Lift above the cutting plane along its normal, in the units above. Raises the camera off the plane so it views the cut at an angle instead of edge-on.")]
     public float height = 0.5f;
 
-    [Tooltip("Fixed head start around the ring, in degrees. Shifts where the orbit sits (and its Progress) without changing the speed.")]
+    [Tooltip("Fixed head start around the ring, in degrees. Shifts where the orbit sits (and its Progress) without changing the speed. Per-cut geometry rather than feel: leave it at 0 in a shared preset and put the cut's own opening angle on the CuttingManager.")]
     public float angleOffset = 0f;
 
-    [Tooltip("Fixed extra position offset in world space, added on top of the orbit.")]
+    [Tooltip("Space the offset below is read in. Plane follows the cutting plane (X = plane right, Y = along its normal, Z = plane forward), so it survives a client who is moved or turned around; World is a fixed direction in the room.")]
+    public CameraFollow.OffsetSpace offsetSpace = CameraFollow.OffsetSpace.World;
+
+    [Tooltip("Fixed extra position offset added on top of the orbit, in the space and units above.")]
     public Vector3 positionOffset = Vector3.zero;
 
     [Tooltip("How fast the camera eases toward the target POSITION (higher = snappier). Separate from lookSpeed, which only eases the aim.")]
@@ -105,9 +123,11 @@ public class CameraFollowPreset : ScriptableObject
 
         follow.loopSource = loopSource;
         follow.moveMode = moveMode;
+        follow.framingUnits = framingUnits;
         follow.scale = scale;
         follow.height = height;
         follow.angleOffset = angleOffset;
+        follow.offsetSpace = offsetSpace;
         follow.positionOffset = positionOffset;
         follow.moveSpeed = moveSpeed;
 
@@ -142,9 +162,11 @@ public class CameraFollowPreset : ScriptableObject
 
         loopSource = follow.loopSource;
         moveMode = follow.moveMode;
+        framingUnits = follow.framingUnits;
         scale = follow.scale;
         height = follow.height;
         angleOffset = follow.angleOffset;
+        offsetSpace = follow.offsetSpace;
         positionOffset = follow.positionOffset;
         moveSpeed = follow.moveSpeed;
 
@@ -191,7 +213,7 @@ public static class CameraFollowCategories
 
     public static readonly Group[] All =
     {
-        new("Path", new[] { "loopSource", "moveMode", "scale", "height", "angleOffset", "positionOffset", "moveSpeed" }),
+        new("Path", new[] { "loopSource", "moveMode", "framingUnits", "scale", "height", "angleOffset", "offsetSpace", "positionOffset", "moveSpeed" }),
         new("Aim", new[] { "lookMode", "lookSpeed", "loopTowardTop", "upMode", "controlRotation", "controlPosition" }),
         new("Roll", new[] { "rollDegrees", "rollAmplitude", "rollSpeed" }),
         new("Off-centre pivot", new[] { "pivotAffectsPosition", "pivotAffectsLook", "pivotOffset", "pivotMoves", "pivotMoveRadius", "pivotMoveSpeed" }),

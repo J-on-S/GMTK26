@@ -22,12 +22,62 @@ public class CutTracer : MonoBehaviour {
 
     void Start()
     {
-        Lrenderer.widthCurve = AnimationCurve.Constant(0, 1, LineWitdth);
+        ApplyLineWidth();
     }
 
+#if UNITY_EDITOR
+    // guards against stacking one deferred apply per OnValidate call; not serialized, purely edit-time.
+    [System.NonSerialized] private bool _widthApplyQueued;
+#endif
+
+    /// <remarks>
+    /// The width lives on another object -- the LineRenderer -- and OnValidate also fires during a prefab
+    /// apply and the reimport it triggers. Writing to another object from there fights that operation (an
+    /// override applied to the prefab reverts immediately), and Unity documents OnValidate as not
+    /// modifying other objects. So the write is deferred out of validation: the apply settles, then the
+    /// delegate runs once and re-checks this component still exists.
+    /// </remarks>
     void OnValidate()
     {
+#if UNITY_EDITOR
+        if (_widthApplyQueued) return;
+        _widthApplyQueued = true;
+        UnityEditor.EditorApplication.delayCall += RunDeferredWidthApply;
+#endif
+    }
+
+#if UNITY_EDITOR
+    private void RunDeferredWidthApply()
+    {
+        _widthApplyQueued = false;
+
+        if (this == null) return; // destroyed between the validate and this callback
+        ApplyLineWidth();
+    }
+#endif
+
+    /// <summary>Writes <see cref="LineWitdth"/> onto the line, undoably in edit mode.</summary>
+    /// <remarks>No-op without a renderer: the slot is assigned by hand, and an unwired tracer used to
+    /// throw a null reference on every validate and on every load.</remarks>
+    private void ApplyLineWidth()
+    {
+        if (Lrenderer == null) return;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            UnityEditor.Undo.RecordObject(Lrenderer, "Set cut trace width");
+        }
+#endif
+
         Lrenderer.widthCurve = AnimationCurve.Constant(0, 1, LineWitdth);
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            UnityEditor.EditorUtility.SetDirty(Lrenderer);
+        }
+#endif
     }
 
     void Update()

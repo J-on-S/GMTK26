@@ -14,6 +14,10 @@ using UnityEngine;
 ///   returns where it meets the ring: angle in, loop point out.
 /// - The camera walks its <c>angle</c> around the ring each frame and sits over the
 ///   matching loop point (or a plain circle of radius <c>scale</c> in Circle mode).
+/// - Distances (<c>scale</c>, <c>height</c>, the pivot, the drift, <c>positionOffset</c>) are
+///   read in whatever <c>framingUnits</c> says: world units, or multiples of the ring's own
+///   radius. The second is what lets one framing serve cuts of very different sizes, since a
+///   wrist and a thigh want the same picture, not the same number of metres.
 /// </remarks>
 
 public class CameraFollow : MonoBehaviour {
@@ -44,6 +48,22 @@ public class CameraFollow : MonoBehaviour {
         WorldUp,
     }
 
+    /// <summary>What the framing's distances are measured in.</summary>
+    public enum FramingUnits {
+        /// <summary>World units, exactly as authored. What the follow did before this setting existed.</summary>
+        World,
+        /// <summary>Multiples of this cut's own loop radius, so one framing frames a wrist and a thigh alike and follows a body scaled up or down.</summary>
+        LoopRadius,
+    }
+
+    /// <summary>Space the fixed position offset is read in.</summary>
+    public enum OffsetSpace {
+        /// <summary>A fixed direction in the room, whichever way the body is turned. What the follow did before this setting existed.</summary>
+        World,
+        /// <summary>The cutting plane's own axes (X = plane right, Y = along its normal, Z = plane forward), so the offset follows a client who is moved or turned around.</summary>
+        Plane,
+    }
+
     /// <summary>Which loop from the guide the camera orbits.</summary>
     public enum LoopSource {
         /// <summary>Raw flat cross-section.</summary>
@@ -61,10 +81,13 @@ public class CameraFollow : MonoBehaviour {
     [Tooltip("Orbit the raw flat cut, or the curved (surface-snapped) guide loop.")]
     public LoopSource loopSource = LoopSource.Flat;
 
-    [Tooltip("Orbit radius from the centre, in world units.")]
+    [Tooltip("What every distance below (orbit radius, height, pivot, drift, position offset) is measured in. World = exactly as authored. Loop Radius = multiples of THIS cut's ring, so one framing fits a wrist and a thigh and follows a body scaled up or down.")]
+    public FramingUnits framingUnits = FramingUnits.World;
+
+    [Tooltip("Orbit radius from the centre, in the units above (world units, or multiples of the loop radius).")]
     public float scale = 1f;
 
-    [Tooltip("Lift above the cutting plane along its normal, in world units. Raises the camera off the plane so it views the cut at an angle instead of edge-on -- stops the near plane clipping into the skin and makes the loop readable.")]
+    [Tooltip("Lift above the cutting plane along its normal, in the units above. Raises the camera off the plane so it views the cut at an angle instead of edge-on -- stops the near plane clipping into the skin and makes the loop readable.")]
     public float height = 0.5f;
 
     [Tooltip("Also drive rotation (aim + roll). Off = orbit position only, leaving the object's rotation untouched -- lets any GameObject follow the loop without being turned into a look-at camera.")]
@@ -90,13 +113,13 @@ public class CameraFollow : MonoBehaviour {
     [Tooltip("Route the pivot into the camera LOOK: the aim point shifts off the loop centre, so the loop drifts in the frame without the camera moving. Enable both to combine.")]
     public bool pivotAffectsLook = false;
 
-    [Tooltip("Static pivot offset from the loop centre, in plane units (X = plane right, Y = plane forward). Small values keep the loop in view; off-centre makes the tracked target sweep in and out as the camera orbits.")]
+    [Tooltip("Static pivot offset from the loop centre, along the plane's axes (X = plane right, Y = plane forward), in the framing units above. Small values keep the loop in view; off-centre makes the tracked target sweep in and out as the camera orbits.")]
     public Vector2 pivotOffset = Vector2.zero;
 
     [Tooltip("Slowly wander the pivot on a readable Lissajous path so the target motion is learnable, not jittery.")]
     public bool pivotMoves = false;
 
-    [Tooltip("How far the wandering pivot strays from its base offset, in plane units.")]
+    [Tooltip("How far the wandering pivot strays from its base offset, in the framing units above.")]
     public float pivotMoveRadius = 0.2f;
 
     [Tooltip("Wander speed, in radians per second. Keep low so the path stays readable.")]
@@ -154,11 +177,48 @@ public class CameraFollow : MonoBehaviour {
     [Tooltip("Where the orbit begins around the ring, in degrees. Applied on enable and previewed live in edit mode so you can place the follower before pressing play.")]
     [HideInInspector] public float startAngle = 0f;
 
-    [Tooltip("Fixed extra position offset in world space, added on top of the orbit.")]
+    [Tooltip("Space the offset below is read in. Plane follows the cutting plane (X = plane right, Y = along its normal, Z = plane forward), so it survives a body that is moved or turned around; World is a fixed direction in the room.")]
+    public OffsetSpace offsetSpace = OffsetSpace.World;
+
+    [Tooltip("Fixed extra position offset added on top of the orbit, in the space and units above.")]
     public Vector3 positionOffset = Vector3.zero;
 
     /// <summary>Current angle around the ring, in degrees (advances every frame at <c>rotationSpeed</c>).</summary>
     private float angle;
+
+    /// <summary>What every authored distance is multiplied by before it is used: 1 in world units, this cut's loop radius in Loop Radius units.</summary>
+    /// <remarks>
+    /// Read live rather than baked into the fields on entry, and deliberately so: the follow is shared
+    /// between cuts and re-applies its preset on enable and on validate, so anything written onto the
+    /// fields would be overwritten by the next <see cref="ApplyPreset"/> -- and applying it twice would
+    /// square it. Kept as a factor here, it cannot compound and it tracks a body that is rescaled while
+    /// the cut is on screen.
+    /// <para>Falls back to 1 when there is no ring yet (no guide, or the plane misses the mesh): the
+    /// authored numbers are a usable framing, a factor of zero is a camera inside the body.</para>
+    /// </remarks>
+    public float FramingScale {
+        get {
+            if (framingUnits == FramingUnits.World || loopGuide == null) {
+                return 1f;
+            }
+
+            float radius = loopGuide.FlatLoopRadius;
+            return radius > 1e-5f ? radius : 1f;
+        }
+    }
+
+    /// <summary>The fixed offset as a world-space vector: as authored, or laid out in the cutting plane's own axes, times <see cref="FramingScale"/>.</summary>
+    private Vector3 ResolvedPositionOffset(float framingScale) {
+        Vector3 offset = positionOffset * framingScale;
+
+        if (offsetSpace == OffsetSpace.World || loopGuide == null) {
+            return offset;
+        }
+
+        return loopGuide.PlaneRight * offset.x
+             + loopGuide.PlaneNormal * offset.y
+             + loopGuide.PlaneForward * offset.z;
+    }
 
     /// <summary>Live orbit angle around the ring, in degrees.</summary>
     public float Angle { get => angle; set => angle = value; }
@@ -242,9 +302,13 @@ public class CameraFollow : MonoBehaviour {
 
         float t = clock ?? Time.time;
 
+        // every authored distance goes through this one factor: 1 in world units, the ring's own
+        // radius when the framing is authored as multiples of it.
+        float k = FramingScale;
+
         // route the pivot independently into position and/or look; each falls back to the
         // raw loop centre when its toggle is off.
-        Vector3 pivot = GetPivot(center, t);
+        Vector3 pivot = GetPivot(center, t, k);
         Vector3 movePivot = pivotAffectsPosition ? pivot : center;
         Vector3 lookPivot = pivotAffectsLook ? pivot : center;
 
@@ -255,15 +319,15 @@ public class CameraFollow : MonoBehaviour {
         // the loop's own shape, pushed 'scale' outward from it.
         Vector3 moveLoopPoint = PointOnLoopInDirection(movePivot, orbitDir, loopPoints);
         position = moveMode == MoveMode.Circle
-            ? movePivot + orbitDir * scale
-            : moveLoopPoint + (moveLoopPoint - movePivot).normalized * scale;
+            ? movePivot + orbitDir * (scale * k)
+            : moveLoopPoint + (moveLoopPoint - movePivot).normalized * (scale * k);
 
         // lift off the cutting plane along its normal so the camera views the cut at an
         // angle, not edge-on: stops the near plane clipping the skin and gives the loop depth.
-        position += loopGuide.PlaneNormal * height;
+        position += loopGuide.PlaneNormal * (height * k);
 
-        // fixed extra offset in world space.
-        position += positionOffset;
+        // fixed extra offset, in the room's axes or the cutting plane's own.
+        position += ResolvedPositionOffset(k);
 
         // LOOK: aim at the look pivot's centre, or the loop point in the orbit direction.
         Vector3 lookTarget = lookMode == LookMode.Center
@@ -343,9 +407,11 @@ public class CameraFollow : MonoBehaviour {
             return;
         }
 
-        // orbit target before the world offset, exposed for anything that needs the raw
-        // on-loop position (not the shifted camera position).
-        BasePosition = targetPos - positionOffset;
+        // orbit target before the fixed offset, exposed for anything that needs the raw
+        // on-loop position (not the shifted camera position). Subtracts the RESOLVED offset,
+        // the same vector TryGetPose added: the authored one is in plane axes and scaled units
+        // when the framing says so, so taking it away raw would leave a residue.
+        BasePosition = targetPos - ResolvedPositionOffset(FramingScale);
 
         // random sideways drift, play-only jitter. Folded into the TARGET, not added to the
         // eased result: adding it afterwards made each frame's drift the starting point for the
@@ -378,21 +444,22 @@ public class CameraFollow : MonoBehaviour {
 
     /// <summary>The point the camera orbits: loop centre plus the (optionally wandering) pivot offset, laid out in the cutting plane.</summary>
     /// <remarks>Invariant: the wander is a slow two-frequency Lissajous, so the target motion is learnable rather than jittery.</remarks>
-    private Vector3 GetPivot(Vector3 center, float clock) {
-        float ox = pivotOffset.x;
-        float oz = pivotOffset.y;
+    /// <param name="framingScale">What the authored offsets are multiplied by, so a pivot stays the same fraction of the ring on a cut of any size.</param>
+    private Vector3 GetPivot(Vector3 center, float clock, float framingScale) {
+        float ox = pivotOffset.x * framingScale;
+        float oz = pivotOffset.y * framingScale;
 
         if (pivotMoves) {
             float t = clock * pivotMoveSpeed;
             // different frequencies on each axis trace a readable figure, not a circle
-            ox += Mathf.Sin(t) * pivotMoveRadius;
-            oz += Mathf.Cos(t * 0.7f) * pivotMoveRadius;
+            ox += Mathf.Sin(t) * pivotMoveRadius * framingScale;
+            oz += Mathf.Cos(t * 0.7f) * pivotMoveRadius * framingScale;
         }
 
         return center + loopGuide.PlaneRight * ox + loopGuide.PlaneForward * oz;
     }
 
-    [Tooltip("Largest sideways drift offset from the orbit position, in world units.")]
+    [Tooltip("Largest sideways drift offset from the orbit position, in the framing units above.")]
     public float maxHorizontalDerive = 1f;
 
     [Tooltip("How many times per second a new random drift target is rolled.")]
@@ -430,7 +497,7 @@ public class CameraFollow : MonoBehaviour {
             // small offsets are far more likely than offsets near the edge
             float u = Random.Range(-1f, 1f);
             float biased = Mathf.Sign(u) * Mathf.Pow(Mathf.Abs(u), deriveCenterBias);
-            targetDerive = biased * maxHorizontalDerive;
+            targetDerive = biased * maxHorizontalDerive * FramingScale;
         }
 
         currentDerive = Mathf.Lerp(currentDerive, targetDerive, DeriveSpeed * Time.deltaTime);

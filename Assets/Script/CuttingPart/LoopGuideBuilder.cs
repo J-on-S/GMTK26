@@ -146,23 +146,67 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <summary>Cutting-plane forward axis (world space). <c>Vector3.forward</c> when no plane is assigned.</summary>
     public Vector3 PlaneForward => plane != null ? plane.transform.forward : Vector3.forward;
 
+#if UNITY_EDITOR
+    // guards against stacking one deferred apply per OnValidate call; not serialized, purely edit-time.
+    [System.NonSerialized] private bool widthApplyQueued;
+#endif
+
+    /// <remarks>Deferred for the same reason as <c>CuttingManager.OnValidate</c>: the width lands on the
+    /// two LineRenderers, which are other objects, and a validate that fires during a prefab apply must
+    /// not fight it -- an override applied to the prefab would revert on the spot.</remarks>
     void OnValidate() {
+#if UNITY_EDITOR
+        if (widthApplyQueued) return;
+        widthApplyQueued = true;
+        UnityEditor.EditorApplication.delayCall += RunDeferredWidthApply;
+#endif
+    }
+
+#if UNITY_EDITOR
+    private void RunDeferredWidthApply() {
+        widthApplyQueued = false;
+
+        if (this == null) return; // destroyed between the validate and this callback
         ApplyLineWidth();
     }
+#endif
 
     /// <summary>Writes <see cref="curveWidth"/> onto both line renderers.</summary>
     /// <remarks>Public so the <see cref="CuttingManager"/> that owns the width can land it the moment it
     /// pushes: this component's own OnValidate does not fire when another script writes its fields, so
     /// without this the new width waits for the next frame that happens to draw.</remarks>
     public void ApplyLineWidth() {
-        if (loopLine != null) {
-            loopLine.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
-            loopLine.widthMultiplier = 1f;
+        WriteWidth(loopLine);
+        WriteWidth(flatLine);
+    }
+
+    /// <summary>Sets one line's width, undoably in edit mode, and only when it is not already there.</summary>
+    /// <remarks>The skip matters: this is reached from every push and every deferred validate, and an
+    /// unconditional write registers an undo step and dirties the renderer -- on a prefab instance, an
+    /// override -- for a value that did not move.</remarks>
+    private void WriteWidth(LineRenderer line) {
+        if (line == null) return;
+
+        if (Mathf.Approximately(line.widthMultiplier, 1f)
+            && line.widthCurve.length == 1
+            && Mathf.Approximately(line.widthCurve[0].value, curveWidth)) {
+            return;
         }
-        if (flatLine != null) {
-            flatLine.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
-            flatLine.widthMultiplier = 1f;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying) {
+            UnityEditor.Undo.RecordObject(line, "Set guide line width");
         }
+#endif
+
+        line.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
+        line.widthMultiplier = 1f;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying) {
+            UnityEditor.EditorUtility.SetDirty(line);
+        }
+#endif
     }
 
     /// <summary>Gets the centre and world-space contour points of the middle cut loop.</summary>
@@ -241,6 +285,15 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     /// <summary>Arc length of the curved (surface-snapped) loop, in world units. <c>0</c> when the plane misses the mesh. Cached with the curve rebuild.</summary>
     public float CurvedLoopLength => TryGetCurvedLoop(out _, out _) ? curvedLength : 0f;
+
+    /// <summary>How big this cut's ring is, in world units: the radius of a circle of the same arc length. <c>0</c> when the plane misses the mesh.</summary>
+    /// <remarks>
+    /// The one number that says how large a cut is, so framing authored as a multiple of it reads the
+    /// same on a wrist and on a thigh, and follows a body scaled up or down. Taken from the arc length
+    /// rather than from a max vertex distance: the length is already cached with the extraction, and it
+    /// is not thrown off by a single spike on the cross-section.
+    /// </remarks>
+    public float FlatLoopRadius => FlatLoopLength / (2f * Mathf.PI);
 
     /// <summary>Flat cut loop, world space. <c>false</c> when no plane/mesh is set or the plane misses the mesh.</summary>
     /// <remarks>This is the raw cross-section, before any curve warp.</remarks>
@@ -587,13 +640,55 @@ public class LoopGuideBuilder : MonoBehaviour {
         if (flatLine != null) flatLine.enabled = false;
     }
 
-    /// <summary>Pushes a loop of points into a LineRenderer at the guide width.</summary>
+    /// <summary>Pushes a loop of points into a LineRenderer at the guide width, skipping a redraw that would change nothing.</summary>
     private void DrawInto(LineRenderer lr, List<Vector3> points, bool closed) {
+        LineCache cache = lr == flatLine ? flatCache : curvedCache;
+        if (!Application.isPlaying && cache.WouldDrawTheSame(lr, points, curveWidth, closed)) {
+            return;
+        }
+
         lr.loop = closed;
-        lr.widthCurve = AnimationCurve.Constant(0f, 1f, curveWidth);
+        WriteWidth(lr); // same path as a push, so a redraw cannot leave a width nobody could undo
         lr.positionCount = points.Count;
         lr.SetPositions(points.ToArray());
     }
+
+    /// <summary>What was last pushed into one line, so an edit-mode frame that would redraw the same thing writes nothing.</summary>
+    /// <remarks>
+    /// A LineRenderer's points are serialized. Rewriting them every frame while this component previews
+    /// in edit mode keeps the scene dirty for as long as a cut is on screen and, on a prefab instance,
+    /// holds open an override on the whole positions array that nobody authored.
+    /// <para>Play is exempt and goes straight through: nothing there is saved, and the erased ring hands
+    /// over a freshly built list every frame anyway, so the check could never hit.</para>
+    /// <para>The cached loops are compared by reference, which is exactly right here: the builder hands
+    /// back the same list until it re-extracts or re-warps, and every reason it would (the plane moved,
+    /// the mesh changed, a curve or hover value was edited) replaces the list.</para>
+    /// </remarks>
+    private sealed class LineCache {
+        private List<Vector3> points;
+        private float width = float.NaN;
+        private bool closed;
+        private int count = -1;
+
+        /// <summary>True when the line already holds this exact drawing; otherwise remembers it and returns false.</summary>
+        public bool WouldDrawTheSame(LineRenderer lr, List<Vector3> pts, float lineWidth, bool loop) {
+            if (ReferenceEquals(pts, points)
+                && closed == loop
+                && Mathf.Approximately(width, lineWidth)
+                && lr.positionCount == count) {
+                return true;
+            }
+
+            points = pts;
+            width = lineWidth;
+            closed = loop;
+            count = pts.Count;
+            return false;
+        }
+    }
+
+    private readonly LineCache flatCache = new LineCache();
+    private readonly LineCache curvedCache = new LineCache();
 
     /// <summary>Cumulative end angle (0..2pi) of each random half-cycle segment.</summary>
     private float[] segEnd;

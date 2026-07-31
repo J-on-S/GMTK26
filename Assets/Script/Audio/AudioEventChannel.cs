@@ -18,8 +18,12 @@ public class AudioEventChannel : ScriptableObject
     }
     public delegate AudioMaster.PlayingClip PlayDelegate(Audio clip);
     public delegate AudioMaster.PlayingClip FadeInDelegate(Audio clip, float duration);
+    public delegate AudioMaster.PlayingClip PlayOptionsDelegate(Audio clip, AudioMaster.PlayOptions options);
+    public delegate AudioMaster.PlayingClip FadeInOptionsDelegate(Audio clip, float duration, AudioMaster.PlayOptions options);
 
     public event PlayDelegate Played;
+    public event PlayOptionsDelegate PlayedWithOptions;
+    public event FadeInOptionsDelegate FadeInWithOptions;
     public event Action<Audio> Stopped;
     public event Action<float> LevelSet;
     public event Action<Audio, float> FadeOut;
@@ -40,6 +44,18 @@ public class AudioEventChannel : ScriptableObject
     /// <param name="clip">Audio clip (ScriptableObject)</param>
     /// <returns></returns>
     public AudioMaster.PlayingClip Play(Audio clip) => Played?.Invoke(clip);
+
+    public AudioMaster.PlayingClip Play(Audio clip, AudioMaster.PlayOptions options) => PlayedWithOptions?.Invoke(clip, options);
+
+    public AudioMaster.PlayingClip Play(Audio clip, float startTime, float playLength = 0f, float delay = 0f, Action<bool> onEnded = null, Action onLoopStarted = null)
+        => PlayedWithOptions?.Invoke(clip, new AudioMaster.PlayOptions
+        {
+            StartTime = startTime,
+            PlayLength = playLength,
+            Delay = delay,
+            OnEnded = onEnded,
+            OnLoopStarted = onLoopStarted,
+        });
 
     /// <summary>
     /// Sets the volume level of the AudioMixer
@@ -89,6 +105,8 @@ public class AudioEventChannel : ScriptableObject
     /// <param name="clip">Clip to Play</param>
     /// <param name="duration">duration of fade</param>
     public AudioMaster.PlayingClip FadeStart(Audio clip, float duration = 1) => FadeIn?.Invoke(clip, duration);
+
+    public AudioMaster.PlayingClip FadeStart(Audio clip, float duration, AudioMaster.PlayOptions options) => FadeInWithOptions?.Invoke(clip, duration, options);
 
     /// <summary>
     /// Cross-Fade between two audio clips 

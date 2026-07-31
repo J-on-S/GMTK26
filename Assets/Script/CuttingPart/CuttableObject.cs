@@ -5,7 +5,7 @@ using Unity.VisualScripting;
 
 [RequireComponent(typeof(MeshCollider))]
 [RequireComponent(typeof(MeshRenderer))]
-public class CuttableObject : MonoBehaviour , IInteractable
+public class CuttableObject : MonoBehaviour , IInteractable, IHoverable
 {
 
 
@@ -17,6 +17,21 @@ public class CuttableObject : MonoBehaviour , IInteractable
 
         [Tooltip("Master switch for every CutPlane's scene-view loop on this body. Off stops the per-frame re-extraction, which is the expensive part of authoring; turn it off once the planes are placed.")]
         public bool drawCutLoops = true;
+
+        // ---- cut defaults: SEEDS the setup menu copies into each new cut on this body, not a runtime
+        //      fallback. A cut still shows exactly what it uses; the body only decides what a fresh cut
+        //      starts with. Only things that are the same WHEREVER you cut this body go here -- the
+        //      camera move and framing differ per part, so they stay on the CuttingManager, never here.
+        [Header("Cut defaults (seeded into new cuts on this body)")]
+
+        [Tooltip("Cutting sounds a new cut on this body starts with. Same wherever you cut this body, so it sits here rather than being re-picked per cut. Left empty, the menu falls back to the project's shared preset.")]
+        public CutSoundPreset defaultSoundPreset;
+
+        [Tooltip("Grab/drop sounds a new cut's severed piece starts with. Per-body, since a body's parts sound alike in the hand. Left empty, the menu falls back to the project's shared preset.")]
+        public AudioGrappablePreset defaultSeveredPieceAudio;
+
+        [Tooltip("Freshness (seconds) a new cut's severed piece starts and caps at. Per-body -- one client's parts spoil no faster than another's part of the same client. 0 leaves the SeveredPiece component's own default.")]
+        public float defaultSeveredPieceHealth = 0f;
 
     // Where the plane went: a body can be cut in several places, so the plane and its window are a
     // CutPlane component on its own object, not a single slot here. This object holds only what is
@@ -304,6 +319,132 @@ public class CuttableObject : MonoBehaviour , IInteractable
         if (Application.isPlaying) Destroy(mesh);
         else DestroyImmediate(mesh);
     }
+    // ---- Aim highlight (was the standalone MoveCamera; now driven by Interactor's hover ray) ----
+    [Header("Aim highlight")]
+    [Tooltip("How many times a second the aim is re-resolved while the player keeps looking at this body. Resolving runs the real slicer over the whole body mesh, so this is the biggest cost here.")]
+    public float resolvesPerSecond = 12f;
+
+    [Tooltip("The cut can be started right now.")]
+    public Color canCutColor = new(0f, 1f, 0f, 0.35f);
+
+    [Tooltip("The cut is otherwise fine, but the player is holding the wrong tool for it.")]
+    public Color wrongToolColor = new(1f, 0.92f, 0f, 0.35f);
+
+    /// <summary>Highlighter currently lit on this body, so it can be cleared when the aim moves off it.</summary>
+    private CutRegionHighlighter litHighlighter;
+
+    /// <summary>What is on screen now, so an unchanged tint is not rewritten every frame.</summary>
+    private Mesh litMesh;
+    private Color litColor;
+
+    /// <summary>Time the next throttled resolve is due.</summary>
+    private float nextResolve;
+
+    /// <summary>Set the frame the interactor's aim is on this body, cleared in LateUpdate: a frame with no HoverOver call means the aim left.</summary>
+    private bool hovering;
+
+    /// <summary>Lights the piece under the crosshair while the player aims at this body, in the colour that says whether its cut can be started.</summary>
+    /// <remarks>
+    /// Aiming resolves in three steps, because a cut does not live on the object it cuts. The interactor's
+    /// ray found this body, <see cref="CutRegistry"/> maps it back to its cuts, and the hit point picks
+    /// which of those would take the piece being pointed at. Regions nest -- the hand sits inside both the
+    /// wrist cut's piece and the shoulder cut's -- so the registry hands back the innermost.
+    /// <para>Called every frame the aim is on this body; resolving runs the real slicer over the whole
+    /// mesh, so it is throttled to <see cref="resolvesPerSecond"/>.</para>
+    /// </remarks>
+    public void HoverOver(Interactor player)
+    {
+        hovering = true;
+
+        // no highlight while a cut is on screen: that camera is flown onto a body, and a tint under the
+        // crosshair there would fight the cut. Replaces the old disable of the scene-wide MoveCamera.
+        if (CuttingManager.currentGame != null)
+        {
+            ClearHover();
+            return;
+        }
+
+        // still lit from the last resolve -- resolving is the expensive part, so leave the tint be
+        if (Time.time < nextResolve) return;
+        nextResolve = Time.time + (resolvesPerSecond > 0f ? 1f / resolvesPerSecond : 0f);
+
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            ClearHover();
+            return;
+        }
+
+        // screen centre: the cursor is locked, so a mouse position carries no information. The interactor
+        // already knows the aim is on this body; this ray only recovers the hit point it did not hand over.
+        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        if (!Physics.Raycast(ray, out RaycastHit hit) || hit.collider.gameObject != gameObject)
+        {
+            ClearHover();
+            return;
+        }
+
+        // which cut would take the piece under the crosshair. Null means the upper hull -- the part that
+        // stays attached -- and that is never tinted.
+        CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
+        if (aimed == null)
+        {
+            ClearHover();
+            return;
+        }
+
+        Item heldItem = player != null && player.heldObject != null ? player.heldObject.item : null;
+        bool hasTool = aimed.HasRequiredTool(heldItem);
+
+        Color color = hasTool ? canCutColor : wrongToolColor;
+
+        // the actual severed mesh, so the tint is the piece that would come away and nothing more
+        Highlight(aimed.SeveredPreviewMesh, color);
+
+        // and name the tool this cut wants on the scene HUD, e.g. "required: Scalpel"
+        BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
+        if (hud != null) hud.ShowText(this, $"required: {aimed.requiredTool}");
+    }
+
+    /// <summary>Clears both this body's tint and its requirement line on the HUD, for the frames the aim is on the body but not on a cut.</summary>
+    private void ClearHover()
+    {
+        Highlight(null, default);
+        BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
+        if (hud != null) hud.HideText(this);
+    }
+
+    /// <summary>Lights this body's severed piece, clearing whichever tint was on before. A <c>null</c> mesh clears.</summary>
+    private void Highlight(Mesh severedMesh, Color color)
+    {
+        CutRegionHighlighter target = severedMesh != null ? CutRegionHighlighter.For(this) : null;
+
+        // already showing exactly this: rewriting it would churn a property block for no change
+        if (target == litHighlighter && severedMesh == litMesh && color == litColor) return;
+
+        // clear the old one first, so sweeping between two bodies never leaves both lit
+        if (litHighlighter != null && litHighlighter != target) litHighlighter.Hide();
+
+        litHighlighter = target;
+        litMesh = severedMesh;
+        litColor = color;
+
+        if (target != null) target.Show(severedMesh, color);
+    }
+
+    /// <summary>Clears the tint and requirement line once the aim leaves: a frame with no HoverOver call means the player looked away.</summary>
+    private void LateUpdate()
+    {
+        if (!hovering) ClearHover();
+        hovering = false;
+    }
+
+    /// <summary>A tint or line left on would sit frozen on screen; clear both when this body is disabled.</summary>
+    private void OnDisable()
+    {
+        ClearHover();
+    }
+
     public void Interact(Interactor player)
     {
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
@@ -316,7 +457,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
         CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
         if(aimed == null) return;
 
-        bool hasTool = true || aimed.HasRequiredTool(player.heldObject.item.Name);
+        bool hasTool = true || aimed.HasRequiredTool(player.heldObject.item);
         if(aimed.canEnterMinigame() && hasTool){
             aimed.EnterMinigame();
         }

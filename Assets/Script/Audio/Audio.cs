@@ -3,10 +3,22 @@ using UnityEngine;
 using System;
 using Unity.VisualScripting;
 
+/// <summary>What kind of sound this is, for routing/mixing. UISFX shows as "UI SFX" in the inspector.</summary>
+public enum AudioType
+{
+    SFX,
+    Music,
+    [InspectorName("UI SFX")] UISFX,
+    Dialogue
+}
+
 [CreateAssetMenu(fileName = "AudioClip")]
 public class Audio : ScriptableObject
 {
     public AudioClip AudioClip;
+
+    [Tooltip("What kind of sound this is, for routing/mixing.")]
+    public AudioType Type = AudioType.SFX;
 
     [Range(0, 1)]
     public float Volume;

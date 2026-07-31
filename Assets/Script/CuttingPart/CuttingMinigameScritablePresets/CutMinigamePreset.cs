@@ -10,11 +10,8 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "CutMinigamePreset", menuName = "Cutting/Cut Minigame Preset")]
 public class CutMinigamePreset : ScriptableObject
 {
-    // startAngle and endAngle are deliberately absent. They are geometry, not feel: where a cut
-    // opens depends on where its own cutting plane sits, so sharing a preset between two cuts
-    // must not drag them to the same opening angle. They live on the CuttingManager.
-    // If a "how far around must you cut" difficulty knob is ever wanted, add a cutSpan here --
-    // that one IS startAngle-independent -- and have the manager read endAngle = startAngle + span.
+ 
+
 
     [Header("Camera")]
     [Tooltip("Field of view while cutting, in degrees. The free-look FOV is snapshotted on enter and put back on quit.")]
@@ -34,7 +31,7 @@ public class CutMinigamePreset : ScriptableObject
     [Tooltip("Along-limb input, speeds and smoothing. Read by the scalpel's ScalpelSurfaceDriver.")]
     public ScalpelSurfacePreset scalpelFollowPreset;
 
-    [Tooltip("How the camera frames this cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts can frame differently without each owning a camera.")]
+    [Tooltip("How the camera frames this cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts can frame differently without each owning a camera. To share one across cuts of different sizes, set its Framing Units to Loop Radius; in World units its distances only suit the cut it was tuned on.")]
     public CameraFollowPreset cameraOrbitPreset;
 
     [Tooltip("The same, for the scalpel's CameraFollow. Normally has controlPosition off, since the ScalpelSurfaceDriver owns the scalpel's position.")]

@@ -208,9 +208,9 @@ public static class CutCopier
     /// A copy can be perfectly wired and still do nothing, because what makes a cut reachable lives on
     /// the BODY, not on the cut, and copying cuts never puts it there:
     /// <list type="bullet">
-    /// <item><description>a <c>Collider</c> on the body's own GameObject -- both <see cref="MoveCamera"/>
-    /// and <c>Interactor</c> read the <see cref="CuttableObject"/> off the collider they hit with
-    /// <c>TryGetComponent</c>, so one on a child resolves to nothing;</description></item>
+    /// <item><description>a <c>Collider</c> on the body's own GameObject -- <c>Interactor</c> reads the
+    /// <see cref="CuttableObject"/> (its interact and its aim highlight both) off the collider it hits
+    /// with <c>TryGetComponent</c>, so one on a child resolves to nothing;</description></item>
     /// <item><description>a <c>MeshFilter</c> with a mesh -- the severed preview is sliced from it, and
     /// with no preview every region test says no, so aiming highlights nothing and clicking enters
     /// nothing.</description></item>

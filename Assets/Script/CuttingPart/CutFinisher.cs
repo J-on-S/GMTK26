@@ -59,7 +59,7 @@ public class CutFinisher : MonoBehaviour
     [Range(-90f, 90f)]
     public float approachTilt = 90f;
 
-    [Tooltip("Bob distance while waiting, in world units, along the approach axis.")]
+    [Tooltip("Bob distance while waiting, along the approach axis, at the body's own scale (multiplied by the body's scale, so the swing keeps its look on a body scaled up or down).")]
     public float bobAmp = 0.06f;
 
     [Tooltip("Bob rate while waiting, in cycles per second.")]
@@ -68,10 +68,10 @@ public class CutFinisher : MonoBehaviour
     [Tooltip("Seconds before the swing fires on its own. 0 = wait forever.")]
     public float autoSlashAfter = 0f;
 
-    [Tooltip("How far out along the approach axis the swing starts, in world units. Also where the tool waits.")]
+    [Tooltip("How far out along the approach axis the swing starts, and where the tool waits, at the body's own scale (multiplied by the body's scale, so the swing keeps its look on a body scaled up or down).")]
     public float hoverHeight = 0.25f;
 
-    [Tooltip("Half the blade's travel across the cut.")]
+    [Tooltip("Half the blade's travel across the cut, at the body's own scale (multiplied by the body's scale, so the swing keeps its look on a body scaled up or down).")]
     public float sweepDist = 0.6f;
 
     [Tooltip("Seconds the swing takes.")]
@@ -106,19 +106,19 @@ public class CutFinisher : MonoBehaviour
     /// <summary>How far the approach leans out of the cutting plane, in degrees.</summary>
     public float ApproachTilt => preset != null ? preset.approachTilt : approachTilt;
 
-    /// <summary>Bob distance while waiting, in world units.</summary>
-    public float BobAmp => preset != null ? preset.bobAmp : bobAmp;
+    /// <summary>Bob distance while waiting, in world units, scaled to the body so it keeps its look on a body scaled up or down.</summary>
+    public float BobAmp => (preset != null ? preset.bobAmp : bobAmp) * BodyScale;
 
     public float BobHz => preset != null ? preset.bobHz : bobHz;
 
     /// <summary>Seconds before the swing fires on its own; <c>0</c> waits indefinitely.</summary>
     public float AutoSlashAfter => preset != null ? preset.autoSlashAfter : autoSlashAfter;
 
-    /// <summary>How far out along the approach axis the swing starts, and where the tool waits.</summary>
-    public float HoverHeight => preset != null ? preset.hoverHeight : hoverHeight;
+    /// <summary>How far out along the approach axis the swing starts, and where the tool waits, scaled to the body so it keeps its look on a body scaled up or down.</summary>
+    public float HoverHeight => (preset != null ? preset.hoverHeight : hoverHeight) * BodyScale;
 
-    /// <summary>Half the blade's travel across the cut, in world units.</summary>
-    public float SweepDist => preset != null ? preset.sweepDist : sweepDist;
+    /// <summary>Half the blade's travel across the cut, in world units, scaled to the body so it keeps its look on a body scaled up or down.</summary>
+    public float SweepDist => (preset != null ? preset.sweepDist : sweepDist) * BodyScale;
 
     /// <summary>Seconds the swing takes.</summary>
     public float SlashTime => preset != null ? preset.slashTime : slashTime;
@@ -169,6 +169,28 @@ public class CutFinisher : MonoBehaviour
 
     /// <summary>Whether this finisher has enough to run; <c>false</c> makes the cut splice directly instead.</summary>
     public bool CanRun => enableFinisher && Manager != null && Plane != null;
+
+    /// <summary>The cut body's own scale as a single factor, so the swing's world-space distances -- hover, sweep, bob -- stay proportional to a body scaled up or down.</summary>
+    /// <remarks>
+    /// Mirrors <c>CuttingManager.BodyScale</c> and <c>ScalpelSurfaceDriver</c>: the directions the swing
+    /// is built from already ride the body (the plane is a child of it), but the distances laid along them
+    /// are world units and would otherwise stay fixed while the body shrinks or grows around them. The
+    /// shot pose needs no such factor -- it is stored body-local and read back through <c>TransformPoint</c>,
+    /// which carries the scale itself.
+    /// <para>The average of the three lossy-scale axes, to survive a non-uniform scale; 1 when there is no
+    /// body yet.</para>
+    /// </remarks>
+    private float BodyScale
+    {
+        get
+        {
+            CuttableObject body = Manager != null ? Manager.GameObjectBeingCut : null;
+            Transform t = body != null ? body.transform : null;
+            if (t == null) return 1f;
+            Vector3 s = t.lossyScale;
+            return (Mathf.Abs(s.x) + Mathf.Abs(s.y) + Mathf.Abs(s.z)) / 3f;
+        }
+    }
 
     // ---- frame basis: an axis to come in along, an axis to sweep across, a centre to aim at ----
 

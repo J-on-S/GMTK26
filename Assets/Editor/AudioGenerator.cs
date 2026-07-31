@@ -16,25 +16,34 @@ public static class AudioGeneratorSimple
             if (clip == null)
                 continue;
 
-            string folder = Path.GetDirectoryName(path);
-            string assetPath = Path.Combine(folder, clip.name + ".asset");
-
-            // Avoid overwrite
-            assetPath = AssetDatabase.GenerateUniqueAssetPath(assetPath);
-
-            Audio audioAsset = ScriptableObject.CreateInstance<Audio>();
-            audioAsset.AudioClip = clip;
-            audioAsset.Volume = 1f;
-            audioAsset.Loop = false;
-            audioAsset.Pan = 0f;
-
-            AssetDatabase.CreateAsset(audioAsset, assetPath);
+            CreateFor(clip);
         }
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
         Debug.Log("Audio assets created.");
+    }
+
+    /// <summary>Creates one <see cref="Audio"/> asset wrapping <paramref name="clip"/>, next to the clip, with a unique name. Shared by the create menu and the AudioClip inspector button.</summary>
+    /// <returns>The created asset, already written to disk.</returns>
+    public static Audio CreateFor(AudioClip clip)
+    {
+        string path = AssetDatabase.GetAssetPath(clip);
+        string folder = Path.GetDirectoryName(path);
+
+        // next to the clip, unique so a second call never overwrites the first
+        string assetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(folder, clip.name + ".asset"));
+
+        Audio audioAsset = ScriptableObject.CreateInstance<Audio>();
+        audioAsset.AudioClip = clip;
+        audioAsset.Volume = 1f;
+        audioAsset.Loop = false;
+        audioAsset.Pan = 0f;
+
+        AssetDatabase.CreateAsset(audioAsset, assetPath);
+        AssetDatabase.SaveAssets();
+        return audioAsset;
     }
 
     [MenuItem("Assets/Create/Audio From Clip", true)]

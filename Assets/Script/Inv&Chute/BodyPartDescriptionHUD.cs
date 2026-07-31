@@ -25,6 +25,10 @@ public class BodyPartDescriptionHUD : MonoBehaviour
     /// <summary>Whether the current target carries health worth a bar. A tool has none, so the slider is switched off and the HUD shows only the name.</summary>
     private bool _showHealth;
 
+    /// <summary>Owner of a raw-text line (e.g. a hovered CuttableObject showing its required tool), and the line itself. Kept separate from <see cref="_selected"/>: the text has no GrabbableObject behind it.</summary>
+    private object _textOwner;
+    private string _text;
+
     private void OnEnable()
     {
         LastActiveInstance = this;
@@ -48,11 +52,12 @@ public class BodyPartDescriptionHUD : MonoBehaviour
 
     private void Update()
     {
-        if (_visible && _selected != null)
+        if (_visible)
         {
             if (bodyPartDescriptionText != null)
             {
-                bodyPartDescriptionText.text = _selected.DisplayName;
+                // a GrabbableObject's name, or the raw requirement line when there is no object behind it
+                bodyPartDescriptionText.text = _selected != null ? _selected.DisplayName : _text;
             }
 
             if (bodyPartHealthSlider != null)
@@ -74,6 +79,8 @@ public class BodyPartDescriptionHUD : MonoBehaviour
     public void ShowBodyPartDescription(DetachedBodyPart bodyPart)
     {
         _selected = bodyPart;
+        _text = null;
+        _textOwner = null;
         _showHealth = true;
         _visible = true;
     }
@@ -82,8 +89,29 @@ public class BodyPartDescriptionHUD : MonoBehaviour
     public void ShowName(GrabbableObject item)
     {
         _selected = item;
+        _text = null;
+        _textOwner = null;
         _showHealth = false;
         _visible = true;
+    }
+
+    /// <summary>Shows a raw line with no object behind it, e.g. a hovered cut's required tool. No health bar.</summary>
+    public void ShowText(object owner, string text)
+    {
+        _selected = null;
+        _textOwner = owner;
+        _text = text;
+        _showHealth = false;
+        _visible = true;
+    }
+
+    /// <summary>Hides a raw line, but only if <paramref name="owner"/> is the one that showed it, so a stale hide cannot blank a line the player already moved onto.</summary>
+    public void HideText(object owner)
+    {
+        if (!ReferenceEquals(_textOwner, owner)) return;
+        _textOwner = null;
+        _text = null;
+        _visible = false;
     }
 
     /// <summary>Hides the HUD, but only if <paramref name="item"/> is the one currently shown, so a stale hide from an item the player already left cannot blank the one they moved onto.</summary>

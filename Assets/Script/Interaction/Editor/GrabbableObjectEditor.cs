@@ -5,7 +5,7 @@ using UnityEngine;
 /// <remarks>
 /// The offsets are only readable as a picture: a centimetre of holdOffset means nothing until the object
 /// is in the hand next to the camera. The preview puts it there in edit mode and follows every drag of
-/// the offset fields, so the pose is authored where it will be seen.
+/// the offset and held-scale fields, so the pose is authored where it will be seen.
 /// <para>Invariant: the pose the preview shows is the pose the grab applies -- both call
 /// <see cref="GrabbableObject.ApplyHeldPose"/>, so this cannot drift from the real thing.</para>
 /// </remarks>
@@ -67,7 +67,7 @@ public class GrabbableObjectEditor : Editor
         grabbable.ApplyHeldPose(holdPoint);
         SceneView.RepaintAll();
 
-        EditorGUILayout.HelpBox($"Held by {holdPoint.name}. Drag the offsets above to line it up.", MessageType.None);
+        EditorGUILayout.HelpBox($"Held by {holdPoint.name}. Drag the offsets and the hold scale above to line it up.", MessageType.None);
 
         if (GUILayout.Button("Stop preview"))
         {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -10,6 +11,8 @@ public class AudioMaster : MonoBehaviour
 
     private readonly List<PlayingClip> PlayingClips = new();
     private readonly Stack<AudioSource> sourcePool = new();
+
+    public IReadOnlyList<PlayingClip> ActiveClips => PlayingClips;
 
     public AudioMixerGroup MixerGroup;
 
@@ -24,6 +27,15 @@ public class AudioMaster : MonoBehaviour
         }
 
         instance = this;
+    }
+
+    public struct PlayOptions
+    {
+        public float StartTime;
+        public float PlayLength;
+        public float Delay;
+        public Action<bool> OnEnded;
+        public Action OnLoopStarted;
     }
 
     public class PlayingClip
@@ -43,6 +55,9 @@ public class AudioMaster : MonoBehaviour
         public Audio Clip;
         public AudioSource Source;
 
+        public Action<bool> OnEnded;
+        public Action OnLoopStarted;
+
         /// <summary>Playhead position at the last frame, in samples. A drop means the loop wrapped.</summary>
         public int LastSamples;
     }
@@ -52,6 +67,8 @@ public class AudioMaster : MonoBehaviour
         DontDestroyOnLoad(this);
 
         eventChannel.Played += Play;
+        eventChannel.PlayedWithOptions += Play;
+        eventChannel.FadeInWithOptions += FadeStart;
         eventChannel.Stopped += Stop;
         eventChannel.StoppedSpecific += Stop;
         eventChannel.LevelSet += SetLevel;
@@ -69,6 +86,8 @@ public class AudioMaster : MonoBehaviour
     private void OnDisable()
     {
         eventChannel.Played -= Play;
+        eventChannel.PlayedWithOptions -= Play;
+        eventChannel.FadeInWithOptions -= FadeStart;
         eventChannel.Stopped -= Stop;
         eventChannel.StoppedSpecific -= Stop;
         eventChannel.LevelSet -= SetLevel;
@@ -89,11 +108,11 @@ public class AudioMaster : MonoBehaviour
         {
             if (!PlayingClips[i].Source.isPlaying && !PlayingClips[i].IsPaused && Application.isFocused)
             {
-                Stop(PlayingClips[i]);
+                StopInternal(PlayingClips[i], true);
                 continue;
             }
 
-            RerollPitchOnLoop(PlayingClips[i]);
+            TickLoop(PlayingClips[i]);
         }
     }
 
@@ -103,9 +122,9 @@ public class AudioMaster : MonoBehaviour
     /// <c>timeSamples</c> climbs to the clip length then drops back near zero. A frame long enough to
     /// span more than one wrap re-rolls once, which is inaudible at any sane clip length.
     /// </remarks>
-    private void RerollPitchOnLoop(PlayingClip clip)
+    private void TickLoop(PlayingClip clip)
     {
-        if (clip.IsPaused || clip.Clip == null || !clip.Clip.WantsPerLoopPitch)
+        if (clip.IsPaused || clip.Clip == null || !clip.Source.loop)
         {
             return;
         }
@@ -113,7 +132,11 @@ public class AudioMaster : MonoBehaviour
         int samples = clip.Source.timeSamples;
         if (samples < clip.LastSamples)
         {
-            clip.Source.pitch = clip.Clip.GetRandomizedPitch();
+            if (clip.Clip.WantsPerLoopPitch)
+            {
+                clip.Source.pitch = clip.Clip.GetRandomizedPitch();
+            }
+            clip.OnLoopStarted?.Invoke();
         }
         clip.LastSamples = samples;
     }
@@ -140,43 +163,72 @@ public class AudioMaster : MonoBehaviour
         sourcePool.Push(source);
     }
 
-    private PlayingClip Play(Audio clip)
+    private AudioSource StartSource(Audio clip, float volume, PlayOptions options)
     {
         AudioSource source = AcquireSource();
 
-        source.volume = clip.Volume;
+        source.volume = volume;
         source.clip = clip.AudioClip;
         source.loop = clip.Loop;
         source.panStereo = clip.Pan;
         source.pitch = clip.GetRandomizedPitch();
         source.outputAudioMixerGroup = MixerGroup;
 
-        source.Play();
+        if (clip.AudioClip != null && options.StartTime > 0f)
+        {
+            source.time = Mathf.Clamp(options.StartTime, 0f, Mathf.Max(0f, clip.AudioClip.length - 0.001f));
+        }
 
-        PlayingClip pClip = new(clip, source);
-        PlayingClips.Add(pClip);
+        double startDsp = AudioSettings.dspTime + Mathf.Max(0f, options.Delay);
 
-        return PlayingClips[^1];
+        if (options.Delay > 0f)
+        {
+            source.PlayScheduled(startDsp);
+        }
+        else
+        {
+            source.Play();
+        }
+
+        if (options.PlayLength > 0f)
+        {
+            source.SetScheduledEndTime(startDsp + options.PlayLength);
+        }
+
+        return source;
     }
 
-    private PlayingClip FadeStart(Audio clip, float duration)
+    private PlayingClip Play(Audio clip) => Play(clip, default);
+
+    private PlayingClip Play(Audio clip, PlayOptions options)
     {
-        AudioSource source = AcquireSource();
+        AudioSource source = StartSource(clip, clip.Volume, options);
 
-        source.volume = 0;
-        source.clip = clip.AudioClip;
-        source.loop = clip.Loop;
-        source.panStereo = clip.Pan;
-        source.pitch = clip.GetRandomizedPitch();
-        source.outputAudioMixerGroup = MixerGroup;
+        PlayingClip pClip = new(clip, source)
+        {
+            OnEnded = options.OnEnded,
+            OnLoopStarted = options.OnLoopStarted,
+        };
+        PlayingClips.Add(pClip);
 
-        source.Play();
+        return pClip;
+    }
 
-        PlayingClip pClip = new(clip, source);
+    private PlayingClip FadeStart(Audio clip, float duration) => FadeStart(clip, duration, default);
+
+    private PlayingClip FadeStart(Audio clip, float duration, PlayOptions options)
+    {
+        AudioSource source = StartSource(clip, 0f, options);
+
+        PlayingClip pClip = new(clip, source)
+        {
+            OnEnded = options.OnEnded,
+            OnLoopStarted = options.OnLoopStarted,
+        };
         PlayingClips.Add(pClip);
 
         pClip.FadeCoroutine = StartCoroutine(FadeInCoroutine(pClip, duration));
-        return PlayingClips[^1];
+        return pClip;
     }
 
     private System.Collections.IEnumerator FadeInCoroutine(PlayingClip clip, float duration)
@@ -223,7 +275,9 @@ public class AudioMaster : MonoBehaviour
         }
     }
 
-    private void Stop(PlayingClip clip)
+    private void Stop(PlayingClip clip) => StopInternal(clip, false);
+
+    private void StopInternal(PlayingClip clip, bool completed)
     {
         if (!PlayingClips.Contains(clip)) return;
 
@@ -237,6 +291,10 @@ public class AudioMaster : MonoBehaviour
         PlayingClips.Remove(clip);
 
         ReleaseSource(clip.Source);
+
+        Action<bool> ended = clip.OnEnded;
+        clip.OnEnded = null;
+        ended?.Invoke(completed);
     }
     private void FadeStop(Audio clip, float duration = 1)
     {

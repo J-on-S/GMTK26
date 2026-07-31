@@ -21,6 +21,9 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   [Tooltip("Rotation applied on top of the hand's, in degrees. For an object modelled facing the wrong way.")]
   public Vector3 holdRotationOffset = Vector3.zero;
 
+  [Tooltip("Per-axis size the object is held at, as a multiple of the size it has in the room. One = held at its real size. Applies only while it is in the hand; dropping, shelving or respawning puts the real size back.")]
+  public Vector3 holdScaleMultiplier = Vector3.one;
+
   [Header("Drop toss")]
   [Tooltip("Push away from the player when dropped, along the camera's forward flattened to the ground. 0 = it drops straight down.")]
   public float dropForwardImpulse = 3.5f;
@@ -36,6 +39,12 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   /// picked up, dropped or shelved, and only the world size is supposed to stay the same across that.</remarks>
   private Vector3 startWorldScale = Vector3.one;
   private bool worldScaleCaptured;
+
+  /// <summary>The hand this object was last posed into, so <see cref="RestoreWorldScale"/> knows whether the held size or the room size applies.</summary>
+  /// <remarks>Compared against the current parent rather than trusted on its own: the fridge and the
+  /// delivery reparent the object without going through <see cref="DetachToWorld"/>, and a part shelved
+  /// straight out of the hand must go back to its room size, not keep the held one.</remarks>
+  private Transform heldParent;
 
   private Rigidbody rb;
   private Interactor holder;
@@ -87,22 +96,32 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
     initialRotation = rotation;
   }
 
-  /// <summary>Sizes the object to its authored world scale under whatever parent it currently has.</summary>
+  /// <summary>Sizes the object to its authored world scale under whatever parent it currently has, times <see cref="holdScaleMultiplier"/> while it is in the hand.</summary>
   /// <remarks>
   /// Invariant: scale is set here and nowhere else. Reparenting with <c>worldPositionStays</c> true lets
   /// Unity rewrite localScale to chase the world size, and when a parent is both rotated and non-uniformly
   /// scaled the result has shear that no TRS can hold -- Unity approximates it, so every grab/drop cycle
   /// leaves the object a little off, and the error compounds. Recomputing from one stored world size
   /// instead means a hundred grabs land on the same number as the first.
+  /// <para>The held multiplier is applied on top of that stored size rather than to the object's current
+  /// one, for the same reason: it is re-derived every time, so it never compounds and dropping is just
+  /// the same sum without it.</para>
   /// </remarks>
   public void RestoreWorldScale(){
     if (!worldScaleCaptured) CaptureWorldScale();
 
+    Vector3 target = HeldPoseActive
+      ? Vector3.Scale(startWorldScale, holdScaleMultiplier)
+      : startWorldScale;
+
     Transform parent = transform.parent;
     transform.localScale = parent == null
-      ? startWorldScale
-      : DivideScale(startWorldScale, parent.lossyScale);
+      ? target
+      : DivideScale(target, parent.lossyScale);
   }
+
+  /// <summary>True while the object is sitting in the hand it was posed into -- the only time the held size applies.</summary>
+  private bool HeldPoseActive => heldParent != null && transform.parent == heldParent;
 
   /// <summary>Unparents the object, leaving it exactly where it stood and at its authored size.</summary>
   /// <remarks>The world pose is read then written back rather than handed to <c>worldPositionStays</c>,
@@ -113,6 +132,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
 
     transform.SetParent(null, false);
     transform.SetPositionAndRotation(worldPosition, worldRotation);
+    heldParent = null; // out of the hand: back to the size it has in the room
     RestoreWorldScale();
   }
 
@@ -139,11 +159,12 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
     // false, not true: every one of the three values is written below, so keeping the world pose
     // would buy nothing and cost the localScale rewrite that used to shrink objects a little per grab.
     transform.SetParent(holdPoint, false);
+    heldParent = holdPoint; // before the scale is written: it is what turns the held multiplier on
 
     // local means relative to the parent
     transform.localPosition = holdOffset; // centre of holdPoint, plus this object's own offset
     transform.localRotation = Quaternion.Euler(holdRotationOffset); // the hand's rotation, turned by this object's offset
-    RestoreWorldScale(); // held at the size it sits at in the room, whatever the hand is scaled to
+    RestoreWorldScale(); // its room size times the held multiplier, whatever the hand is scaled to
   }
 
   //GRAB

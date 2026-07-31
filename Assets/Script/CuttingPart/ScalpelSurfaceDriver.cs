@@ -59,7 +59,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     [Tooltip("Line width, in world units.")]
     public float traceWidth = 0.005f;
 
-    [Tooltip("How far the edit-mode preview line floats off the body, in world units. Drawing only. Too low and the line z-fights the mesh and looks tangled; in play the line rides the scalpel, so Object Hover sets its height instead.")]
+    [Tooltip("How far the drawn line floats off the body, in world units, in edit mode and in play alike. Drawing only -- it never moves the scalpel, which floats at Object Hover. Too low and the line z-fights the mesh and looks tangled.")]
     public float traceHover = 0.01f;
 
     [Tooltip("Min world distance between stored points; skips near-duplicates so the list stays small. 0 stores one point every frame the scalpel is on the surface.")]
@@ -77,11 +77,33 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     /// <remarks><c>null</c> until a cut wires the guide's <see cref="LoopGuideBuilder.meshFollow"/>; while it is, the line falls back to world space on the scalpel so authoring without a body still previews.</remarks>
     private Transform TraceSpace => builder != null && builder.meshFollow != null ? builder.meshFollow.transform : null;
 
+    /// <summary>The cut body's own scale as a single factor, so the trace width and hover lift stay proportional to a body scaled up or down. Mirrors <c>CuttingManager.BodyScale</c>: a LineRenderer's width is world-space and ignores the host's transform scale, so it has to be scaled by hand. The average of the three lossy-scale axes, to survive a non-uniform scale; 1 when no body is wired yet.</summary>
+    private float BodyScale
+    {
+        get
+        {
+            Transform t = TraceSpace;
+            if (t == null) return 1f;
+            Vector3 s = t.lossyScale;
+            return (Mathf.Abs(s.x) + Mathf.Abs(s.y) + Mathf.Abs(s.z)) / 3f;
+        }
+    }
+
     /// <summary>The object the line is hosted on when it is hung on the body -- a managed child of <see cref="TraceSpace"/>, so its local frame equals the body's.</summary>
     private Transform traceHost;
 
     /// <summary>Most recent surface hit with hover applied; held through frames the ray misses.</summary>
     private Vector3 lastSurfacePos;
+
+    /// <summary>The same hit lifted by the TRACE's own hover: where the drawn line goes, as opposed to where the scalpel floats.</summary>
+    /// <remarks>
+    /// Kept apart from <see cref="lastSurfacePos"/> on purpose. Trailing the scalpel's own position
+    /// instead made the drawn line inherit two things that are not the line's: <see cref="ObjectHover"/>,
+    /// so <see cref="traceHover"/> did nothing in play and the line sat at a height the edit-mode preview
+    /// never showed, and the <c>followSmooth</c> ease, which lags the real surface point and cuts corners
+    /// through the mesh on a tight sweep.
+    /// </remarks>
+    private Vector3 lastTracePos;
 
     /// <summary>Whether <c>lastSurfacePos</c> holds a real hit yet.</summary>
     private bool hasSurface;
@@ -97,14 +119,21 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-
         owned = GetComponent<CameraFollow>();
 
-        EnsureTraceRenderer();
-        ApplyTraceWidth();
+        ApplyTraceWidth(); // no-op without a renderer; never creates one
 
         if (!Application.isPlaying) return;
+
+        // after the guard, not before: [ExecuteAlways] runs Start in the editor too, and this call can
+        // AddComponent a LineRenderer. Doing that in edit mode adds a component to whatever the scalpel
+        // is -- on a prefab instance that is an "Added Component" override nobody asked for, with no
+        // Undo entry, saved into the scene the next time it is written.
+        EnsureTraceRenderer();
+
+        // play only: [ExecuteAlways] runs Start in the editor too, and locking there grabs the
+        // editor's cursor while nothing is even playing.
+        Cursor.lockState = CursorLockMode.Locked;
 
         HideScalpelRenderers();
 
@@ -261,24 +290,75 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
         if (points == null || points.Count < 2) return;
 
-        points = builder.BuildHoverLift(center, points, traceHover);
-        if (points == null || points.Count < 2) return;
+        // nothing about the drawn preview has changed since the last one: leave the renderer alone.
+        // A LineRenderer's points are serialized, so rewriting them every editor frame keeps the scene
+        // permanently dirty and, on a prefab instance, keeps a positions override alive that nobody
+        // authored -- the whole array turning up in every diff of the scene or prefab.
+        float hover = traceHover * BodyScale;
+        float width = traceWidth * BodyScale;
+        if (ReferenceEquals(points, previewSource)
+            && previewHost == line.transform
+            && Mathf.Approximately(previewHover, hover)
+            && Mathf.Approximately(previewWidth, width)
+            && line.positionCount == previewCount)
+        {
+            return;
+        }
+
+        previewSource = points;
+        previewHost = line.transform;
+        previewHover = hover;
+        previewWidth = width;
+
+        // copied, never written in place: with a hover of zero BuildHoverLift hands the list straight
+        // back, and the space conversion below would then rewrite the builder's own cached loop.
+        var drawn = new List<Vector3>(builder.BuildHoverLift(center, points, hover));
+        if (drawn.Count < 2) return;
 
         // closed: the full line is the whole ring, not a ring with a gap where the run would have started
         line.loop = true;
-        line.positionCount = points.Count;
+        line.positionCount = drawn.Count;
+        previewCount = drawn.Count;
 
         // the loop comes out of the builder in world space; hand it to the line in whatever space the
         // line draws in, so a body-hosted preview sits on the body rather than winding off it.
-        for (int i = 0; i < points.Count; i++) points[i] = ToRendererSpace(points[i]);
-        line.SetPositions(points.ToArray());
+        for (int i = 0; i < drawn.Count; i++) drawn[i] = ToRendererSpace(drawn[i]);
+        line.SetPositions(drawn.ToArray());
         ApplyTraceWidth();
     }
 
+    // what the edit-mode preview was last drawn from, so an unchanged frame writes nothing
+    private List<Vector3> previewSource;
+    private Transform previewHost;
+    private float previewHover = float.NaN;
+    private float previewWidth = float.NaN;
+    private int previewCount = -1;
+
+#if UNITY_EDITOR
+    // guards against stacking one deferred apply per OnValidate call; not serialized, purely edit-time.
+    [System.NonSerialized] private bool _widthApplyQueued;
+#endif
+
+    /// <remarks>Deferred for the same reason as <c>CuttingManager.OnValidate</c>: the width lands on the
+    /// LineRenderer, another object, and a validate that fires during a prefab apply must not fight it.</remarks>
     void OnValidate()
     {
+#if UNITY_EDITOR
+        if (_widthApplyQueued) return;
+        _widthApplyQueued = true;
+        UnityEditor.EditorApplication.delayCall += RunDeferredWidthApply;
+#endif
+    }
+
+#if UNITY_EDITOR
+    private void RunDeferredWidthApply()
+    {
+        _widthApplyQueued = false;
+
+        if (this == null) return; // destroyed between the validate and this callback
         ApplyTraceWidth();
     }
+#endif
 
     void Update()
     {
@@ -366,7 +446,8 @@ public class ScalpelSurfaceDriver : MonoBehaviour
                 : onMeshNormal;
             hasNormal = true;
 
-            lastSurfacePos = onMeshPos + smoothedNormal * ObjectHover;
+            lastSurfacePos = onMeshPos + smoothedNormal * (ObjectHover * BodyScale);
+            lastTracePos = onMeshPos + smoothedNormal * (traceHover * BodyScale);
             hasSurface = true;
         }
         // Miss: keep lastSurfacePos instead of snapping out to free space.
@@ -378,8 +459,9 @@ public class ScalpelSurfaceDriver : MonoBehaviour
             ? Vector3.Lerp(owned.transform.position, lastSurfacePos, 1f - Mathf.Exp(-preset.followSmooth * Time.deltaTime))
             : lastSurfacePos;
 
-        // Trail the surface point the object sits on.
-        if (drawTrace && EnsureTraceRenderer() != null) AddTracePoint(owned.transform.position);
+        // Trail the surface point itself at the trace's own hover, not the scalpel: the line is what the
+        // cut left on the body, and it has to sit where the edit-mode preview said it would.
+        if (drawTrace && EnsureTraceRenderer() != null) AddTracePoint(lastTracePos);
         calculatePrecision();
     }
 
@@ -435,11 +517,36 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     {
         if (traceRenderer == null) return;
 
-        traceRenderer.widthCurve = AnimationCurve.Constant(0, 1, traceWidth);
+        float width = traceWidth * BodyScale;
+
+        // nothing to write: this is reached from the edit-mode preview, where an unconditional write
+        // would register an undo step and dirty the line every frame the inspector repaints.
+        if (Mathf.Approximately(traceRenderer.widthMultiplier, 1f)
+            && traceRenderer.widthCurve.length == 1
+            && Mathf.Approximately(traceRenderer.widthCurve[0].value, width))
+        {
+            return;
+        }
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            UnityEditor.Undo.RecordObject(traceRenderer, "Set scalpel trace width");
+        }
+#endif
+
+        traceRenderer.widthCurve = AnimationCurve.Constant(0, 1, width);
 
         // the inspector's "Width" field is this multiplier, and the final width is curve x multiplier:
         // left at anything but 1 it silently scales every value typed above.
         traceRenderer.widthMultiplier = 1f;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            UnityEditor.EditorUtility.SetDirty(traceRenderer);
+        }
+#endif
     }
 
     /// <summary>Drops the trail and the along-limb offset, so a fresh run starts from a clean surface and a centred scalpel.</summary>

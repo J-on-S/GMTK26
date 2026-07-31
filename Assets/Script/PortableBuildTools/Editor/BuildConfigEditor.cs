@@ -43,6 +43,7 @@ namespace BuildTools
 
                     case nameof(BuildConfig.butlerPath):
                         DrawFilePath(iter, "Locate butler executable");
+                        DrawButlerStatus(iter.stringValue);
                         break;
 
                     case nameof(BuildConfig.itchGameUrl):
@@ -97,6 +98,21 @@ namespace BuildTools
                     }
                 }
             }
+        }
+
+        /// <summary>Warns when a set butler path points at nothing, and always offers the download link.</summary>
+        /// <remarks>A blank path is not an error: butler is then resolved on PATH, which can't be file-tested here.</remarks>
+        private static void DrawButlerStatus(string path)
+        {
+            EditorGUI.indentLevel++;
+
+            if (!string.IsNullOrWhiteSpace(path) && !File.Exists(path))
+                EditorGUILayout.HelpBox($"No butler executable at:\n{path}", MessageType.Warning);
+
+            if (EditorGUILayout.LinkButton("Download butler…"))
+                Application.OpenURL("https://itch.io/docs/butler/installing.html");
+
+            EditorGUI.indentLevel--;
         }
 
         private static void DrawItchPreview(string url)
