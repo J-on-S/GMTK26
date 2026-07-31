@@ -31,10 +31,15 @@ public class CutMinigamePreset : ScriptableObject
     [Tooltip("Along-limb input, speeds and smoothing. Read by the scalpel's ScalpelSurfaceDriver.")]
     public ScalpelSurfacePreset scalpelFollowPreset;
 
-    [Tooltip("How the camera frames this cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts can frame differently without each owning a camera. To share one across cuts of different sizes, set its Framing Units to Loop Radius; in World units its distances only suit the cut it was tuned on.")]
+    // ---- moved to the CuttingManager; kept only so scenes authored before that keep their framing ----
+    // Framing is per-cut geometry: angleOffset is measured from the plane's right axis, so one asset
+    // shared by two cuts drags them to the same opening angle. Fill the slots on the manager instead;
+    // it reads these only when its own are empty. Both fields go once every cut has been moved over.
+
+    [Tooltip("DEPRECATED -- set Camera Orbit Preset on the CuttingManager instead. Read only while that slot is empty.")]
     public CameraFollowPreset cameraOrbitPreset;
 
-    [Tooltip("The same, for the scalpel's CameraFollow. Normally has controlPosition off, since the ScalpelSurfaceDriver owns the scalpel's position.")]
+    [Tooltip("DEPRECATED -- set Scalpel Orbit Preset on the CuttingManager instead. Read only while that slot is empty.")]
     public CameraFollowPreset scalpelOrbitPreset;
 
     // Sound is deliberately absent: the clips are wired on the CuttingManager itself.

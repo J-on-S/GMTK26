@@ -95,6 +95,12 @@ public class CuttingManagerEditor : Editor
             // where this cut's plane is, and a preset must never move it.
             Draw("startAngle");
             Draw("endAngle");
+            Draw("orbitAngleOffset");
+
+            // framing is geometry too -- an orbit radius and an angleOffset only mean anything against
+            // THIS cut's ring -- so it is authored here rather than in the shared minigame preset.
+            Draw("cameraOrbitPreset");
+            Draw("scalpelOrbitPreset");
         }
     }
 

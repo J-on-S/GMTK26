@@ -19,9 +19,8 @@ using UnityEngine;
 /// presets authored against a single cut keep their exact framing.
 /// </para>
 /// <para>
-/// Still per-cut, and to be left alone in a shared asset: <see cref="angleOffset"/>. Where a cut
-/// opens around its ring is fixed by its own cutting plane, the same reason
-/// <c>CuttingManager.startAngle</c> is not preset-backed.
+/// Where a cut opens around its ring is NOT here: that is <c>CuttingManager.orbitAngleOffset</c>,
+/// alongside <c>startAngle</c>, because it is fixed by the cut's own cutting plane.
 /// </para>
 /// </remarks>
 [CreateAssetMenu(fileName = "CameraFollowPreset", menuName = "Cutting/Camera Follow Preset")]
@@ -43,8 +42,10 @@ public class CameraFollowPreset : ScriptableObject
     [Tooltip("Lift above the cutting plane along its normal, in the units above. Raises the camera off the plane so it views the cut at an angle instead of edge-on.")]
     public float height = 0.5f;
 
-    [Tooltip("Fixed head start around the ring, in degrees. Shifts where the orbit sits (and its Progress) without changing the speed. Per-cut geometry rather than feel: leave it at 0 in a shared preset and put the cut's own opening angle on the CuttingManager.")]
-    public float angleOffset = 0f;
+    // angleOffset is deliberately absent, for the same reason startAngle is: it is measured from the
+    // plane's right axis, so it says where THIS cut opens on its own ring. Sharing one asset between
+    // two cuts must not drag them to the same opening angle. It lives on CuttingManager.orbitAngleOffset,
+    // which pushes it onto both follows every time a cut claims them.
 
     [Tooltip("Space the offset below is read in. Plane follows the cutting plane (X = plane right, Y = along its normal, Z = plane forward), so it survives a client who is moved or turned around; World is a fixed direction in the room.")]
     public CameraFollow.OffsetSpace offsetSpace = CameraFollow.OffsetSpace.World;
@@ -126,7 +127,6 @@ public class CameraFollowPreset : ScriptableObject
         follow.framingUnits = framingUnits;
         follow.scale = scale;
         follow.height = height;
-        follow.angleOffset = angleOffset;
         follow.offsetSpace = offsetSpace;
         follow.positionOffset = positionOffset;
         follow.moveSpeed = moveSpeed;
@@ -165,7 +165,6 @@ public class CameraFollowPreset : ScriptableObject
         framingUnits = follow.framingUnits;
         scale = follow.scale;
         height = follow.height;
-        angleOffset = follow.angleOffset;
         offsetSpace = follow.offsetSpace;
         positionOffset = follow.positionOffset;
         moveSpeed = follow.moveSpeed;
@@ -213,7 +212,7 @@ public static class CameraFollowCategories
 
     public static readonly Group[] All =
     {
-        new("Path", new[] { "loopSource", "moveMode", "framingUnits", "scale", "height", "angleOffset", "offsetSpace", "positionOffset", "moveSpeed" }),
+        new("Path", new[] { "loopSource", "moveMode", "framingUnits", "scale", "height", "offsetSpace", "positionOffset", "moveSpeed" }),
         new("Aim", new[] { "lookMode", "lookSpeed", "loopTowardTop", "upMode", "controlRotation", "controlPosition" }),
         new("Roll", new[] { "rollDegrees", "rollAmplitude", "rollSpeed" }),
         new("Off-centre pivot", new[] { "pivotAffectsPosition", "pivotAffectsLook", "pivotOffset", "pivotMoves", "pivotMoveRadius", "pivotMoveSpeed" }),

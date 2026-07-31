@@ -93,6 +93,9 @@ public enum CuttingState
     [Tooltip("Angle this cut completes at, in degrees. 360 = one full turn from startAngle. Per-cut geometry, never taken from a preset.")]
     public float endAngle= 360;
 
+    [Tooltip("Turns the whole orbit around the ring, in degrees, without changing where the cut starts or how fast it travels -- it moves which side of the body the camera watches from. Pushed onto both follows on entry. Per-cut geometry, never taken from a preset.")]
+    public float orbitAngleOffset;
+
     [ReadOnly] public float currentAngle;
 
     [ReadOnly] public float currentProgress => scalpelFollow == null
@@ -165,6 +168,13 @@ public enum CuttingState
     public ScalpelSurfacePreset scalpelSurfacePreset;
 
     public CurvePreset curvePreset;
+
+    [Header("Framing")]
+    [Tooltip("How the camera frames THIS cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts frame differently without each owning a camera.")]
+    public CameraFollowPreset cameraOrbitPreset;
+
+    [Tooltip("The same, for the scalpel's CameraFollow. Normally has Control Position off, since the ScalpelSurfaceDriver owns the scalpel's position.")]
+    public CameraFollowPreset scalpelOrbitPreset;
 
     [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane + curvePreset.")]
     public LoopGuideBuilder loopGuide;
@@ -306,11 +316,24 @@ public enum CuttingState
         ? minigamePreset.scalpelFollowPreset
         : scalpelSurfacePreset;
 
-    /// <summary>Framing pushed onto the shared camera orbit on entry. Preset-only: there is no inline fallback, since the follow keeps its own hand-tuned values when none is given.</summary>
-    public CameraFollowPreset CameraOrbitPreset => minigamePreset != null ? minigamePreset.cameraOrbitPreset : null;
+    /// <summary>Framing pushed onto the shared camera orbit on entry: this cut's own, or the minigame preset's while a scene still holds it there.</summary>
+    /// <remarks>
+    /// The manager owns framing, not the preset. Where the camera sits is geometry, like
+    /// <see cref="startAngle"/>: <c>angleOffset</c> is measured from the plane's right axis, so sharing
+    /// one asset drags two cuts to the same opening angle -- and a radius authored in world units is a
+    /// wide shot of a wrist and a camera inside a thigh.
+    /// <para>The preset is still read as a fallback so scenes authored before this keep their framing
+    /// until the slot above is filled. Once every cut has been moved over, that half of the expression
+    /// and the two fields on <see cref="CutMinigamePreset"/> can go.</para>
+    /// </remarks>
+    public CameraFollowPreset CameraOrbitPreset => cameraOrbitPreset != null
+        ? cameraOrbitPreset
+        : (minigamePreset != null ? minigamePreset.cameraOrbitPreset : null);
 
-    /// <summary>Framing pushed onto the scalpel's orbit on entry.</summary>
-    public CameraFollowPreset ScalpelOrbitPreset => minigamePreset != null ? minigamePreset.scalpelOrbitPreset : null;
+    /// <summary>Framing pushed onto the scalpel's orbit on entry. Same resolution as <see cref="CameraOrbitPreset"/>.</summary>
+    public CameraFollowPreset ScalpelOrbitPreset => scalpelOrbitPreset != null
+        ? scalpelOrbitPreset
+        : (minigamePreset != null ? minigamePreset.scalpelOrbitPreset : null);
 
     // ---- sound, all of it off the one sound preset ----
 
@@ -1260,6 +1283,10 @@ public enum CuttingState
                 orbit.ApplyPreset();
             }
 
+            // after ApplyPreset, and unconditionally: the offset is this cut's own geometry, so no
+            // preset carries it and nothing else would put the previous cut's value back.
+            orbit.angleOffset = orbitAngleOffset;
+
             AfterPushWrite(orbit);
         }
 
@@ -1278,6 +1305,11 @@ public enum CuttingState
                 scalpel.preset = ScalpelOrbitPreset;
                 scalpel.ApplyPreset();
             }
+
+            // the same turn as the camera: both ride this cut's ring, and a scalpel offset by a
+            // different amount would sit somewhere the player is not looking. Their separation is
+            // scalpelAngleLead, applied to the angle itself by SyncScalpel, not to this offset.
+            scalpel.angleOffset = orbitAngleOffset;
 
             AfterPushWrite(scalpel);
 
