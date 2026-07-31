@@ -1917,6 +1917,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 592975205}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &515842718
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 515842720}
+  - component: {fileID: 515842719}
+  m_Layer: 0
+  m_Name: SceneMetaData
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &515842719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515842718}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 647577b1906fc434393c0f0ebcc414a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneMetaData
+  kind: 2
+--- !u!4 &515842720
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515842718}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &539060118
 GameObject:
   m_ObjectHideFlags: 0
@@ -4386,6 +4431,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1133321833}
   - component: {fileID: 1133321834}
+  - component: {fileID: 1133321835}
   m_Layer: 0
   m_Name: CuttingManager
   m_TagString: Untagged
@@ -4453,7 +4499,7 @@ MonoBehaviour:
   phase: 0
   GameObjectBeingCut: {fileID: 0}
   itemName: 
-  requiredToolName: 
+  requiredTool: 0
   bodyPartType: {fileID: 0}
   cameraFOV: 40
   cameraPreset: {fileID: 0}
@@ -4463,15 +4509,26 @@ MonoBehaviour:
   guideLineWidth: 0.005
   guideHoverLength: 0.01
   guideResolution: 64
-  moveCamera: {fileID: 0}
   scalpelFollow: {fileID: 0}
   scalpelAngleLead: 0
   finisher: {fileID: 0}
   soundPreset: {fileID: 0}
-  severedPieceAudioPreset: {fileID: 0}
-  SeveredPieceHealth: 60
-  severedPiecePositionOffset: {x: 0, y: 0, z: 0}
-  severedPieceRotationOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &1133321835
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1133321832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3486c4decaf944643a7ab8c0abfd1f24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SeveredPiece
+  health: 60
+  audioPreset: {fileID: 0}
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &1136579192
 GameObject:
   m_ObjectHideFlags: 0
@@ -5909,11 +5966,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5257db00e6dae44493f28cde7f79fd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoveCamera
-  highlightRange: 100
-  resolvesPerSecond: 12
-  canCutColor: {r: 0, g: 1, b: 0, a: 0.35}
-  completedColor: {r: 0, g: 0.5, b: 1, a: 0.35}
-  wrongToolColor: {r: 1, g: 0.92, b: 0, a: 0.35}
 --- !u!1 &1600775014
 GameObject:
   m_ObjectHideFlags: 0
@@ -7635,8 +7687,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.86803746, y: 0.24895176, z: 0.28326854}
-  m_Center: {x: 0.00000023017078, y: -0.02507805, z: 0}
+  m_Size: {x: 0.86803746, y: 0.27417806, z: 0.28326854}
+  m_Center: {x: 0.00000023017078, y: -0.012464683, z: 0}
 --- !u!65 &1874383430
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7656,8 +7708,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.86803746, y: 0.2620461, z: 0.25825363}
-  m_Center: {x: 0.00000011508539, y: -0.01853096, z: 0.000000019180899}
+  m_Size: {x: 0.86803746, y: 0.26828033, z: 0.25825363}
+  m_Center: {x: 0.00000011508539, y: -0.0154132, z: 0.000000019180899}
 --- !u!208 &1874383433
 NavMeshObstacle:
   m_ObjectHideFlags: 0
@@ -13447,3 +13499,4 @@ SceneRoots:
   - {fileID: 2126527763}
   - {fileID: 1570312155}
   - {fileID: 1446749615}
+  - {fileID: 515842720}
