@@ -7,7 +7,7 @@ using UnityEngine;
 public class ToolRequestManager : MonoBehaviour
 {
     // request stuff
-    public DoctorRequest doctorCurrentRequests;// this contains the active doctor's requests
+    [ReadOnly] public DoctorRequest doctorCurrentRequests;// this contains the active doctor's requests
     public TimeRange timeBetweenRequests = new TimeRange(5f);
     public IntRange numberOfRequests = new IntRange(5);  // minimum size of the focused client's batch
 
@@ -37,7 +37,7 @@ public class ToolRequestManager : MonoBehaviour
     [Header("Runtime debug")]
     [SerializeField] private State currentState = State.Idle;
 
-    [SerializeField] private Request currentRequest;
+    public static Request currentRequest;
     [SerializeField] private float remainingTime;
     [SerializeField] private float remainingCooldown;
     [SerializeField] private float lastRequestElapsedTime;

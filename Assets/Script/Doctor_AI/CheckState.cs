@@ -32,7 +32,21 @@ public class CheckState : State
         waitCheckTime = Random.Range(minCheckTime, maxCheckTime);
         stateManager.AdjustAnimationTime(anim, animName, desiredStartCheckDuration);
     }
-    
+    private bool HasSawYou()
+    {
+        if (!DisabledDuringMinigame.IsMinigameActive)
+        {
+            return false;
+        }
+
+        if(ToolRequestManager.currentRequest is BodyPartRequest bodyPartRequest)
+        {
+            return CuttingManager.currentGame.bodyPartType.BodyPartType!=bodyPartRequest.BodyPartType;
+            
+        }
+        
+        return false;
+    }
     public override State UpdateState()
     {
         if (isFinishCheck)
@@ -42,10 +56,10 @@ public class CheckState : State
 
         if (checkIsLooping)
         {
-            if (DisabledDuringMinigame.IsMinigameActive)
+            if (HasSawYou())
             {
                 SawStealBodyPart();
-                return idleState;//stateManager.RandomState(states);
+                return idleState;
             }
 
             checkTime += Time.deltaTime;
@@ -63,6 +77,7 @@ public class CheckState : State
     {
         Debug.LogError("Saw it");
         CameraSwitch.Instance.SwitchCamera(CameraType.Doctor);
+        HealthScript.Instance.TakeDamage(1);
         previousDialogue = doctorDialogue.text;
         doctorDialogue.text = doctorAngryDialogue;
         StartCoroutine(WaitForSwitchBack());

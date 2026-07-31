@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [Serializable]
 [CreateAssetMenu(fileName = "Conversation", menuName = "Scriptable Objects/Writing/Conversation")]
@@ -74,16 +77,26 @@ public class Conversation : ScriptableObject
     {
         foreach(Dialogue dialogue in dialogues)
         {
+            if(dialogue.IsLock) continue;
             dialogue.GetDialogue_line().DialogueLine_to_word();
         }
+        #if UNITY_EDITOR
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssets();
+        #endif
     }
     [ContextMenu("ALL Dialogues line Words to Character")]
     public void Words_to_Char()
     {
         foreach(Dialogue dialogue in dialogues)
         {
+            if(dialogue.IsLock) continue;
             dialogue.GetDialogue_line().Words_to_Char();
         }
+        #if UNITY_EDITOR
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssets();
+        #endif
     }
 
 }

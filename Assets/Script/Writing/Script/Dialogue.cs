@@ -5,8 +5,10 @@ using UnityEngine;
 //[CreateAssetMenu(fileName = "Dialogue", menuName = "Scriptable Objects/Writing/Dialogue")]
 public class Dialogue// : ScriptableObject
 {
+    [SerializeField] private bool isLock = false;
     [SerializeField] NPC npc;
     [SerializeField] Dialogue_line dialogue_line;
+    public bool IsLock => isLock;
     public Dialogue_line GetDialogue_line()
     {
         return dialogue_line;

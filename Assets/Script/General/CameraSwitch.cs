@@ -55,6 +55,8 @@ public class CameraSwitch : MonoBehaviour
             pauseGameInBlackMarket &&
             !Mathf.Approximately(Time.timeScale, 0f))
         {
+            Debug.Log(
+            "Stop ");
             Time.timeScale = 0f;
         }
     }
@@ -63,57 +65,75 @@ public class CameraSwitch : MonoBehaviour
     {
         RestoreTimeScale();
     }
-    public void SwitchCamera(CameraType newCameraType = CameraType.MainGame)
-    {
+    // public void SwitchCamera(CameraType newCameraType = CameraType.MainGame)
+    // {
     
-        foreach(CameraViewState cameraState in cameras)
-        {
-            if(newCameraType == cameraState.cameraType)
-            {
-                cameraState.camera.enabled = true;
-                currentStateType = cameraState.cameraType;
-            }
-            else
-            {
-                cameraState.camera.enabled = false;
-            }
-        }
-        ViewStateChanged?.Invoke(currentStateType);
+    //     currentStateType = newCameraType;
+    //     foreach(CameraViewState cameraState in cameras)
+    //     {
+    //         if(newCameraType == cameraState.cameraType)
+    //         {
+    //             cameraState.camera.enabled = true;
+    //         }
+    //         else
+    //         {
+    //             cameraState.camera.enabled = false;
+    //         }
+    //     }
+    //     ViewStateChanged?.Invoke(currentStateType);
 
-        if (currentStateType == CameraType.BlackMarket)
-        {
-            if (IsBlackMarketOpen) return;
+    //     if (currentStateType == CameraType.BlackMarket)
+    //     {
+            
+    //         if (IsBlackMarketOpen) return;
 
-            if (pauseGameInBlackMarket)
-            {
-                timeScaleBeforeBlackMarket = Time.timeScale;
-                ownsBlackMarketPause = true;
-                Time.timeScale = 0f;
-            }
-            Debug.Log(
-            "Entered BlackMarket state. Scaled gameplay and doctor " +
-            "request timers are paused.",
-            this);
+    //         if (pauseGameInBlackMarket)
+    //         {
+    //             timeScaleBeforeBlackMarket = Time.timeScale;
+    //             ownsBlackMarketPause = true;
+    //             Time.timeScale = 0f;
+    //         }
+    //         Debug.Log(
+    //         "Entered BlackMarket state. Scaled gameplay and doctor " +
+    //         "request timers are paused.",
+    //         this);
+            
+    //     }
+    //     else
+    //     {
+
+    //         RestoreTimeScale();
+    //         Debug.Log(
+    //         "Returned to MainGame state. Scaled gameplay and doctor:  " + timeScaleBeforeBlackMarket +
+    //         "request timers resumed.",
+    //         this);
+    //     }
+        
+    // }
+    public void SwitchCamera(CameraType newType = CameraType.MainGame)
+    {
+        currentStateType = newType;
+
+        foreach (var cameraState in cameras)
+            cameraState.camera.enabled = cameraState.cameraType == newType;
+
+        ViewStateChanged?.Invoke(newType);
+
+        if (newType == CameraType.BlackMarket)
+        {
+            timeScaleBeforeBlackMarket = Time.timeScale;
+            Time.timeScale = 0f;
         }
         else
         {
-            if (!IsBlackMarketOpen)
-            return;
-
-            RestoreTimeScale();
-            Debug.Log(
-            "Returned to MainGame state. Scaled gameplay and doctor " +
-            "request timers resumed.",
-            this);
+            Time.timeScale = timeScaleBeforeBlackMarket;
         }
-        
     }
 
     private void RestoreTimeScale()
     {
         if (!ownsBlackMarketPause)
             return;
-
         Time.timeScale = timeScaleBeforeBlackMarket;
         ownsBlackMarketPause = false;
     }
