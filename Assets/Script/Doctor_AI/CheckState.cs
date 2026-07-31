@@ -63,7 +63,6 @@ public class CheckState : State
     {
         Debug.LogError("Saw it");
         CameraSwitch.Instance.SwitchCamera(CameraType.Doctor);
-        HealthScript.Instance.TakeDamage(1);
         previousDialogue = doctorDialogue.text;
         doctorDialogue.text = doctorAngryDialogue;
         StartCoroutine(WaitForSwitchBack());

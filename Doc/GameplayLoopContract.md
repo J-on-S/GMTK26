@@ -185,7 +185,8 @@ Current implementation:
   remaining values: implemented.
 - Surgery/cutting success integration: planned.
 - Secret versus required cutting classification: planned.
-- Doctor detection and heart penalty: planned.
+- Doctor detection currently triggers the doctor camera/dialogue reaction but
+  does not remove health. The final detection penalty is not implemented.
 - Countdown and timeout penalty: planned.
 - Chute registration and per-chute debug entry counting: implemented.
 - Fridge storage exposes live count, capacity, and per-slot body-part
