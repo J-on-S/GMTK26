@@ -15,35 +15,36 @@ public enum BodyPartType
 }
 
 [Serializable]
-public class BodyPartRequest
+public class BodyPartRequest: Request
 {
     //flexible one
     [SerializeField] private int maxAmount = 3;
     public const int MaxAmount = 3;
-
-    [SerializeField] private BodyPartType bodyPart;
+    [SerializeField] private BodyPart bodyPart;
     [Tooltip("Be careful to not exceeded the MaxAmount")]
     [SerializeField, Range(1, 10)] private int amount = 1;
-
+    public BodyPart BodyPart => bodyPart;
+    public BodyPartType BodyPartType => bodyPart.BodyPartType;
     public int GetMaxAmount => maxAmount;
-    public BodyPartType BodyPart => bodyPart;
     public int Amount => amount;
     public void AddAmount()
     {
         amount++;
     }
-    public BodyPartRequest(BodyPartType bodyPart, int amount, int maxAmount)
+    public BodyPartRequest(BodyPartType bodyPartType, int amount, int maxAmount): base(ItemType.BodyPart)
     {
-        this.bodyPart = bodyPart;
+        this.bodyPart = BodyParts.Instance.SearchBodyPart(bodyPartType);
         this.amount = Mathf.Clamp(amount, 1, maxAmount);
         this.maxAmount = maxAmount;
+        ItemName = bodyPart.Name;
     }
 
-    public BodyPartRequest(BodyPartType bodyPart, int amount)
+    public BodyPartRequest(BodyPartType bodyPartType, int amount): base(ItemType.BodyPart)
     {
-        this.bodyPart = bodyPart;
+        this.bodyPart = BodyParts.Instance.SearchBodyPart(bodyPartType);;
         this.amount = Mathf.Clamp(amount, 1, MaxAmount);
         maxAmount = MaxAmount;
+        ItemName = bodyPart.Name;
     }
 
     public void SetAmount(int value)
@@ -110,7 +111,7 @@ public class ClientTask
 
         for (int i = 0; i < requests.Count; i++)
         {
-            if (requests[i].BodyPart != bodyPart || deliveredAmounts[i] >= requests[i].Amount)
+            if (requests[i].BodyPartType != bodyPart || deliveredAmounts[i] >= requests[i].Amount)
                 continue;
 
             deliveredAmounts[i]++;
@@ -127,7 +128,7 @@ public class ClientTask
 
         for (int i = 0; i < requests.Count; i++)
         {
-            if (requests[i].BodyPart == bodyPart)
+            if (requests[i].BodyPartType == bodyPart)
                 remaining += Mathf.Max(0, requests[i].Amount - deliveredAmounts[i]);
         }
 
@@ -157,7 +158,7 @@ public class ClientTask
                 continue;
 
             remainingRequests.Add(
-                $"{remaining} {GetPartName(requests[i].BodyPart, remaining)}");
+                $"{remaining} {GetPartName(requests[i].BodyPartType, remaining)}");
         }
 
         if (remainingRequests.Count == 0)
@@ -188,7 +189,7 @@ public class ClientTask
             BodyPartRequest request = requests[i];
             text.Append(request.Amount);
             text.Append(' ');
-            text.Append(GetPartName(request.BodyPart, request.Amount));
+            text.Append(GetPartName(request.BodyPartType, request.Amount));
         }
 
         return text.ToString();
@@ -221,7 +222,7 @@ public class ClientTask
 public class ClientTaskList : MonoBehaviour
 {
     [SerializeField] private ClientTaskDatabase database;
-
+    [SerializeField] private BodyParts bodyParts;
     public ClientTaskDatabase Database => database;
     public ClientTask CurrentTask { get; private set; }
     public event Action<ClientTask> TaskAssigned;
@@ -365,7 +366,7 @@ public class ClientTaskList : MonoBehaviour
                 request.Amount,
                 1,
                 Mathf.Min(BodyPartRequest.MaxAmount, remaining));
-            result.Add(new BodyPartRequest(request.BodyPart, amount));
+            result.Add(new BodyPartRequest(request.BodyPartType, amount));
             remaining -= amount;
         }
 

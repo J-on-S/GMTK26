@@ -12,7 +12,6 @@ public class Chute : MonoBehaviour, IInteractable
     [SerializeField] private AudioEventChannel audioEventChannel;
     [SerializeField] private Audio dropSoundEffect;
     [SerializeField] private BlackMarketGenerator temporaryBlackMarketTaskGenerator;
-    [SerializeField] private CameraSwitch cameraSwitch;
     [SerializeField] private ReturnMain returnMain;
 
     [Serializable] public class PartSoldEvent : UnityEvent<BodyPart> {}
@@ -44,8 +43,6 @@ public class Chute : MonoBehaviour, IInteractable
             Debug.LogError($"{name}: Chute has no dropSoundEffect assigned; the drop sound will not play.", this);
         if (temporaryBlackMarketTaskGenerator == null)
             Debug.LogError($"{name}: Chute has no BlackMarketGenerator assigned; sold parts will not be registered.", this);
-        if (cameraSwitch == null)
-            Debug.LogError($"{name}: Chute has no CameraSwitch assigned; the black market view will not open.", this);
         if (returnMain == null)
             Debug.LogError($"{name}: Chute has no ReturnMain assigned; the player will not be able to leave the black market view.", this);
     }
@@ -102,19 +99,27 @@ public class Chute : MonoBehaviour, IInteractable
         }
         
         GrabbableObject grabbableObject = player.heldObject;
-        if(grabbableObject.itemType != ItemType.BodyPart) return;
+        if(grabbableObject.item.Type != ItemType.BodyPart) return;
         GameObject grabbableGO = grabbableObject.gameObject;
 
         DetachedBodyPart detachedBodyPart = grabbableGO.GetComponent<DetachedBodyPart>();
 
+        
+
         if (detachedBodyPart == null) {
-            RecordTrapdoorEntry(
-                grabbableGO,
-                grabbableObject.bodyPartType);
-            AddToBlackMarket(grabbableObject.bodyPartType, 100);
-            CheckBlackMarket();
-            grabbableObject.ReleaseFromHolder();
-            Destroy(grabbableGO);
+            if (grabbableObject.item is BodyPart bodyPart)
+            {
+                RecordTrapdoorEntry(
+                    grabbableGO,
+                    bodyPart.BodyPartType);
+
+                AddToBlackMarket(
+                    bodyPart.BodyPartType,
+                    100);
+                CheckBlackMarket();
+                grabbableObject.ReleaseFromHolder();
+                Destroy(grabbableGO);
+            }
             return;
         }
 
@@ -151,13 +156,7 @@ public class Chute : MonoBehaviour, IInteractable
 
     private void CheckBlackMarket()
     {
-        if (cameraSwitch == null)
-        {
-            Debug.LogError($"{name}: no CameraSwitch assigned, so the black market view cannot be opened.", this);
-            return;
-        }
-
-        cameraSwitch.SwitchToOtherCamera();
+        CameraSwitch.Instance.SwitchCamera(CameraType.BlackMarket);
 
         if (returnMain == null)
         {

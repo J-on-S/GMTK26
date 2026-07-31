@@ -1616,7 +1616,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 52
+  startAngle: 0
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 0
   DerivePerSecondEvaluate: 0
@@ -2766,7 +2766,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 21
+  startAngle: 0
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 1
   DerivePerSecondEvaluate: 4
@@ -3049,7 +3049,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 80
+  startAngle: 0
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 0
   DerivePerSecondEvaluate: 0
@@ -4172,7 +4172,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 0
+  startAngle: 52
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 0
   DerivePerSecondEvaluate: 0
@@ -5204,7 +5204,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 0
+  startAngle: 21
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 0
   DerivePerSecondEvaluate: 0

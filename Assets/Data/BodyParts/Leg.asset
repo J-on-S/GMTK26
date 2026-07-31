@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee0679e81b92e5645800d6722bbd5819, type: 3}
+  m_Name: Leg
+  m_EditorClassIdentifier: Assembly-CSharp::BodyPart
+  itemName: Leg
+  itemType: 1
+  bodyPartType: 1
+  bodyPartPrefab: {fileID: 4358254717175673081, guid: bdf648154d0c44c4caeadd999749dd4f, type: 3}
+  BodyPart2DPrefab: {fileID: 0}
+  bodyPartTime:
+    min: 50
+    max: 50
+    currentValue: 50
+  rotation: {x: 0, y: 0, z: 0}
+  size: 20
+  bodyPartImg: {fileID: 1356591612, guid: 2079b316a07c2c0419c1cc66d17dff5b, type: 3}

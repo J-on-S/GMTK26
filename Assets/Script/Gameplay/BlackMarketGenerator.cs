@@ -70,7 +70,7 @@ public class BlackMarketGenerator :
             BodyPartType part = choices[UnityEngine.Random.Range(0, choices.Count)];
 
             // Find an existing request for that type
-            BodyPartRequest request = requests.Find(r => r.BodyPart == part);
+            BodyPartRequest request = requests.Find(r => r.BodyPartType == part);
 
             if (request == null)
             {
@@ -85,7 +85,7 @@ public class BlackMarketGenerator :
                 continue;
 
             request.AddAmount();
-            Debug.Log($"{request.BodyPart}: {request.Amount}");
+            Debug.Log($"{request.BodyPartType}: {request.Amount}");
             currentNbParts--;
             Debug.Log("currentNbParts: "+currentNbParts);
         }
@@ -107,7 +107,7 @@ public class BlackMarketGenerator :
                  currentBlackMarketTask.RequestedParts)
         {
             if (!bodyPartsContainByType.TryGetValue(
-                    request.BodyPart,
+                    request.BodyPartType,
                     out List<BodyPartContain> containers) ||
                 containers.Count < request.Amount)
             {
@@ -169,9 +169,8 @@ public class BlackMarketGenerator :
 
         foreach (BodyPartRequest bodyPartRequest in currentBlackMarketTask.RequestedParts)
         {
-            BodyPartType bodyPartType = bodyPartRequest.BodyPart;
             int amountBodyPartOfThisType = bodyPartRequest.Amount;
-            BodyPart bodyPart = bodyParts.SearchBodyPart(bodyPartType);
+            BodyPart bodyPart = bodyPartRequest.BodyPart;
             if(!bodyPart) continue;
             List<BodyPartContain> currentBodyPartTypeContains = new List<BodyPartContain>();
 
@@ -187,7 +186,6 @@ public class BlackMarketGenerator :
                 }
 
                 //TODO: rotation of bodypart in black market
-                Debug.Log("pos_index: "+pos_index);
                 Transform bodyPartsTransform = bodyPartsPos[pos_index];
                 // GameObject newBodyPartObj = Instantiate(bodyPart.BodyPartPrefab, bodyPartsTransform.position, Quaternion.identity, bodyPartsTransform);
                 // newBodyPartObj.position = 
@@ -201,6 +199,7 @@ public class BlackMarketGenerator :
                 newBodyPart2DObj.transform.rotation = Quaternion.Euler(90, 0, 0);
                 newBodyPart2DObj.GetComponent<SpriteRenderer>().color = Color.black;// = Quaternion.Euler(90, 0, 0);
                 newBodyPart2DObj.transform.localScale *=0.2f;
+                
                 Renderer renderer;
                 if (newBodyPartObj.transform.childCount > 0)
                 {
@@ -218,9 +217,10 @@ public class BlackMarketGenerator :
                 }
                 pos_index++;
                 BodyPartContain newBodyPartContain = new BodyPartContain(bodyPart, newBodyPartObj, originalMat);
+                newBodyPartContain.obj2d = newBodyPart2DObj;
                 currentBodyPartTypeContains.Add(newBodyPartContain);
             }
-            bodyPartsContainByType.Add(bodyPartType, currentBodyPartTypeContains);
+            bodyPartsContainByType.Add(bodyPart.BodyPartType, currentBodyPartTypeContains);
         }
     }
 
@@ -258,7 +258,8 @@ public class BlackMarketGenerator :
                         renderer.material = bodyPartContain.OriginalMat;
                     }
                     bodyPartContain.HasBodyPart = true;
-                    spawnedBodyPartObj.SetActive(true);
+                    //spawnedBodyPartObj.SetActive(true);
+                    bodyPartContain.obj2d.GetComponent<SpriteRenderer>().color = Color.white;
                     return;
                 }
             }

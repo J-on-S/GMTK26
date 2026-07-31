@@ -5,6 +5,17 @@ using UnityEngine;
 [Serializable]
 public class AudioEventChannel : ScriptableObject
 {
+    private static AudioEventChannel instance;
+    public static AudioEventChannel Instance
+    {
+        get
+        {
+            if (instance == null)
+                instance = Resources.Load<AudioEventChannel>("AudioEventChannel");
+
+            return instance;
+        }
+    }
     public delegate AudioMaster.PlayingClip PlayDelegate(Audio clip);
     public delegate AudioMaster.PlayingClip FadeInDelegate(Audio clip, float duration);
 

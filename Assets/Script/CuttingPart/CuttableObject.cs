@@ -316,7 +316,7 @@ public class CuttableObject : MonoBehaviour , IInteractable
         CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
         if(aimed == null) return;
 
-        bool hasTool = true || aimed.HasRequiredTool(player.heldObject.itemName);
+        bool hasTool = true || aimed.HasRequiredTool(player.heldObject.item.Name);
         if(aimed.canEnterMinigame() && hasTool){
             aimed.EnterMinigame();
         }

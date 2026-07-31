@@ -180,18 +180,18 @@ public class RandomizedClientList : MonoBehaviour
 
             foreach (BodyPartRequest request in entry.Task.Requests)
             {
-                BodyPartType bodyPart = request.BodyPart;
-                if (!completedBodyParts.Add(bodyPart))
+                BodyPartType bodyPartType = request.BodyPartType;
+                if (!completedBodyParts.Add(bodyPartType))
                     continue;
 
                 while (generatedTaskList.Contains(entry) &&
-                       entry.Task.GetRemainingAmount(bodyPart) > 0)
+                       entry.Task.GetRemainingAmount(bodyPartType) > 0)
                 {
-                    if (RemoveOneFromTask(entry, bodyPart))
+                    if (RemoveOneFromTask(entry, bodyPartType))
                         continue;
 
                     Debug.LogError(
-                        $"Could not debug-complete {bodyPart} for " +
+                        $"Could not debug-complete {bodyPartType} for " +
                         $"{GetPersonName(entry)}.",
                         this);
                     return;

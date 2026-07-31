@@ -18,92 +18,71 @@ public class PauseMenu : MonoBehaviour
     [Header("Events")]
     [SerializeField] private GamePausedEvent onGamePause = new GamePausedEvent();
     [SerializeField] private GameResumedEvent onGameResume = new GameResumedEvent();
-
-    public static PauseMenu instance {get; private set; }
-    public static bool isPaused = false;
-    public string mainMenuScene = "StartScreen";
-
-    private float savedSFX, savedSubmarine, savedPrintNoise, savedMusic, savedRadio, savedDayTransition; 
-
-    private bool isSubMenuOpen = false;
-    private CursorLockMode previousCursorLockMode;
     
+    public enum PauseState { Paused, InSubMenu, Resumed }
+    public static PauseState CurrentState = PauseState.Resumed;
+    
+    public string mainMenuScene = "StartScreen";
     private AudioMaster.PlayingClip _playingBackgroundMusic;
 
     void Awake()
     {
-        if (instance != null)
-        {
-            Destroy(instance.gameObject); // Delete duplicates if we return to the start scene
-        }
-        instance = this;
-        DontDestroyOnLoad(gameObject);
-
+        // An event system is critical for input to register.
         if (EventSystem.current == null)
         {
             GameObject eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<EventSystem>();
             eventSystem.AddComponent<StandaloneInputModule>();
         }
-
-        SceneManager.activeSceneChanged += OnChangeScene;
-    }
-
-    void OnChangeScene(Scene previous, Scene next)
-    {
-        if (next.name == mainMenuScene)
-        {
-            SceneManager.activeSceneChanged -= OnChangeScene;
-            Destroy(gameObject);
-        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        // No to menu scene
-        if (SceneManager.GetActiveScene().name == mainMenuScene) return;
-
         if (Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.pKey.wasPressedThisFrame)
         {
-            if (!isPaused)
+            // Pause/resume button hit, figure out what was meant.
+            switch (CurrentState)
             {
-                Pause();
-            }
-            else if (isSubMenuOpen)
-            {
-                for (var index = 0; index < pauseMenuUI.transform.parent.childCount; index++)
-                {
-                    var submenu = pauseMenuUI.transform.parent.GetChild(index).gameObject;
-                    if (submenu != pauseMenuUI) submenu.SetActive(false);
-                }
-                isSubMenuOpen = false;
-                pauseMenuUI.SetActive(true);
-            }
-            else
-            {
-                Resume();
+                case PauseState.Resumed:
+                    // We were in game, go to the pause menu.
+                    Pause();
+                    break;
+                case PauseState.InSubMenu:
+                    // We were paused inside a menu, exit and go to the main pause menu.
+                    for (var index = 0; index < pauseMenuUI.transform.parent.childCount; index++)
+                    {
+                        var submenu = pauseMenuUI.transform.parent.GetChild(index).gameObject;
+                        if (submenu != pauseMenuUI) submenu.SetActive(false);
+                    }
+                    // Exited dialog, but still in the pause menu.
+                    CurrentState = PauseState.Paused;
+                    pauseMenuUI.SetActive(true);
+                    break;
+                case PauseState.Paused:
+                    // We were paused, go back to the game.
+                    Resume();
+                    break;
             }
         }
     }
 
     public void Resume()
     {
-        Cursor.lockState = previousCursorLockMode;
+        Cursor.lockState = CursorLockMode.Locked;
         pauseMenuUI.SetActive(false);
         Time.timeScale = 1f;
-        isPaused = false;
+        CurrentState = PauseState.Resumed;
         audioEventChannel.FadePause(_playingBackgroundMusic, 2.0f);
         onGameResume.Invoke();
     }
 
     public void Pause()
     {
-        previousCursorLockMode = Cursor.lockState;
         Cursor.lockState = CursorLockMode.None;
         pauseMenuUI.SetActive(true);
         Time.timeScale = 0f;
-        isPaused = true;
+        CurrentState = PauseState.Paused;
         if (_playingBackgroundMusic != null)
         {
             audioEventChannel.FadeResume(_playingBackgroundMusic);
@@ -120,17 +99,18 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 1f;
         onGameResume.Invoke();
         audioEventChannel.FadeStop(_playingBackgroundMusic);
+        CurrentState = PauseState.Resumed;
         SceneManager.LoadScene(mainMenuScene);
     }
 
     public void SubMenuOpen()
     {
-        isSubMenuOpen = true;
+        CurrentState = PauseState.InSubMenu;
     }
 
     public void SubMenuClose()
     {
-        isSubMenuOpen = false;
+        CurrentState = PauseState.Resumed;
     }
 
     public void ExitGame()
@@ -138,8 +118,8 @@ public class PauseMenu : MonoBehaviour
         Application.Quit();
     }
 
-    void OnDestroy()
+    public static bool IsPaused()
     {
-        SceneManager.activeSceneChanged -= OnChangeScene;
+        return CurrentState == PauseState.Paused || CurrentState == PauseState.InSubMenu;
     }
 }

@@ -8,7 +8,7 @@ public class ReturnMain : MonoBehaviour
         // Left mouse click
         if (Input.GetMouseButtonDown(0))
         {
-            cameraSwitch.SwitchToMainCamera();
+            CameraSwitch.Instance.SwitchCamera();
             this.enabled = false;
         }
         

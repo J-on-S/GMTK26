@@ -1,14 +1,11 @@
 using UnityEngine;
 using System.Collections;
-using System.ComponentModel; 
 
 public class ToolPickup : MonoBehaviour
 {
 
-    //tool stuff
-    public string itemName;
     public float respawnTime = 4f;   // should be same or less than the cooldown time
-    public ItemType itemType;
+    public Tool tool;
 
 
     private Collider col;

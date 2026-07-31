@@ -888,7 +888,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f257e41c3eaa4e29bb44f92b7feae7a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuController
-  useSavedValues: 1
   mainScene: MainScene
   volumeValueText: {fileID: 2689433292055923643}
   volumeSlider: {fileID: 2284356716242147545}
