@@ -192,8 +192,10 @@ public class MenuController : MonoBehaviour
     }
     public void SetVolume()
     {
+        if(volumeSlider==null) return;
+        //TODO: some issue that volumeSlide == null;
         float volume = volumeSlider.value;
-        audioEventChannel.SetLevel(Mathf.Log10(Mathf.Clamp(volume, 0.001f, 1.0f)) * 20);
+        AudioEventChannel.Instance.SetLevel(Mathf.Log10(Mathf.Clamp(volume, 0.001f, 1.0f)) * 20);
         volumeValueText.text = volume.ToString("0.0");
     }
 
