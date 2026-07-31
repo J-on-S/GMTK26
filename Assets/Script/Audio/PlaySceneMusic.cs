@@ -19,8 +19,8 @@ using UnityEngine.SceneManagement;
 /// </remarks>
 public class PlaySceneMusic : MonoBehaviour
 {
-    [Tooltip("Channel this scene's music plays and stops through. Same asset the AudioMaster listens on.")]
-    [SerializeField] private AudioEventChannel channel;
+    //[Tooltip("Channel this scene's music plays and stops through. Same asset the AudioMaster listens on.")]
+    //[SerializeField] private AudioEventChannel channel;
 
     [Tooltip("Track to play for this scene.")]
     [SerializeField] private Audio music;
@@ -60,7 +60,7 @@ public class PlaySceneMusic : MonoBehaviour
     {
         if (_playing != null) return;
 
-        if (channel == null || music == null || music.AudioClip == null)
+        if (music == null || music.AudioClip == null)
         {
             Debug.LogWarning($"{name}: no channel or music track assigned, so this scene has no background music.", this);
             return;
@@ -74,7 +74,7 @@ public class PlaySceneMusic : MonoBehaviour
             return;
         }
 
-        _playing = channel.FadeStart(music, fadeInDuration);
+        _playing = AudioEventChannel.Instance.FadeStart(music, fadeInDuration);
         if (_playing == null)
         {
             Debug.LogWarning($"{name}: no AudioMaster is listening on the channel, so the scene music did not start.", this);
@@ -95,7 +95,7 @@ public class PlaySceneMusic : MonoBehaviour
         bool adoptedByOther = _playing == _current && _owner != this;
         if (!adoptedByOther)
         {
-            if (channel != null) channel.FadeStop(_playing, fadeOutDuration);
+            if (AudioEventChannel.Instance != null) AudioEventChannel.Instance.FadeStop(_playing, fadeOutDuration);
             if (_current == _playing)
             {
                 _current = null;
@@ -115,7 +115,7 @@ public class PlaySceneMusic : MonoBehaviour
         bool adoptedByOther = _playing == _current && _owner != this;
         if (!adoptedByOther)
         {
-            channel.Resume(_playing);
+            AudioEventChannel.Instance.Resume(_playing);
         }
     }
     
@@ -126,7 +126,7 @@ public class PlaySceneMusic : MonoBehaviour
         bool adoptedByOther = _playing == _current && _owner != this;
         if (!adoptedByOther)
         {
-            channel.Pause(_playing);
+            AudioEventChannel.Instance.Pause(_playing);
         }
     }  
 

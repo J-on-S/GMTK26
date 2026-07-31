@@ -202,7 +202,11 @@ public class MenuController : MonoBehaviour
     public void VolumeApply()
     {
         // Save value of Volume in variable masterVolume
-        PlayerPrefs.SetFloat("masterVolume", volumeSlider.value);
+        if (volumeSlider != null)
+        {
+            PlayerPrefs.SetFloat("masterVolume", volumeSlider.value);
+        }
+        
         // StartCoroutine(ConfirmationBox());
     }
 

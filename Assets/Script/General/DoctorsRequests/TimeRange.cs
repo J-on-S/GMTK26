@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using UnityEngine;
 
 [System.Serializable]
@@ -19,10 +18,6 @@ public class TimeRange
     }
     public TimeRange(float minTime, float maxTime)
     {
-        Assert.IsTrue(minTime <= maxTime, "minTime must be less than or equal to maxTime.");
-        Assert.IsTrue(minTime >= 0, "minTime must more or equal to 0");
-        Assert.IsTrue(maxTime >= 0, "maxTime must more or equal to 0");
-        
         min = minTime;
         max = maxTime;
     }

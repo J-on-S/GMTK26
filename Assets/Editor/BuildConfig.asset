@@ -12,13 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3fae27f9ec739b49ae5e6c2cb3b2c40, type: 3}
   m_Name: BuildConfig
   m_EditorClassIdentifier: Assembly-CSharp-Editor::BuildTools.BuildConfig
-  productNameOverride: 
-  outputPath: C:/Users/OfflineUser/Desktop/Programming/Game/TickAndGames
+  outputPath: C:/Users/OfflineUser/Desktop/Programming/Game/TickAndGames/TickAndStitch1_web
   developmentBuild: 0
   scriptingFlags: []
   prefSeeds: []
   zipAfterBuild: 0
-  zipOutputPath: C:/Users/OfflineUser/Desktop/Programming/Game/TickAndGames/TickAndPuppet1
+  zipOutputPath: 
   uploadToItch: 0
   itchGameUrl: 
   butlerPath: 
