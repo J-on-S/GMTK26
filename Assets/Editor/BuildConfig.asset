@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3fae27f9ec739b49ae5e6c2cb3b2c40, type: 3}
   m_Name: BuildConfig
   m_EditorClassIdentifier: Assembly-CSharp-Editor::BuildTools.BuildConfig
-  outputPath: C:/Users/OfflineUser/Desktop/Programming/Game/TickAndGames/TickAndStitch1_web
+  outputPath: C:/Users/OfflineUser/Desktop/Programming/Game/TickAndGames/TickAndStitch8_win
   developmentBuild: 0
   scriptingFlags: []
   prefSeeds: []
