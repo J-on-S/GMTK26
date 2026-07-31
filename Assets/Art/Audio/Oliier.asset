@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3fae27f9ec739b49ae5e6c2cb3b2c40, type: 3}
   m_Name: Oliier
   m_EditorClassIdentifier: Assembly-CSharp-Editor::BuildTools.BuildConfig
-  productNameOverride: TickWeep
+  productNameOverride: Tick and Stitch
   outputPath: Builds/Game
   developmentBuild: 0
   scriptingFlags: []

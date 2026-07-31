@@ -448,21 +448,20 @@ public class CuttableObject : MonoBehaviour , IInteractable, IHoverable
     public void Interact(Interactor player)
     {
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        if(player.heldObject == null && false) return;
 
         if (!Physics.Raycast(ray, out RaycastHit hit)) Debug.LogError("Should not happen: raycast on interact hit. Check layers");
-        Debug.Log("successfully interacted");
-        
 
         CuttingManager aimed = CutRegistry.CutAt(this, hit.point);
         if(aimed == null) return;
 
-        bool hasTool = true || aimed.HasRequiredTool(player.heldObject.item);
-        if(aimed.canEnterMinigame() && hasTool){
+        // read the held item the same way the hover highlight does, so what the tint promised is what
+        // the click does. Empty hands give null, which HasRequiredTool refuses -- no separate guard for
+        // it, and no dereference of a heldObject that isn't there.
+        Item heldItem = player != null && player.heldObject != null ? player.heldObject.item : null;
+
+        if(aimed.canEnterMinigame() && aimed.HasRequiredTool(heldItem)){
             aimed.EnterMinigame();
         }
-        
-
     }
 
     /// <summary>Checks at least one cut contour inside the bounds window is a closed loop, i.e. some cut fully crosses the mesh. Multiple closed loops are allowed — each becomes its own removed piece by connectivity. Open (clipped) loops are allowed too; the splice discards them and welds their cut shut.</summary>
