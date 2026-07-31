@@ -25,6 +25,7 @@ public class WinScreenReveal : MonoBehaviour, IPointerClickHandler
 
     private void Awake()
     {
+        PrepareResultScene();
         EnsureEventSystem();
         ResolveReferences();
 
@@ -51,6 +52,9 @@ public class WinScreenReveal : MonoBehaviour, IPointerClickHandler
         if (backgroundImage != null && pauseMenuCover != null)
             backgroundImage.sprite = pauseMenuCover;
 
+        if (backgroundImage != null)
+            backgroundImage.raycastTarget = false;
+
         if (dossier != null)
             dossier.SetActive(true);
 
@@ -69,6 +73,9 @@ public class WinScreenReveal : MonoBehaviour, IPointerClickHandler
             Debug.LogWarning(
                 "WinScreenReveal needs a Win Background sprite.",
                 this);
+
+        if (backgroundImage != null)
+            backgroundImage.raycastTarget = true;
 
         if (dossier != null)
             dossier.SetActive(false);
@@ -101,6 +108,13 @@ public class WinScreenReveal : MonoBehaviour, IPointerClickHandler
         }
 
         return null;
+    }
+
+    private static void PrepareResultScene()
+    {
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     private static void EnsureEventSystem()

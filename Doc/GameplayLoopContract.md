@@ -199,7 +199,9 @@ Current implementation:
   Leg, Nose, and Ear totals: implemented.
 - The Win and Lost result scenes first show their scene-specific background
   with the dossier and statistics hidden. Clicking the background restores
-  `PAUSEMENU_Cover` and reveals the dossier and statistics: implemented.
+  `PAUSEMENU_Cover` and reveals the dossier and statistics. Entering either
+  scene restores normal time, unlocks/shows the cursor, provides a UI input
+  module, and releases the background raycast after the reveal: implemented.
 - End-of-day freezer/storage/decay integration: planned.
 
 ## End of Day
