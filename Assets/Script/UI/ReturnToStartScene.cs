@@ -5,6 +5,6 @@ public class ReturnToStartScene : MonoBehaviour
 {
     public void GoToStartScene()
     {
-        SceneManager.LoadScene("StartScreen");
+        SceneManager.LoadScene("Scenes/StartScreen");
     }
 }

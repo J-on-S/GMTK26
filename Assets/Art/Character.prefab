@@ -4258,7 +4258,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 0
+  startAngle: 80
   offsetSpace: 0
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 0

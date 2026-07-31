@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 public class PauseMenu : MonoBehaviour
 {
     [SerializeField] private GameObject pauseMenuUI = null;
+    [SerializeField] private GameObject tutorialUI = null;
     
     [Header("Background Music references")]
     [SerializeField] private AudioEventChannel audioEventChannel;
@@ -54,10 +55,12 @@ public class PauseMenu : MonoBehaviour
                     {
                         var submenu = pauseMenuUI.transform.parent.GetChild(index).gameObject;
                         if (submenu != pauseMenuUI) submenu.SetActive(false);
+                        //TODO FOR TUTORIAL
                     }
                     // Exited dialog, but still in the pause menu.
                     CurrentState = PauseState.Paused;
                     pauseMenuUI.SetActive(true);
+                    tutorialUI.SetActive(true);
                     break;
                 case PauseState.Paused:
                     // We were paused, go back to the game.
@@ -71,6 +74,7 @@ public class PauseMenu : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Locked;
         pauseMenuUI.SetActive(false);
+        tutorialUI.SetActive(false);
         Time.timeScale = 1f;
         CurrentState = PauseState.Resumed;
         audioEventChannel.FadePause(_playingBackgroundMusic, 2.0f);
@@ -81,6 +85,7 @@ public class PauseMenu : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.None;
         pauseMenuUI.SetActive(true);
+        tutorialUI.SetActive(true);
         Time.timeScale = 0f;
         CurrentState = PauseState.Paused;
         if (_playingBackgroundMusic != null)

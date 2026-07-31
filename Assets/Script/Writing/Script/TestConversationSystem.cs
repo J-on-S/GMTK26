@@ -7,7 +7,8 @@ public class TestConversationSystem : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        ConversationSystem.Instance.StartConversation(conversationTest);
+        ConversationFlow.Instance.NextConversation();
+        Debug.LogError("Should have started");
     }
 
     // Update is called once per frame
