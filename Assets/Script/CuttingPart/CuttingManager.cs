@@ -109,12 +109,17 @@ public enum CuttingState
 
     public CuttableObject GameObjectBeingCut;
 
-    [Tooltip("What the piece this cut takes off is called, e.g. \"Left Arm\". Becomes the severed object's name and its GrabbableObject.itemName, so the rest of the game can ask for it by name.")]
-    public string itemName;
-
     [Tooltip("Which tool the player must be holding to start this cut.")]
     public ToolType requiredTool;
+
+    [Tooltip("What this cut takes off. Carries both the piece's identity and its name -- there is no separate name to type, so a cut cannot be labelled one part and behave as another.")]
     [SerializeField] public BodyPart bodyPartType;
+
+    /// <summary>What the piece this cut severs is called, from its <see cref="bodyPartType"/>.</summary>
+    /// <remarks>Was a per-cut string field. It only ever renamed the GameObject: every consumer reads the
+    /// name through <see cref="GrabbableObject.DisplayName"/>, which resolves the BodyPart asset, so a cut
+    /// whose string disagreed with its asset showed one name and answered to another.</remarks>
+    public string PieceName => bodyPartType != null ? bodyPartType.DisplayName : null;
 
     // Snapshot of the free-look camera pose, by value: holding the Transform itself would just
     // alias the live camera, so restoring would assign every field to itself.
@@ -343,11 +348,8 @@ public enum CuttingState
 
         // ---- per-cut authoring, not wiring: the data a cut needs to mean something ----
 
-        // the severed piece is named and requested by this, so an empty one leaves a piece the rest
-        // of the game cannot ask for by name.
-        if (string.IsNullOrWhiteSpace(itemName)) missing.Add("Item name (what the severed piece is called)");
-
-        // the BodyPart asset the detached piece is built from; without it the piece has no identity.
+        // the BodyPart asset the detached piece is built from: without it the piece has neither an
+        // identity the doctor and the black market can match on, nor a name to show.
         if (bodyPartType == null) missing.Add("Body part (a BodyPart asset)");
 
         // start and end must span an arc. Equal angles are a zero-length cut: progress divides by
@@ -1122,7 +1124,7 @@ public enum CuttingState
     void OutfitSeveredPiece(GameObject piece)
     {
         if (piece == null) return;
-        SeveredPieceOutfitter.Outfit(piece, GameObjectBeingCut, bodyPartType, itemName, finisher);
+        SeveredPieceOutfitter.Outfit(piece, GameObjectBeingCut, bodyPartType, finisher);
     }
 
     /// <summary>Runs the slice and picks out the piece that came away.</summary>
@@ -1411,7 +1413,9 @@ public enum CuttingState
         }
 
         Mesh copy = Instantiate(piece);
-        string pieceName = string.IsNullOrWhiteSpace(itemName) ? $"{name} Lower Hull" : itemName;
+        // the part's own name when this cut has an asset; the cut's own name is the fallback, so the
+        // authoring copy is still identifiable on a cut whose body part is not assigned yet.
+        string pieceName = string.IsNullOrWhiteSpace(PieceName) ? $"{name} Lower Hull" : PieceName;
         copy.name = pieceName;
 
         GameObject go = new GameObject(pieceName);

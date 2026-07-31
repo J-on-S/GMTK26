@@ -32,16 +32,15 @@ public class SeveredPiece : MonoBehaviour
     /// <summary>Fits out the raw slice result: convex colliders, a <see cref="DetachedBodyPart"/> of the given type and name, this cut's placement offsets, and the finisher's kick.</summary>
     /// <param name="piece">The GameObject the slice produced, in the body's local pose.</param>
     /// <param name="body">The body it was cut from -- the space the position offset is read in.</param>
-    /// <param name="bodyPartType">The BodyPart asset the piece takes its identity from.</param>
-    /// <param name="itemName">What the piece is called, so the rest of the game can ask for it by name.</param>
+    /// <param name="bodyPartType">The BodyPart asset the piece takes its identity AND its name from.</param>
     /// <param name="finisher">The cut's finisher, for the kick and its direction; null skips the kick.</param>
-    public void Outfit(GameObject piece, CuttableObject body, BodyPart bodyPartType, string itemName, CutFinisher finisher)
+    public void Outfit(GameObject piece, CuttableObject body, BodyPart bodyPartType, CutFinisher finisher)
     {
         if (piece == null) return;
 
         MakeCollidersDynamic(piece);
 
-        DetachedBodyPart part = DetachedBodyPart.MakeDetachedBodyPart(health, health, bodyPartType, piece, audioPreset, itemName);
+        DetachedBodyPart part = DetachedBodyPart.MakeDetachedBodyPart(health, health, bodyPartType, piece, audioPreset);
 
         // held size has to be handed over here as well: the piece has no prefab an author could set it on,
         // and a limb cut at body scale is often too big to read in the hand.

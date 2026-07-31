@@ -81,10 +81,13 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         if (hud != null) hud.ShowBodyPartDescription(this);
     }
 
-    /// <param name="itemName">What the piece is called. Names the GameObject and fills GrabbableObject.itemName,
-    /// so the doctor's requests and the black market can match it by name. Left empty, the object keeps
-    /// the name the slice gave it.</param>
-    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset, string itemName = null)
+    /// <param name="bodyPart">What the piece IS. It carries the identity the rest of the game matches on and
+    /// the name the piece takes; a null one leaves the object with whatever name the slice gave it.</param>
+    /// <remarks>The name is no longer passed in alongside the part. A caller-supplied string could disagree
+    /// with the asset every consumer actually reads -- <see cref="GrabbableObject.DisplayName"/> resolves
+    /// through <c>item</c>, which is this same asset -- so the object ended up labelled one thing and
+    /// described as another.</remarks>
+    public static DetachedBodyPart MakeDetachedBodyPart(float startingHealth, float maxHealth, BodyPart bodyPart, GameObject gameObject, AudioGrappablePreset preset)
     {
         if (!gameObject.TryGetComponent<Rigidbody>(out _))
         {
@@ -108,9 +111,9 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         }
         detachedBodyPart.audioPreset = preset;
 
-        if (!string.IsNullOrWhiteSpace(itemName))
+        if (bodyPart != null)
         {
-            gameObject.name = itemName;
+            gameObject.name = bodyPart.DisplayName;
         }
 
         return detachedBodyPart;

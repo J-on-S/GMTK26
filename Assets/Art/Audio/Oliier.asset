@@ -20,6 +20,6 @@ MonoBehaviour:
   zipAfterBuild: 1
   zipOutputPath: C:/Users/Olivier/Downloads
   uploadToItch: 1
-  itchGameUrl: https://acaciesong.itch.io/puppet
+  itchGameUrl: https://acaciesong.itch.io/tick-and-stitch
   butlerPath: C:/butler/butler.exe
   itchTimeoutSeconds: 300

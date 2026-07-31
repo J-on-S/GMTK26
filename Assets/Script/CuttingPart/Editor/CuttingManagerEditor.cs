@@ -86,8 +86,8 @@ public class CuttingManagerEditor : Editor
             Draw("GameObjectBeingCut");
             Draw("loopGuide");
 
-            // identity: what the piece is called and what it takes to cut it. Per-cut, never from a preset.
-            Draw("itemName");
+            // identity: what the piece IS -- which also names it -- and what it takes to cut it.
+            // Per-cut, never from a preset.
             Draw("bodyPartType");
             Draw("requiredTool");
 

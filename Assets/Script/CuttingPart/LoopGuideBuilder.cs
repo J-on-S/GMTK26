@@ -418,9 +418,16 @@ public class LoopGuideBuilder : MonoBehaviour {
                     // scan only a SHORT band around the point, not the whole mesh. band < arm
                     // radius, so the ray can never reach the torso / other arm.
                     float band = Mathf.Min(Mathf.Abs(h) + r0 * 0.25f, r0 * 0.9f);
+
+                    // Invariant: a point that finds no surface falls back to the FLAT loop, not to the
+                    // lift that missed. The lift is a guess at where the body would be h along its axis;
+                    // when the ray cannot confirm it -- an amplitude larger than the limb, a slide off
+                    // the end of it, a taper the band cannot cross -- that guess is a point hanging in
+                    // the air, and a ring of them reads as green spaghetti beside the patient. The flat
+                    // point is always on the cut, so the guide degrades to a plain ring instead.
                     p = TryProjectOntoSurface(expected, rdir, band, out Vector3 snapped, out _)
                         ? snapped        // snapped to the local surface
-                        : expected;      // no local surface in band: keep the naive lift
+                        : p;             // no local surface in band: stay on the flat loop
                 } else {
                     p += up * h;
                 }

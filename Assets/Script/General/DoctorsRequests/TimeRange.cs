@@ -1,5 +1,8 @@
-using NUnit.Framework;
+// UnityEngine.Assertions, not NUnit: NUnit's Assert lives in nunit.framework, which ships with the
+// test framework and is editor-only. A runtime class referencing it compiles in the editor and then
+// kills every player build -- the IL2CPP linker cannot resolve the assembly and fails with IL1005.
 using UnityEngine;
+using UnityEngine.Assertions;
 
 [System.Serializable]
 public class TimeRange

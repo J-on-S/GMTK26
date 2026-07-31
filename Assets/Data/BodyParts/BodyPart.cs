@@ -14,6 +14,13 @@ public class BodyPart : Item//ScriptableObject
     //maybe mat
     public BodyPartType BodyPartType => bodyPartType;
     public GameObject BodyPartPrefab => bodyPartPrefab;
+
+    /// <summary>What this part is called: its authored <see cref="Item.Name"/>, or its <see cref="BodyPartType"/> when that was left blank.</summary>
+    /// <remarks>The one place a part's name is decided, so a severed piece, the doctor's line and the
+    /// HUD cannot disagree. The type is the fallback rather than an empty string: every part has one,
+    /// which makes an unnamed asset read as "Arm" instead of as nothing at all.</remarks>
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(Name) ? bodyPartType.ToString() : Name;
     private void OnValidate()
     {
         itemType = ItemType.BodyPart;
