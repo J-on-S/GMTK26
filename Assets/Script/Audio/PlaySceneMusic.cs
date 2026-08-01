@@ -1,22 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>Fades in one scene's background music through the shared <see cref="AudioMaster"/>, fades it out when the scene changes -- but if the next scene plays the same track, hands it over so it keeps playing without a break.</summary>
-/// <remarks>
-/// One per scene: drop it in, give it the channel and the track, and it fades in on enable. It plays
-/// through the <see cref="AudioEventChannel"/> -> <see cref="AudioMaster"/> like every other sound, so the
-/// music shares the mixer and the master's fade handling. The AudioMaster outlives a scene load, so a track
-/// is not stopped by the load itself; this holds the returned <see cref="AudioMaster.PlayingClip"/> and
-/// fade-stops exactly it when the scene changes.
-/// <para>
-/// Continuity: the reigning track is tracked in statics. When a scene's component starts and finds the same
-/// <see cref="Audio"/> already playing, it adopts that clip instead of starting a new one, and the outgoing
-/// scene's component leaves it alone -- so moving between scenes that share a track never restarts it. This
-/// relies on the new scene's <c>OnEnable</c> running before the old scene's teardown, which is the order a
-/// single-mode <c>LoadScene</c> uses; if it ever runs the other way the worst case is a fade-out/fade-in of
-/// the same track, never a stuck or doubled one.
-/// </para>
-/// </remarks>
+
 public class PlaySceneMusic : MonoBehaviour
 {
     //[Tooltip("Channel this scene's music plays and stops through. Same asset the AudioMaster listens on.")]
@@ -26,12 +11,12 @@ public class PlaySceneMusic : MonoBehaviour
     [SerializeField] private Audio music;
 
     [Tooltip("Fade-in time when the scene's music starts, in seconds.")]
-    [SerializeField] private float fadeInDuration = 1f;
+    [SerializeField] private float fadeInDuration = 2f;
 
     [Tooltip("Fade-out time when the scene changes or this is disabled, in seconds.")]
-    [SerializeField] private float fadeOutDuration = 1f;
+    [SerializeField] private float fadeOutDuration = 2f;
 
-    [Tooltip("Fade the track in when this object is enabled. Off, call Play() yourself.")]
+    [Tooltip("Fade the track in when this object is enabled.")]
     [SerializeField] private bool playOnEnable = true;
 
     // The one scene track currently playing, the Audio it is, and which component owns it. Static so a new
@@ -42,6 +27,14 @@ public class PlaySceneMusic : MonoBehaviour
 
     /// <summary>The clip this component is responsible for, so it fades out exactly its own track.</summary>
     private AudioMaster.PlayingClip _playing;
+
+    /// <summary>True only while a live other component owns the reigning track. A destroyed owner owns nothing.</summary>
+    /// <remarks>The <c>_owner != null</c> half is what makes this survive a scene reload: a destroyed
+    /// component still compares unequal to <c>this</c>, so without it every reload left the old track
+    /// looking adopted -- never faded out, never cleared from <see cref="_current"/>, and stacked under
+    /// the next scene's music.</remarks>
+    private bool AdoptedByOther =>
+        _playing == _current && _owner != null && _owner != this;
 
     private void OnEnable()
     {
@@ -92,8 +85,7 @@ public class PlaySceneMusic : MonoBehaviour
         if (_playing == null) return;
 
         // the reigning clip was taken over by another scene's component: it owns it now, leave it playing.
-        bool adoptedByOther = _playing == _current && _owner != this;
-        if (!adoptedByOther)
+        if (!AdoptedByOther)
         {
             if (AudioEventChannel.Instance != null) AudioEventChannel.Instance.FadeStop(_playing, fadeOutDuration);
             if (_current == _playing)
@@ -112,8 +104,7 @@ public class PlaySceneMusic : MonoBehaviour
         if (_playing == null) return;
 
         // the reigning clip was taken over by another scene's component: it owns it now, leave it playing.
-        bool adoptedByOther = _playing == _current && _owner != this;
-        if (!adoptedByOther)
+        if (!AdoptedByOther)
         {
             AudioEventChannel.Instance.Resume(_playing);
         }
@@ -123,8 +114,7 @@ public class PlaySceneMusic : MonoBehaviour
     {
         if (_playing == null) return;
         
-        bool adoptedByOther = _playing == _current && _owner != this;
-        if (!adoptedByOther)
+        if (!AdoptedByOther)
         {
             AudioEventChannel.Instance.Pause(_playing);
         }

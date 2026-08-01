@@ -3695,16 +3695,16 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: scale
-      value: 1.13
+      value: 0.82
       objectReference: {fileID: 0}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: height
-      value: 0.18
+      value: -0.3
       objectReference: {fileID: 0}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: preset
       value: 
-      objectReference: {fileID: 11400000, guid: a5c08a62c8d04cc40b6536ff1a9fc119, type: 2}
+      objectReference: {fileID: 11400000, guid: 265ca1ef385eae34189b2c45c3c30c35, type: 2}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: upMode
       value: 2
@@ -3712,11 +3712,15 @@ PrefabInstance:
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: loopGuide
       value: 
-      objectReference: {fileID: 1748168247155841680, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
+      objectReference: {fileID: 5173584454049063563, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: startAngle
-      value: 52
+      value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
+      propertyPath: speedSourceBehaviour
+      value: 
+      objectReference: {fileID: 1570312154}
     - target: {fileID: 1052043456424802293, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -4265,6 +4269,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dda95360c14b34949bb96bbf83761c7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  maxHP: 3
   healthImages:
   - {fileID: 2052394025}
   - {fileID: 2052394024}
@@ -4495,16 +4500,18 @@ MonoBehaviour:
   minigamePreset: {fileID: 0}
   startAngle: 0
   endAngle: 360
+  orbitAngleOffset: 0
   currentAngle: 0
   phase: 0
   GameObjectBeingCut: {fileID: 0}
-  itemName: 
   requiredTool: 0
   bodyPartType: {fileID: 0}
   cameraFOV: 40
   cameraPreset: {fileID: 0}
   scalpelSurfacePreset: {fileID: 0}
   curvePreset: {fileID: 0}
+  cameraOrbitPreset: {fileID: 0}
+  scalpelOrbitPreset: {fileID: 0}
   loopGuide: {fileID: 0}
   guideLineWidth: 0.005
   guideHoverLength: 0.01
@@ -4529,6 +4536,7 @@ MonoBehaviour:
   audioPreset: {fileID: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   rotationOffset: {x: 0, y: 0, z: 0}
+  holdScaleMultiplier: {x: 1, y: 1, z: 1}
 --- !u!1 &1136579192
 GameObject:
   m_ObjectHideFlags: 0
@@ -5848,7 +5856,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9abc0031d18fd82459aa11bada47ab07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutSpeedDriver
-  preset: {fileID: 11400000, guid: 75612b990c9c21e4d9058da711e7f3db, type: 2}
+  preset: {fileID: 11400000, guid: a42658724ce84d048a993fa635ab012c, type: 2}
   secondsPerLoop: 12
   acceleration: 4
   wheelKick: 3

@@ -9,40 +9,85 @@ public class HealthScript : MonoBehaviour
 
     public static int HP = 3;
 
+    [SerializeField] private int maxHP = 3;
+
     [SerializeField] private Image[] healthImages; // Size = 3
     [SerializeField] private Sprite fullHeartSprite;
     [SerializeField] private Sprite brokenHeartSprite;
     [SerializeField] private int waitSecond = 1;
     [Header("Test")]
     [SerializeField] private bool testInifiteLife = false;
+
+    private bool isDying;
+
+    public int MaxHP => Mathf.Max(1, maxHP);
+
     private void Awake()
     {
-        if (Instance == null)
-            Instance = this;
-        else
+        if (Instance != null && Instance != this)
+        {
             Destroy(gameObject);
+            return;
+        }
 
-        UpdateHealthUI();
+        Instance = this;
+        ResetHealth();
     }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
+
     [ContextMenu("TakeDamage")]
     public void TestTakeDamage()
     {
         TakeDamage();
     }
+
+    [ContextMenu("ResetHealth")]
+    public void ResetHealth()
+    {
+        isDying = false;
+        HP = MaxHP;
+        UpdateHealthUI();
+    }
+
     public void TakeDamage(int amount = 1)
     {
-        if(testInifiteLife) return;
-        HP = Mathf.Max(0, HP - amount);
+        if (testInifiteLife || isDying) return;
+
+        HP = Mathf.Clamp(HP - amount, 0, MaxHP);
         UpdateHealthUI();
-        if(HP <= 0)
+
+        if (HP <= 0)
         {
+            isDying = true;
             StartCoroutine(WaitBeforeSwitchScene());
         }
     }
-    
+
+    private void OnEnable()
+    {
+        SceneManager.activeSceneChanged += ReplenishHP;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.activeSceneChanged -= ReplenishHP;
+    }
+
+    private void ReplenishHP(Scene from, Scene to)
+    {
+        if (to == gameObject.scene)
+            ResetHealth();
+    }
+
     IEnumerator WaitBeforeSwitchScene()
     {
-        yield return new WaitForSeconds(waitSecond);
+        yield return new WaitForSecondsRealtime(waitSecond);
+        Time.timeScale = 1f;
         SceneManager.LoadScene("Scenes/Menu/Lost");
     }
 
@@ -50,6 +95,8 @@ public class HealthScript : MonoBehaviour
     {
         for (int i = 0; i < healthImages.Length; i++)
         {
+            if (healthImages[i] == null) continue;
+
             healthImages[i].sprite = i < HP
                 ? fullHeartSprite
                 : brokenHeartSprite;

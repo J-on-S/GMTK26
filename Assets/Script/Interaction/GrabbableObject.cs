@@ -78,7 +78,10 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
 
   void Awake(){
     rb = GetComponent<Rigidbody>();
-    startKinematic = rb != null && rb.isKinematic;
+    // no Rigidbody at all is the most static an object gets, so it counts as kinematic here:
+    // EnsureRigidbody adds a dynamic one on the first grab, and reading that back as the authored
+    // state would respawn a shelf prop as a falling body inside the shelf it was sitting on.
+    startKinematic = rb == null || rb.isKinematic;
     CaptureWorldScale();
     SetStartPose(transform.position, transform.rotation);
   }

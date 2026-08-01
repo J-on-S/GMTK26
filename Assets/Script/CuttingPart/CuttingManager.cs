@@ -616,8 +616,9 @@ public enum CuttingState
     /// <remarks>
     /// Called from <see cref="CompleteExit"/>, not the moment of the slice: grabbing earlier would parent
     /// the piece to the hand while the shot is still flown onto the body.
-    /// <para>Force-take: the player is still holding the tool they cut with, so it is dropped first -- the
-    /// grab's empty-hands guard would otherwise refuse, and the piece would be left on the ground.</para>
+    /// <para>Force-take: the hand is normally already empty by now -- entering the cut through the
+    /// interactor sends the tool back to its spawn -- but a cut entered any other way still leaves it
+    /// held, and the grab's empty-hands guard would refuse. Dropping first covers that.</para>
     /// </remarks>
     void GiveSeveredPieceToPlayer()
     {

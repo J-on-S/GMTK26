@@ -460,7 +460,16 @@ public class CuttableObject : MonoBehaviour , IInteractable, IHoverable
         Item heldItem = player != null && player.heldObject != null ? player.heldObject.item : null;
 
         if(aimed.canEnterMinigame() && aimed.HasRequiredTool(heldItem)){
+            // read before entering: EnterMinigame is what empties the hand, via the respawn below.
+            GrabbableObject usedTool = player.heldObject;
+
             aimed.EnterMinigame();
+
+            // the cut draws its own tool prop, so the held one is not needed once the minigame owns the
+            // screen: send it home on the same timer a delivered tool uses. Guarded on currentGame rather
+            // than on canEnterMinigame alone -- EnterMinigame still refuses a cut with missing wiring, and
+            // that must leave the tool in hand instead of quietly consuming it.
+            if (usedTool != null && CuttingManager.currentGame == aimed) usedTool.StartRespawnTimer();
         }
     }
 
