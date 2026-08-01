@@ -74,6 +74,20 @@ public class DetachedBodyPart : GrabbableObject, IHoverable
         base.Interact(player);
     }
 
+    /// <summary>Consumes the part instead of respawning it: a delivered organ is gone for good.</summary>
+    /// <remarks>
+    /// A tool is a prop the room owns, so the base class sends it back to the shelf it was taken from.
+    /// A part is a one-off cut off a client -- respawning it would put a second copy of an organ that
+    /// no longer exists back at the pose the slice left it in, which is inside the body it came from.
+    /// <para>Destroyed rather than left hidden, matching how <see cref="Chute"/> disposes of a part:
+    /// nothing reads a consumed part again, and a hidden one would keep ticking its decay in Update.</para>
+    /// </remarks>
+    public override void StartRespawnTimer()
+    {
+        ReleaseFromHolder();
+        Destroy(gameObject);
+    }
+
     /// <summary>A part shows its name and its decay bar, so it overrides the base name-only HUD.</summary>
     protected override void ShowHudDescription()
     {

@@ -518,15 +518,15 @@ public enum CuttingState
                 if (loopGuide != null) loopGuide.SetTraceProgress(StartAngle, EndAngle, currentProgress);
 
                 if (currentProgress >= 1) HandleCompletion();
-                // edge, not held: a held Q would quit again the instant the player re-entered.
-                else if (Keyboard.current.qKey.wasPressedThisFrame)
+                // edge, not held: a held E would quit again the instant the player re-entered.
+                else if (Keyboard.current.eKey.wasPressedThisFrame)
                 {
                     QuitMinigame();
                 }
                 break;
 
             case RigPhase.Finishing:
-                // the finisher owns the camera and the tool; nothing to tick here. Q is
+                // the finisher owns the camera and the tool; nothing to tick here. E is
                 // deliberately not offered: once the loop is closed the run is won, and there is
                 // no half-spliced state to back out of.
                 break;

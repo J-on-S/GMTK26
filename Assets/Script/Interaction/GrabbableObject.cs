@@ -327,7 +327,7 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   }
 
   // this is called when the doctor gets the right item delivered
-  public void StartRespawnTimer(){
+  public virtual void StartRespawnTimer(){
     if (respawnRoutine != null){
       StopCoroutine(respawnRoutine);
     }
