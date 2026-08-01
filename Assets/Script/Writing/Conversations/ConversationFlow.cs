@@ -8,20 +8,29 @@ public class ConversationFlow : MonoBehaviour
     private List<ConversationNode> conversations;
 
     private int currentIndex;
+
     private void Awake()
     {
-        if (Instance == null)
-    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+        currentIndex = 0;
     }
-    else
+
+    private void OnDestroy()
     {
-        Destroy(gameObject);
+        if (Instance == this)
+            Instance = null;
     }
-    }
+
     public void FinishCurrentConversation()
     {
+        if (currentIndex >= conversations.Count) return;
+
         conversations[currentIndex].onConversationFinished?.Invoke();
         currentIndex++;
     }
@@ -31,8 +40,10 @@ public class ConversationFlow : MonoBehaviour
     {
         if (currentIndex >= conversations.Count)
         {
-            Debug.LogError("Not enough Conversation");
+            Debug.LogError($"{name}: no conversation at index {currentIndex}; the list holds {conversations.Count}.", this);
+            return;
         }
+
         ConversationSystem.Instance.StartConversation(conversations[currentIndex].conversation);
     }
 }

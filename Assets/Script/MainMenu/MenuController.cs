@@ -177,11 +177,10 @@ public class MenuController : MonoBehaviour
     }
     
 
-    // takes player to the tutorial scene (comes after credits)
+    // takes player to the story scene (comes after credits)
     public void GoToTutorial()
     {
-        SceneManager.LoadScene("Scenes/Game");
-        //SceneManager.LoadScene("Tutorial");
+        SceneManager.LoadScene("Scenes/Story");
     }
 
 

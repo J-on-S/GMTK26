@@ -22,19 +22,24 @@ public class ConversationSystem : MonoBehaviour
     }
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
+            return;
         }
+
+        Instance = this;
+
         if (!text)
         {
             text = GetComponent<TextMeshProUGUI>();
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
     private bool isCurrentDialogueLineFinished = false;
     public IEnumerator TypeText()
