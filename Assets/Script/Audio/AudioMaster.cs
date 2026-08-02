@@ -157,6 +157,8 @@ public class AudioMaster : MonoBehaviour
         source.clip = null;
         source.loop = false;
         source.volume = 1f;
+        // The inspector's solo/mute writes here; a pooled source must not carry it into its next clip.
+        source.mute = false;
         source.panStereo = 0f;
         source.pitch = 1f;
         source.outputAudioMixerGroup = null;
