@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -101,6 +102,115 @@ namespace BuildTools
             }
 
             Done();
+        }
+
+        /// <summary>Headless entry point that makes several targets in one editor session, then exits with 0 only if every one succeeded.</summary>
+        /// <remarks>
+        /// Exists to pay the editor's startup and project load once instead of once per platform. The
+        /// targets themselves are still made one after another -- <c>activeBuildTarget</c> is a single
+        /// global, so nothing can build two at a time in one editor.
+        /// <para>Invariant: the active build target is left on whichever target ran last. Order the
+        /// list so the one you want to keep working in comes last.</para>
+        /// <example>
+        /// Unity.exe -batchmode -nographics -projectPath C:\Bureau\GMTK26
+        ///   -executeMethod BuildTools.BatchBuild.BuildAllFromCommandLine
+        ///   -buildConfig Assets/Art/Audio/BuildConfig_Itch.asset
+        ///   -buildTargets Win64,WebGL -itchUpload true -logFile -
+        /// </example>
+        /// </remarks>
+        public static void BuildAllFromCommandLine()
+        {
+            try
+            {
+                RunAll();
+            }
+            catch (Exception e)
+            {
+                Fail($"{e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+            }
+        }
+
+        private static void RunAll()
+        {
+            BuildConfig cfg = LoadConfig(Arg("-buildConfig"));
+            if (cfg == null)
+            {
+                Fail("No BuildConfig found. Pass -buildConfig <assetPath>, or keep one anywhere in Assets/.");
+                return;
+            }
+
+            List<BuildTarget> targets = ParseTargets(Arg("-buildTargets"));
+            if (targets.Count == 0)
+            {
+                Fail("No usable -buildTargets. Pass e.g. -buildTargets Win64,WebGL.");
+                return;
+            }
+
+            // every target runs on the one config this entry point was given, unlike the Build button's
+            // multi-target mode, where each platform picks its own.
+            string configPath = AssetDatabase.GetAssetPath(cfg);
+            var plans = new List<TargetBuildPlan>();
+            foreach (BuildTarget target in targets)
+            {
+                plans.Add(new TargetBuildPlan(target, configPath));
+            }
+
+            // ApplyOverrides re-runs after every plan's Apply, not once here: Apply rewrites the zip and
+            // itch prefs from the asset each time, so -itchUpload/-zip set only up front would be lost
+            // the moment the first target started.
+            List<TargetBuildResult> results = MultiTargetBuild.Run(plans, ApplyOverrides);
+            if (results.Count == 0)
+            {
+                Fail("Multi-target build ran nothing. See the log above.");
+                return;
+            }
+
+            List<string> failures = MultiTargetBuild.Failures(results);
+            if (failures.Count > 0)
+            {
+                Fail($"{failures.Count} of {results.Count} targets failed: {string.Join(", ", failures)}.");
+                return;
+            }
+
+            Debug.Log($"[BatchBuild] All {results.Count} targets succeeded.");
+            Done();
+        }
+
+        /// <summary>The targets named by <c>-buildTargets</c>, in the order given.</summary>
+        /// <remarks>Accepts the short names Unity's own <c>-buildTarget</c> switch uses as well as the
+        /// <see cref="BuildTarget"/> enum names, so a caller can write either. Unknown names are reported
+        /// and skipped rather than silently dropped.</remarks>
+        private static List<BuildTarget> ParseTargets(string csv)
+        {
+            var targets = new List<BuildTarget>();
+            if (string.IsNullOrWhiteSpace(csv)) return targets;
+
+            foreach (string raw in csv.Split(','))
+            {
+                string name = raw.Trim();
+                if (name.Length == 0) continue;
+
+                BuildTarget target;
+                switch (name.ToLowerInvariant())
+                {
+                    case "win64":
+                    case "standalonewindows64": target = BuildTarget.StandaloneWindows64; break;
+                    case "win":
+                    case "standalonewindows": target = BuildTarget.StandaloneWindows; break;
+                    case "osxuniversal":
+                    case "standaloneosx": target = BuildTarget.StandaloneOSX; break;
+                    case "linux64":
+                    case "standalonelinux64": target = BuildTarget.StandaloneLinux64; break;
+                    case "webgl": target = BuildTarget.WebGL; break;
+                    default:
+                        Debug.LogError($"[BatchBuild] Unknown build target '{name}'. Skipping it.");
+                        continue;
+                }
+
+                if (!targets.Contains(target)) targets.Add(target);
+            }
+
+            return targets;
         }
 
         /// <summary>Command-line overrides for the two settings a caller most often wants to differ from the asset.</summary>

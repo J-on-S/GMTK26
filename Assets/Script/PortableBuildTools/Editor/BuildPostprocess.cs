@@ -62,7 +62,12 @@ namespace BuildTools
             }
             Directory.CreateDirectory(zipFolder);
 
-            string buildName = Path.GetFileNameWithoutExtension(outputPath);
+            // the name a multi-platform run asked for, when there is one. Without it two platforms of one
+            // run can name the same archive -- Windows takes its name from the exe, so every Windows build
+            // of a project is "<product>", whatever folder it was written to -- and the second silently
+            // replaces the first, since an existing archive is deleted below.
+            string buildName = EditorPrefs.GetString(BuildConfigurator.ZipNameKey, "");
+            if (string.IsNullOrWhiteSpace(buildName)) buildName = Path.GetFileNameWithoutExtension(outputPath);
             if (string.IsNullOrEmpty(buildName)) buildName = new DirectoryInfo(buildFolder).Name;
             string zipPath = Path.Combine(zipFolder, $"{buildName}_{DateTime.Now:dd-MM-yyyy}.zip");
 

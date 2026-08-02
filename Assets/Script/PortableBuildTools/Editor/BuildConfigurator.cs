@@ -30,6 +30,11 @@ namespace BuildTools
         public static string ItchTimeoutKey   => Prefix + "ItchTimeoutSec";
         public static string ProductNameKey   => Prefix + "ProductName";
 
+        /// <summary>Name <see cref="ZipPostprocess"/> gives the next archive, or blank to let it name itself.</summary>
+        /// <remarks>Set only by a multi-platform run, and cleared by <see cref="Apply"/> so it can never
+        /// leak into an ordinary build that happens to run afterwards.</remarks>
+        public static string ZipNameKey       => Prefix + "ZipName";
+
         static BuildConfigurator()
         {
             BuildPlayerWindow.RegisterBuildPlayerHandler(HandleBuildClicked);
@@ -40,6 +45,12 @@ namespace BuildTools
             BuildConfigWindow window = BuildConfigWindow.ShowModal();
             if (!window.WasConfirmed)
                 throw new BuildPlayerWindow.BuildMethodException("Build cancelled in BuildConfigWindow.");
+
+            if (window.BuildAllTargets)
+            {
+                RunMultiTarget(window.Plans);
+                return;
+            }
 
             BuildConfig cfg = window.Config;
             if (cfg == null)
@@ -71,6 +82,32 @@ namespace BuildTools
             BuildPlayerWindow.DefaultBuildMethods.BuildPlayer(options);
         }
 
+        /// <summary>Builds every platform the window listed, and reports the run as one build result.</summary>
+        /// <remarks>
+        /// Throws when any target failed, so Unity's own build UI marks the run failed instead of reading
+        /// success off whichever target happened to finish last.
+        /// <para>Does not fall through to <c>DefaultBuildMethods.BuildPlayer</c>: the players have already
+        /// been built by the time this returns, and letting Unity build again would make an extra,
+        /// unconfigured copy of the active target.</para>
+        /// </remarks>
+        private static void RunMultiTarget(List<TargetBuildPlan> plans)
+        {
+            List<TargetBuildResult> results = MultiTargetBuild.Run(plans);
+
+            if (results.Count == 0)
+                throw new BuildPlayerWindow.BuildMethodException("Multi-target build ran nothing. See the Console.");
+
+            foreach (TargetBuildResult result in results)
+                Debug.Log($"[BuildConfigurator] {result}");
+
+            List<string> failures = MultiTargetBuild.Failures(results);
+            if (failures.Count > 0)
+                throw new BuildPlayerWindow.BuildMethodException(
+                    $"{failures.Count} of {results.Count} targets failed: {string.Join(", ", failures)}.");
+
+            Debug.Log($"[BuildConfigurator] All {results.Count} targets succeeded.");
+        }
+
         /// <summary>
         /// Writes the config's PlayerPrefs and hands its deployment settings to the post-build hooks.
         /// </summary>
@@ -94,6 +131,10 @@ namespace BuildTools
 
             EditorPrefs.SetBool(ZipEnabledKey, cfg.zipAfterBuild);
             EditorPrefs.SetString(ZipPathKey, cfg.zipOutputPath ?? "");
+
+            // cleared, not carried: only a multi-platform run sets a zip name, and it sets it after this.
+            // Leaving a stale one here would rename the archive of every later single build.
+            EditorPrefs.SetString(ZipNameKey, "");
 
             EditorPrefs.SetBool(UploadToItchKey, cfg.uploadToItch);
             EditorPrefs.SetString(ButlerPathKey, cfg.butlerPath ?? "");
@@ -140,17 +181,41 @@ namespace BuildTools
             return scenes.ToArray();
         }
 
-        /// <summary>Where the player is written: the config's output folder, plus an exe name on Windows. Shared with <see cref="BatchBuild"/>.</summary>
-        internal static string ResolveLocationPath(BuildConfig cfg, BuildTarget target)
+        /// <summary>The folder a config asks for: its output path with tokens expanded, made absolute against the project root.</summary>
+        /// <remarks>
+        /// Shared by the single-target build and <see cref="MultiTargetBuild"/> so one config resolves to
+        /// the same place whichever path built it.
+        /// <para>Tokens, all optional and case-sensitive:
+        /// <c>{target}</c> the <see cref="BuildTarget"/> being built, <c>{product}</c> the product name.
+        /// A path using <c>{target}</c> gives each platform its own folder in every mode, which is what
+        /// lets one config drive a multi-platform run without the platforms landing on top of each other.</para>
+        /// <para>Not created here: callers that only want to know where a build would go must not leave
+        /// an empty folder behind on disk.</para>
+        /// </remarks>
+        internal static string ResolveOutputFolder(BuildConfig cfg, BuildTarget target)
         {
             string product = cfg.ResolveProductName();
+            if (string.IsNullOrEmpty(product)) product = "Game";
+
             string folder = string.IsNullOrEmpty(cfg.outputPath) ? $"Builds/{product}" : cfg.outputPath;
+
+            folder = folder
+                .Replace("{target}", target.ToString())
+                .Replace("{product}", product);
 
             if (!Path.IsPathRooted(folder))
             {
                 string projectRoot = Path.GetDirectoryName(Application.dataPath);
                 folder = Path.Combine(projectRoot, folder);
             }
+            return Path.GetFullPath(folder);
+        }
+
+        /// <summary>Where the player is written: the config's output folder, plus an exe name on Windows. Shared with <see cref="BatchBuild"/>.</summary>
+        internal static string ResolveLocationPath(BuildConfig cfg, BuildTarget target)
+        {
+            string product = cfg.ResolveProductName();
+            string folder = ResolveOutputFolder(cfg, target);
             Directory.CreateDirectory(folder);
 
             // Windows wants an .exe path; other platforms want the folder itself.

@@ -16,7 +16,14 @@ namespace BuildTools
     {
         // ---------- Output ----------
         [Header("Output")]
-        [Tooltip("Build folder. Relative paths resolve against the project root. Use Browse to pick.")]
+        [Tooltip("Build folder. Relative paths resolve against the project root. Use Browse to pick.\n\n" +
+                 "{target} expands to the platform being built (e.g. StandaloneWindows64, WebGL) and " +
+                 "{product} to the product name. Use {target} when one config builds several platforms, " +
+                 "e.g. Builds/{target} — otherwise they share a folder and each is moved into a " +
+                 "platform subfolder automatically.\n\n" +
+                 "This folder IS the build: Unity writes the exe and its data straight into it, and both " +
+                 "the zip and the itch upload take the whole folder. Never point it at a folder that " +
+                 "holds anything else.")]
         public string outputPath = "Builds/Game";
 
         [Tooltip("Build with BuildOptions.Development.")]
