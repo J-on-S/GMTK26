@@ -21,7 +21,7 @@ public class OpenClients : MonoBehaviour, IInteractable
     Time.timeScale = 0f;
     mouseMov.Pause();
     channel.Play(paperAudio);
-    generateClientInfoUI.GenerateUI();
+    generateClientInfoUI.GenerateCards();
   }
   public void notVisible(){
     page1.SetActive(false);
