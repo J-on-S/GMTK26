@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6847219504603749610}
   - component: {fileID: 1677945551968239974}
+  - component: {fileID: 1677945551968239975}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -47,3 +48,16 @@ MonoBehaviour:
   eventChannel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
   AudioMixer: {fileID: 24100000, guid: d338ea656966cae4da132a0a848ee0b7, type: 2}
   MixerGroup: {fileID: 24300002, guid: d338ea656966cae4da132a0a848ee0b7, type: 2}
+--- !u!114 &1677945551968239975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 624892750912019940}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f7c1a92b4d64e08a5c2f9d1e6b83a47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneMusicPlayer
+  defaultFadeOut: 2

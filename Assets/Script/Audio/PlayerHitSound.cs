@@ -1,31 +1,47 @@
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 
 public class PlayerHitSound : MonoBehaviour, SoundMaker
 {
-    private enum SoundDecider
-    {
-        RANDOM,
-        IN_ORDER
-    };
+    [Tooltip("Optional. A Sound Set here replaces the list below: the asset does the picking, so the same sounds can be shared by every object that needs them.")]
+    [SerializeField] private Audio soundSet;
 
     [SerializeField] private List<Audio> hitSounds = new List<Audio>();
 
     [SerializeField] private AudioEventChannel channel;
 
-    [SerializeField] private SoundDecider decider = SoundDecider.RANDOM;
+    [SerializeField] private SoundPick decider = SoundPick.Random;
     private int index = 0;
-    private void Start()
-    {
-    }
+
+    /// <summary>Whether an asset is doing the picking instead of the inline list.</summary>
+    public bool UsesSoundSet => soundSet != null;
 
     public void playAudio()
     {
+        if (channel == null)
+        {
+            Debug.LogError("AudioEventChannel channel is not assigned in playerHitSound : " + gameObject.name);
+            return;
+        }
+
+        // A SoundSet is an Audio, so it can be handed straight over: the AudioMaster asks it for a
+        // variant when it starts playing. Nothing here needs to know which one it will be.
+        if (soundSet != null)
+        {
+            channel.Play(soundSet);
+            return;
+        }
+
+        if (hitSounds == null || hitSounds.Count == 0)
+        {
+            Debug.LogWarning("No sounds to play in playerHitSound : " + gameObject.name, this);
+            return;
+        }
+
         Audio s;
 
-        if (decider == SoundDecider.RANDOM)
+        if (decider == SoundPick.Random)
         {
             s = GetRandomSound();
         }
@@ -34,11 +50,7 @@ public class PlayerHitSound : MonoBehaviour, SoundMaker
             s = hitSounds[index % hitSounds.Count];
             index++;
         }
-        if (channel == null)
-        {
-            Debug.LogError("AudioEventChannel channel is not assigned in playerHitSound : " + gameObject.name);
-            return;
-        }
+
         channel.Play(s);
     }
 

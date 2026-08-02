@@ -52,7 +52,13 @@ public class AudioMaster : MonoBehaviour
         public FadeState CurrentFade;
         public Coroutine FadeCoroutine;
         public bool IsPaused;
+
+        /// <summary>The clip actually on the source. Always a leaf: a <see cref="SoundSet"/> has been resolved by the time this is set.</summary>
         public Audio Clip;
+
+        /// <summary>What the caller asked for, which is the same as <see cref="Clip"/> unless a composite picked it. Kept for display only.</summary>
+        public Audio Requested;
+
         public AudioSource Source;
 
         public Action<bool> OnEnded;
@@ -204,10 +210,15 @@ public class AudioMaster : MonoBehaviour
 
     private PlayingClip Play(Audio clip, PlayOptions options)
     {
+        Audio requested = clip;
+        clip = Resolve(clip);
+        if (clip == null) return null;
+
         AudioSource source = StartSource(clip, clip.Volume, options);
 
         PlayingClip pClip = new(clip, source)
         {
+            Requested = requested,
             OnEnded = options.OnEnded,
             OnLoopStarted = options.OnLoopStarted,
         };
@@ -216,14 +227,26 @@ public class AudioMaster : MonoBehaviour
         return pClip;
     }
 
+    /// <summary>Turns what the caller asked for into the clip that will actually play, picking a variant when handed a <see cref="SoundSet"/>.</summary>
+    /// <remarks>
+    /// Done once, here, rather than wherever a field is read: a composite picks anew on every call, so
+    /// resolving twice would put one variant's clip on the source and another variant's volume beside it.
+    /// </remarks>
+    private static Audio Resolve(Audio clip) => clip != null ? clip.GetAudio() : null;
+
     private PlayingClip FadeStart(Audio clip, float duration) => FadeStart(clip, duration, default);
 
     private PlayingClip FadeStart(Audio clip, float duration, PlayOptions options)
     {
+        Audio requested = clip;
+        clip = Resolve(clip);
+        if (clip == null) return null;
+
         AudioSource source = StartSource(clip, 0f, options);
 
         PlayingClip pClip = new(clip, source)
         {
+            Requested = requested,
             OnEnded = options.OnEnded,
             OnLoopStarted = options.OnLoopStarted,
         };
@@ -459,12 +482,18 @@ public class AudioMaster : MonoBehaviour
         AudioMixer.SetFloat(MixerGroup.name, level);
     }
 
+    /// <summary>The playing clip a caller means when it names <paramref name="clip"/>.</summary>
+    /// <remarks>
+    /// Matches through <see cref="Audio.Contains"/>, not by reference: a caller that started a
+    /// <see cref="SoundSet"/> names the set when it stops or fades it, while what is playing is the leaf
+    /// variant the set picked. Also matches the leaf itself, so a direct reference still works.
+    /// </remarks>
     private PlayingClip GetPlayingClip(Audio clip)
     {
         if (clip == null) return null;
         foreach (var pClip in PlayingClips)
         {
-            if (pClip.Clip == clip) return pClip;
+            if (clip.Contains(pClip.Clip)) return pClip;
         }
 
         return null;

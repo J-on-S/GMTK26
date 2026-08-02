@@ -178,6 +178,12 @@ public class AudioMasterEditor : Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 string title = g.Count > 1 ? $"{audio.name}  ×{g.Count}" : audio.name;
+
+                // The row is the leaf clip, since that is what plays and what solo/mute acts on. When a
+                // composite picked it, say so -- otherwise a SoundSet's clips look like they came from nowhere.
+                Audio from = g.Rep != null ? g.Rep.Requested : null;
+                if (from != null && from != audio) title += $"  (from {from.name})";
+
                 EditorGUILayout.LabelField(title, EditorStyles.boldLabel, GUILayout.MinWidth(80));
                 GUILayout.FlexibleSpace();
                 EditorGUILayout.LabelField(TypeLabel(audio.Type), EditorStyles.miniLabel, GUILayout.Width(60));

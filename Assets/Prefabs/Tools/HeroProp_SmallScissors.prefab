@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 123486485518337926}
   - component: {fileID: 3999663407534106999}
   - component: {fileID: 4768550854811242480}
+  - component: {fileID: 6952283611483790502}
   m_Layer: 0
   m_Name: HeroProp_SmallScissors
   m_TagString: Untagged
@@ -105,10 +106,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f4dc077de8d04df8ad5c617cc18a517, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
-  itemName: Knife
-  itemType: 0
-  timeLimit: 30
+  item: {fileID: 11400000, guid: 042c05b8d87751944aa98c197f714ff4, type: 2}
   respawnTime: 3
+  audioPreset: {fileID: 11400000, guid: 63490d4edcff78340b3193fadbfb1738, type: 2}
+  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  metalPickupAudio: {fileID: 0}
+  clothPickupAudio: {fileID: 0}
+  metalDropAudio: {fileID: 0}
+  clothDropAudio: {fileID: 0}
+  holdOffset: {x: 0, y: 0, z: 0}
+  holdRotationOffset: {x: 0, y: 0, z: 0}
+  holdScaleMultiplier: {x: 1, y: 1, z: 1}
+  hoverMaterial: {fileID: 2100000, guid: c73840b9a25ef18428130283c1bfb10e, type: 2}
+  dropForwardImpulse: 3.5
+  dropUpImpulse: 0.8
 --- !u!65 &4768550854811242480
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -130,6 +141,33 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.119328335, y: 0.013849828, z: 0.2339922}
   m_Center: {x: -0.023675585, y: -0.000000059490446, z: 0.00000095184714}
+--- !u!54 &6952283611483790502
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2422982414503797289}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &5554893303777249727
 GameObject:
   m_ObjectHideFlags: 0

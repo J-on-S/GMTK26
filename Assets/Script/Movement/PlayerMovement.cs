@@ -12,12 +12,23 @@ public class PlayerMovement : MonoBehaviour
   public Transform groundCheck;
   public float groundDistance = 0.4f;
   public LayerMask groundMask;
- 
+
+  public SoundRepeater StepSounds;
+
+  public float stepSoundSpeedThreshold = 0.1f;
+
   Vector3 velocity; // of falling
   bool isGrounded;
-  
-  void Update(){
-    //checking if we hit the ground to reset our falling velocity, 
+
+  Vector3 lastStepCheckPosition;
+
+    void OnEnable()
+    {
+        lastStepCheckPosition = transform.position;
+    }
+
+    void Update(){
+    //checking if we hit the ground to reset our falling velocity,
     // otherwise we will fall faster the next time
     // It had sphere in bottom of player, and checks if layer is there
     // groundDistance is radius of that sphere
@@ -40,5 +51,22 @@ public class PlayerMovement : MonoBehaviour
     // vertical speed
     velocity.y += gravity * Time.deltaTime; // acceleration -> speed
     controller.Move(velocity * Time.deltaTime); // speed -> distance
+
+    UpdateStepSounds();
+    }
+
+    void UpdateStepSounds()
+    {
+        //Debug.Log("is grounded" + isGrounded);
+        Vector3 travelled = transform.position - lastStepCheckPosition;
+        lastStepCheckPosition = transform.position;
+
+        if (StepSounds == null || (!StepSounds.enabled)) return;
+
+        travelled.y = 0f;
+        float speedSinceLastCheck = Time.deltaTime > 0f ? travelled.magnitude / Time.deltaTime : 0f;
+
+        if (speedSinceLastCheck > stepSoundSpeedThreshold) StepSounds.Play();
+        else StepSounds.Stop();
     }
 }

@@ -8,24 +8,44 @@ using UnityEngine;
 /// <para>
 /// An overlay rather than a material swap on the body: the body keeps whatever lit shader it
 /// already uses, and turning the highlight on or off cannot disturb its normal appearance. Colour
-/// goes through a <see cref="MaterialPropertyBlock"/>, so every body in the scene shares one
-/// material and no instances leak.
+/// goes through a <see cref="MaterialPropertyBlock"/>, so a material is shared by every body that
+/// uses it and no instances leak.
+/// </para>
+/// <para>
+/// Which material draws it is the body's call -- <see cref="CuttableObject.highlightMaterial"/> --
+/// so an outline/overlay material authored in the project can be used as-is; the colour lands in
+/// its <c>OutlineColor</c>. Bodies that leave it empty fall back to the built-in shader below, so
+/// scenes authored before the field existed look the same.
 /// </para>
 /// </remarks>
 public class CutRegionHighlighter : MonoBehaviour
 {
-    /// <summary>Shader path; the material is built from it on first use.</summary>
+    /// <summary>Shader path for the fallback material, built from it on first use.</summary>
     private const string ShaderName = "Cutting/CutRegionHighlight";
 
-    private static readonly int ColorId = Shader.PropertyToID("_HighlightColor");
+    /// <summary>Colour of the built-in fallback shader.</summary>
+    private static readonly int HighlightColorId = Shader.PropertyToID("_HighlightColor");
 
-    /// <summary>One material for every highlighter in the scene; all variation rides on property blocks.</summary>
+    // Both spellings: a hand-written shader prefixes its properties, a Shader Graph property named
+    // "OutlineColor" is exposed unprefixed unless its reference was overridden. Which one a given
+    // material answers to is not knowable from here, so ask the material.
+    private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+    private static readonly int OutlineColorIdUnprefixed = Shader.PropertyToID("OutlineColor");
+
+    /// <summary>Fallback material, shared by every body that has not been given one.</summary>
     private static Material sharedHighlightMaterial;
 
     /// <summary>Child renderer that draws the tint. Created on demand.</summary>
     private MeshRenderer overlayRenderer;
     private MeshFilter overlayFilter;
     private MaterialPropertyBlock block;
+
+    /// <summary>Body this highlighter belongs to; it owns the material choice.</summary>
+    private CuttableObject body;
+
+    /// <summary>Material currently on the overlay, and the colour property resolved for it. Re-resolved only when the material changes, so a swap in the inspector is picked up without a per-frame HasProperty probe.</summary>
+    private Material activeMaterial;
+    private int activeColorId = HighlightColorId;
 
     /// <summary>Lights <paramref name="severedMesh"/> in <paramref name="color"/>. The mesh must be in this object's local space, which is where a slice produces it.</summary>
     public void Show(Mesh severedMesh, Color color)
@@ -42,15 +62,14 @@ public class CutRegionHighlighter : MonoBehaviour
             return;
         }
 
-        if (overlayFilter.sharedMesh != severedMesh)
-        {
-            overlayFilter.sharedMesh = severedMesh;
-            SyncMaterialSlots(severedMesh);
-        }
+        overlayFilter.sharedMesh = severedMesh;
+
+        // every Show, not only on a mesh change: this also picks up a material swapped on the body.
+        SyncMaterialSlots(severedMesh);
 
         block ??= new MaterialPropertyBlock();
         overlayRenderer.GetPropertyBlock(block);
-        block.SetColor(ColorId, color);
+        block.SetColor(activeColorId, color);
         overlayRenderer.SetPropertyBlock(block);
 
         overlayRenderer.enabled = true;
@@ -89,7 +108,7 @@ public class CutRegionHighlighter : MonoBehaviour
             return;
         }
 
-        Material material = HighlightMaterial();
+        Material material = ResolveMaterial();
         if (material == null)
         {
             return;
@@ -114,23 +133,30 @@ public class CutRegionHighlighter : MonoBehaviour
         overlayRenderer.enabled = false;
     }
 
-    /// <summary>Gives the renderer one material per submesh.</summary>
+    /// <summary>Gives the renderer one material per submesh, re-resolving the material and its colour property when the body's choice changed.</summary>
     /// <remarks>A severed piece carries the body's skin submeshes plus a cap; a renderer with fewer materials than submeshes silently drops the extra ones, so half the highlight would go missing.</remarks>
     private void SyncMaterialSlots(Mesh mesh)
     {
-        Material material = HighlightMaterial();
+        Material material = ResolveMaterial();
         if (material == null)
         {
             return;
         }
 
+        if (material != activeMaterial)
+        {
+            activeMaterial = material;
+            activeColorId = ColorPropertyOf(material);
+        }
+
         int count = Mathf.Max(1, mesh.subMeshCount);
-        if (overlayRenderer.sharedMaterials.Length == count)
+        Material[] slots = overlayRenderer.sharedMaterials;
+        if (slots.Length == count && slots.Length > 0 && slots[0] == material)
         {
             return;
         }
 
-        var slots = new Material[count];
+        slots = new Material[count];
         for (int i = 0; i < count; i++)
         {
             slots[i] = material;
@@ -138,8 +164,32 @@ public class CutRegionHighlighter : MonoBehaviour
         overlayRenderer.sharedMaterials = slots;
     }
 
-    /// <summary>The shared highlight material, built on first use. Null with an error when the shader is missing from the build.</summary>
-    private static Material HighlightMaterial()
+    /// <summary>The material this body highlights with: its own if it has one, else the built-in fallback.</summary>
+    private Material ResolveMaterial()
+    {
+        if (body == null)
+        {
+            TryGetComponent(out body);
+        }
+
+        Material authored = body != null ? body.highlightMaterial : null;
+        return authored != null ? authored : FallbackMaterial();
+    }
+
+    /// <summary>Which colour property <paramref name="material"/> answers to, asked once per material rather than per frame.</summary>
+    /// <remarks>Setting a property a shader hasn't got is a silent no-op, which would read as "the highlight is broken" with nothing in the console -- so an unrecognised material says so once, here.</remarks>
+    private static int ColorPropertyOf(Material material)
+    {
+        if (material.HasProperty(OutlineColorId)) return OutlineColorId;
+        if (material.HasProperty(OutlineColorIdUnprefixed)) return OutlineColorIdUnprefixed;
+        if (material.HasProperty(HighlightColorId)) return HighlightColorId;
+
+        Debug.LogWarning($"Highlight material '{material.name}' has no OutlineColor (or _OutlineColor) property, so the cut highlight will draw in whatever colour the material is set to.");
+        return OutlineColorId;
+    }
+
+    /// <summary>The shared fallback material, built on first use. Null with an error when the shader is missing from the build.</summary>
+    private static Material FallbackMaterial()
     {
         if (sharedHighlightMaterial != null)
         {

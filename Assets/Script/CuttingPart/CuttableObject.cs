@@ -330,6 +330,9 @@ public class CuttableObject : MonoBehaviour , IInteractable, IHoverable
     [Tooltip("The cut is otherwise fine, but the player is holding the wrong tool for it.")]
     public Color wrongToolColor = new(1f, 0.92f, 0f, 0.35f);
 
+    [Tooltip("Material drawn over the piece a cut would take. The colour above is written into its OutlineColor property, per body, through a property block. Left empty, the built-in Cutting/CutRegionHighlight shader is used instead.")]
+    public Material highlightMaterial;
+
     /// <summary>Highlighter currently lit on this body, so it can be cleared when the aim moves off it.</summary>
     private CutRegionHighlighter litHighlighter;
 

@@ -102,7 +102,7 @@ public class PauseMenu : MonoBehaviour
     public void LoadMenu()
     {
         Time.timeScale = 1f;
-        onGameResume.Invoke();
+        //onGameResume.Invoke();
         audioEventChannel.FadeStop(_playingBackgroundMusic);
         CurrentState = PauseState.Resumed;
         SceneManager.LoadScene(mainMenuScene);

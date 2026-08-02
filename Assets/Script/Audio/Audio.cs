@@ -46,4 +46,16 @@ public class Audio : ScriptableObject
     /// </summary>
     public float GetRandomizedPitch() =>
         Pitch + UnityEngine.Random.Range(-PitchVariation, PitchVariation);
+
+    /// <summary>The clip that actually plays. A plain Audio is itself; a <see cref="SoundSet"/> picks one of its variants.</summary>
+    /// <remarks>
+    /// Callers must resolve once and then read the fields off the result, never call this per field:
+    /// a composite picks a new variant on every call, so re-resolving mid-playback would read
+    /// <c>Volume</c> from one clip and <c>Loop</c> from another.
+    /// </remarks>
+    public virtual Audio GetAudio() => this;
+
+    /// <summary>Whether <paramref name="other"/> is this clip, or -- for a composite -- one of the clips it can pick.</summary>
+    /// <remarks>Lets a caller that started a set stop it again: what is playing is the picked leaf, not the set it was asked for.</remarks>
+    public virtual bool Contains(Audio other) => other == this;
 }

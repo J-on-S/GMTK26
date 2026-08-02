@@ -46,6 +46,11 @@ public class SeveredPiece : MonoBehaviour
         // and a limb cut at body scale is often too big to read in the hand.
         if (part != null) part.holdScaleMultiplier = holdScaleMultiplier;
 
+        // the piece highlights with the same material the body it came off does. One material per body
+        // rather than a second field here: a hand hovered on the table and the same hand hovered on the
+        // client should read as the same thing, and there is nothing to author it on once it is cut.
+        if (part != null && body != null) part.hoverMaterial = body.highlightMaterial;
+
         Place(part, body);
 
         Kick(piece, finisher);

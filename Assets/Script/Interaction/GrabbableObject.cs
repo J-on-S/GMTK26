@@ -24,6 +24,10 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   [Tooltip("Per-axis size the object is held at, as a multiple of the size it has in the room. One = held at its real size. Applies only while it is in the hand; dropping, shelving or respawning puts the real size back.")]
   public Vector3 holdScaleMultiplier = Vector3.one;
 
+  [Header("Hover highlight")]
+  [Tooltip("Material drawn over this object while the player is looking at it. Empty = no highlight. A body part cut off a client is given the body's own highlight material instead of being authored here -- it has no prefab to set it on.")]
+  public Material hoverMaterial;
+
   [Header("Drop toss")]
   [Tooltip("Push away from the player when dropped, along the camera's forward flattened to the ground. 0 = it drops straight down.")]
   public float dropForwardImpulse = 3.5f;
@@ -75,6 +79,9 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   }
   /// <summary>Set the frame the player is looking at this, cleared in LateUpdate: the interactor calls HoverOver every such frame, so a frame with no call means the aim left.</summary>
   private bool hovering;
+
+  /// <summary>Draws <see cref="hoverMaterial"/> over this object while it is hovered. Added on the first hover, so objects with no highlight material never gain a component.</summary>
+  private HoverHighlight highlight;
 
   void Awake(){
     rb = GetComponent<Rigidbody>();
@@ -241,7 +248,18 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   // HOVER -- the interactor calls this every frame the player's aim is on this object.
   public virtual void HoverOver(Interactor player){
     ShowHudDescription();
+    ShowHoverHighlight();
     hovering = true;
+  }
+
+  /// <summary>Lights this object in its hover material, if it was given one.</summary>
+  /// <remarks>A held object is never hovered: grabbing turns its colliders off, so the interactor's ray
+  /// stops finding it and <see cref="LateUpdate"/> clears the highlight the same frame.</remarks>
+  private void ShowHoverHighlight(){
+    if (hoverMaterial == null) return;
+
+    if (highlight == null) highlight = HoverHighlight.For(gameObject);
+    if (highlight != null) highlight.Show(hoverMaterial);
   }
 
   /// <summary>What this item puts on the description HUD while hovered. Base shows just the name, and only for a tool; a body part overrides this to add its decay bar.</summary>
@@ -251,11 +269,12 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
     if (hud != null) hud.ShowName(this);
   }
 
-  /// <summary>Clears the HUD once the aim leaves: a frame with no HoverOver call means the player is no longer looking at this.</summary>
+  /// <summary>Clears the HUD and the highlight once the aim leaves: a frame with no HoverOver call means the player is no longer looking at this.</summary>
   protected virtual void LateUpdate(){
     if (!hovering){
       BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
       if (hud != null) hud.HideDescription(this);
+      if (highlight != null) highlight.Hide();
     }
     hovering = false;
   }

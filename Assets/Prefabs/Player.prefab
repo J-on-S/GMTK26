@@ -166,6 +166,7 @@ GameObject:
   - component: {fileID: 2163062960582052215}
   - component: {fileID: 9081844400141631352}
   - component: {fileID: 5295631300060875735}
+  - component: {fileID: 6849239324101659311}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -230,6 +231,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   mouseSensitivity: 5
+  active: 1
 --- !u!114 &2163062960582052215
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -250,6 +252,8 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 64
+  StepSounds: {fileID: 6849239324101659311}
+  stepSoundSpeedThreshold: 0.1
 --- !u!114 &9081844400141631352
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -280,6 +284,25 @@ MonoBehaviour:
   ToDeactivate:
   - {fileID: 9081844400141631352}
   - {fileID: 2163062960582052215}
+  - {fileID: 6849239324101659311}
+--- !u!114 &6849239324101659311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6878925314053301928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1b9e2f05d6d0304fa11652deebce987, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundRepeater
+  sound: {fileID: 11400000, guid: 72e40c6ac83d0804ba8898af76e2599a, type: 2}
+  mode: 1
+  interval: 0.3
+  intervalVariation: 0
+  playOnStart: 0
+  stopClipOnStop: 0
 --- !u!1 &7098176738416348241
 GameObject:
   m_ObjectHideFlags: 0
@@ -430,11 +453,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa1d517b4c66f91469b52eaa37caf414, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
-  preset: {fileID: 0}
-  loopGuide: {fileID: 0}
+  preset: {fileID: 11400000, guid: a5c08a62c8d04cc40b6536ff1a9fc119, type: 2}
+  loopGuide: {fileID: 7353964041308117819, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
   loopSource: 0
-  scale: 1
-  height: 0.5
+  framingUnits: 0
+  scale: 1.13
+  height: 0.18
   controlRotation: 1
   controlPosition: 1
   rollDegrees: 0
@@ -453,9 +477,10 @@ MonoBehaviour:
   lookSpeed: 5
   moveSpeed: 5
   loopTowardTop: 0
-  upMode: 1
+  upMode: 2
   angleOffset: 0
   startAngle: 0
+  offsetSpace: 0
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 1
   DerivePerSecondEvaluate: 4

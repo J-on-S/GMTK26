@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d00b7a1d83a701945a2b0b76eacd763f, type: 3}
+  m_Name: footstepSet
+  m_EditorClassIdentifier: Assembly-CSharp::SoundSet
+  AudioClip: {fileID: 0}
+  Type: 0
+  Volume: 0
+  Loop: 0
+  Pan: 0
+  Pitch: 1
+  PitchVariation: 0
+  RandomizePitchEachLoop: 0
+  variants:
+  - {fileID: 11400000, guid: f3d7fbbdae4bf51048f9b6f7dc1544df, type: 2}
+  - {fileID: 11400000, guid: 1b269d628d00e2d2e9e76b7be802e674, type: 2}
+  - {fileID: 11400000, guid: f3692cdfccad85a3ab00463bd8f7047a, type: 2}
+  - {fileID: 11400000, guid: bf484fa9028f1daf997c5faae653eb63, type: 2}
+  pick: 1
