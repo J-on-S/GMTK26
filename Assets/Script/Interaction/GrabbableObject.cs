@@ -231,9 +231,15 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
     }
   }
 
+  /// <summary>Shows or hides this object's own visuals.</summary>
+  /// <remarks>Hover highlight overlays are skipped: they are runtime children this object did not build,
+  /// and flipping them here desyncs them from the highlighter's own visible flag -- a respawn re-enabled
+  /// them while the highlighter thought they were off, so the next Hide did nothing and the object came
+  /// back permanently lit. <see cref="HoverHighlight"/> is the only thing that turns them on and off.</remarks>
   private void SetRenderersEnabled(bool enabled){
     Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
     for (int i = 0; i < renderers.Length; i++){
+      if (HoverHighlight.IsOverlay(renderers[i].gameObject)) continue;
       renderers[i].enabled = enabled;
     }
   }
@@ -357,6 +363,9 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
   // respawn items after a certain amount of time
   IEnumerator RespawnRoutine(){
     DetachToWorld();
+    // before the renderers go: the aim only leaves next frame, so a still-lit highlight would be the
+    // one thing left drawn of an object that is supposed to have vanished.
+    if (highlight != null) highlight.Hide();
     SetRenderersEnabled(false); // hide appearence
     SetCollidersEnabled(false); // hide physical
     yield return new WaitForSeconds(respawnTime);

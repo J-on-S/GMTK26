@@ -155,6 +155,15 @@ public class HoverHighlight : MonoBehaviour
         ClearOverlays();
     }
 
+    /// <summary>True for a runtime presentation object -- an overlay built here or by the cut region highlighter.</summary>
+    /// <remarks>Lets an owner's blanket renderer sweeps skip what it does not own. A component that flips
+    /// these renderers directly desyncs them from <see cref="visible"/>, and a later <see cref="Hide"/>
+    /// then no-ops and leaves the object lit.</remarks>
+    public static bool IsOverlay(GameObject candidate)
+    {
+        return candidate != null && candidate.name.StartsWith(OverlayPrefix);
+    }
+
     /// <summary>Gets the highlighter on an object, adding one if it hasn't got one.</summary>
     public static HoverHighlight For(GameObject target)
     {
