@@ -3,8 +3,6 @@ using UnityEngine.UI;
 using System;
 using TMPro;
 using UnityEngine.SceneManagement;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 
 public class MenuController : MonoBehaviour
 {
@@ -52,8 +50,6 @@ public class MenuController : MonoBehaviour
 
     void Awake()
     {
-        EnsureEventSystem();
-
         if (useSavedValues)
         {
             if (PlayerPrefs.HasKey("masterVolume"))
@@ -103,19 +99,6 @@ public class MenuController : MonoBehaviour
         }
     }
 
-    // Some menu scenes (Tutorial, Credits, ...) were authored without an EventSystem, so their Canvas
-    // raycaster had nothing to dispatch clicks through and every button was dead. This makes one when the
-    // scene has none, matching StartScreen's InputSystemUIInputModule. Guarded on EventSystem.current so a
-    // scene that already has one (or a persistent one from another scene) is left alone.
-    private static void EnsureEventSystem()
-    {
-        if (EventSystem.current != null) return;
-
-        GameObject go = new GameObject("EventSystem");
-        go.AddComponent<EventSystem>();
-        go.AddComponent<InputSystemUIInputModule>();
-    }
-
     void Start()
     {
         SetVolume();
@@ -157,7 +140,7 @@ public class MenuController : MonoBehaviour
     // play button -- forces the player to see credits first
     public void PlayButton()
     {
-        SceneManager.LoadScene("Scenes/Game");
+        SceneManager.LoadScene("Credits");
     }
 
     // exits the game
@@ -169,43 +152,32 @@ public class MenuController : MonoBehaviour
     // takes player back to menu
     public void BackToMenu()
     {
-        SceneManager.LoadScene("Scenes/StartScreen");
+        SceneManager.LoadScene("StartScreen");
     }
-    public void GoToCredit()
-    {
-        SceneManager.LoadScene("Scenes/Credits");
-    }
-    
 
-    // takes player to the story scene (comes after credits)
+    // takes player to the tutorial scene (comes after credits)
     public void GoToTutorial()
     {
-        SceneManager.LoadScene("Scenes/Story");
+        SceneManager.LoadScene("Tutorial");
     }
 
 
     // starts game -- only called after tutorial
     public void StartGameProper()
     {
-        SceneManager.LoadScene("Scenes/Game");
+        SceneManager.LoadScene("Game");
     }
     public void SetVolume()
     {
-        if(volumeSlider==null) return;
-        //TODO: some issue that volumeSlide == null;
         float volume = volumeSlider.value;
-        AudioEventChannel.Instance.SetLevel(Mathf.Log10(Mathf.Clamp(volume, 0.001f, 1.0f)) * 20);
+        audioEventChannel.SetLevel(Mathf.Log10(Mathf.Clamp(volume, 0.001f, 1.0f)) * 20);
         volumeValueText.text = volume.ToString("0.0");
     }
 
     public void VolumeApply()
     {
         // Save value of Volume in variable masterVolume
-        if (volumeSlider != null)
-        {
-            PlayerPrefs.SetFloat("masterVolume", volumeSlider.value);
-        }
-        
+        PlayerPrefs.SetFloat("masterVolume", volumeSlider.value);
         // StartCoroutine(ConfirmationBox());
     }
 

@@ -1717,7 +1717,6 @@ GameObject:
   - component: {fileID: 6932676186735012346}
   - component: {fileID: 3364126804302985257}
   - component: {fileID: 3905632607988670097}
-  - component: {fileID: 9001189336758014275}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -1725,20 +1724,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &9001189336758014275
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9001189336758014274}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 601f39c32a39e4fec8c4332782e9d09c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MainMenu
-  audioEventChannel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
-  backgroundMusic: {fileID: 11400000, guid: 1094100d32e988be3bc17f4d19ab5a5a, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
