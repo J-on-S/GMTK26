@@ -459,7 +459,7 @@ public class ToolRequestManager : MonoBehaviour
         remainingTime = 0f;
         lastEarlyCompletionBonus = 0f;
         RequestFailed?.Invoke(failedRequest);
-        HealthScript.Instance.TakeDamage();
+        HealthScript.Instance.TakeDamage();     
         StartCooldown();
     }
 
