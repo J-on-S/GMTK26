@@ -4092,7 +4092,7 @@ PrefabInstance:
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: loopGuide
       value: 
-      objectReference: {fileID: 5173584454049063563, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
+      objectReference: {fileID: 7353964041308117819, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: startAngle
       value: 0
@@ -6570,7 +6570,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9abc0031d18fd82459aa11bada47ab07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutSpeedDriver
-  preset: {fileID: 11400000, guid: a42658724ce84d048a993fa635ab012c, type: 2}
+  preset: {fileID: 11400000, guid: 75612b990c9c21e4d9058da711e7f3db, type: 2}
   secondsPerLoop: 12
   acceleration: 4
   wheelKick: 3
@@ -13566,7 +13566,7 @@ MonoBehaviour:
   enterPosition: {fileID: 188754947}
   exitPosition: {fileID: 2146940346}
   audioEventChannel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
-  dropSoundEffect: {fileID: 11400000, guid: 0d7c4b1b78bf1462eacef2952b352037, type: 2}
+  dropSoundEffect: {fileID: 11400000, guid: 52d0e93a7d271d7fc8d9b44b79f4d342, type: 2}
   temporaryBlackMarketTaskGenerator: {fileID: 338945033}
   returnMain: {fileID: 8704601295310553096}
   onPartSold:
