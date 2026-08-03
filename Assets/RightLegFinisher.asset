@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60050aaab8118374a8318a3165414b81, type: 3}
   m_Name: RightLegFinisher
   m_EditorClassIdentifier: Assembly-CSharp::CutFinisherPreset
-  cameraFOV: 38.32
+  cameraFOV: 51.06
   easeIn: 0.5
   easeInCurve:
     serializedVersion: 2
