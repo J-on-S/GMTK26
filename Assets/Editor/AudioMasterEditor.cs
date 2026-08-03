@@ -180,7 +180,7 @@ public class AudioMasterEditor : Editor
                 string title = g.Count > 1 ? $"{audio.name}  ×{g.Count}" : audio.name;
 
                 // The row is the leaf clip, since that is what plays and what solo/mute acts on. When a
-                // composite picked it, say so -- otherwise a SoundSet's clips look like they came from nowhere.
+                // composite picked it, say so -- otherwise an AudioSet's clips look like they came from nowhere.
                 Audio from = g.Rep != null ? g.Rep.Requested : null;
                 if (from != null && from != audio) title += $"  (from {from.name})";
 

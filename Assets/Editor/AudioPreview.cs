@@ -7,7 +7,7 @@ using UnityEngine;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Shared by <see cref="AudioInspector"/> and <see cref="SoundSetEditor"/> so auditioning sounds the same
+/// Shared by <see cref="AudioInspector"/> and <see cref="AudioSetEditor"/> so auditioning sounds the same
 /// wherever it is started from, and so only one hidden host object ever exists.
 /// </para>
 /// <para>

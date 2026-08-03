@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>Adds Play/Stop auditioning to an <see cref="Audio"/> asset, plus the pitch it is actually sounding at.</summary>
-/// <remarks>The audition itself lives in <see cref="AudioPreview"/>, shared with the Sound Set inspector so both sound identical and only one hidden source exists.</remarks>
+/// <remarks>The audition itself lives in <see cref="AudioPreview"/>, shared with the Audio Set inspector so both sound identical and only one hidden source exists.</remarks>
 [CustomEditor(typeof(Audio))]
 public class AudioInspector : Editor
 {

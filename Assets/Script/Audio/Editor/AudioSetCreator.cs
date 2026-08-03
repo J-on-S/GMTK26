@@ -4,12 +4,12 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Builds a <see cref="SoundSet"/> out of the <see cref="Audio"/> assets currently selected in the Project
+/// Builds an <see cref="AudioSet"/> out of the <see cref="Audio"/> assets currently selected in the Project
 /// window -- the usual way a set is born, from four takes of the same footstep sitting side by side.
 /// </summary>
-public static class SoundSetCreator
+public static class AudioSetCreator
 {
-    private const string MenuPath = "Assets/Create/Audio/Sound Set from Selection";
+    private const string MenuPath = "Assets/Create/Audio Set from Selection";
 
     [MenuItem(MenuPath, true)]
     private static bool ValidateCreate() => SelectedAudio().Count > 0;
@@ -20,7 +20,7 @@ public static class SoundSetCreator
         List<Audio> selected = SelectedAudio();
         if (selected.Count == 0) return;
 
-        var set = ScriptableObject.CreateInstance<SoundSet>();
+        var set = ScriptableObject.CreateInstance<AudioSet>();
 
         // variants is private, so it is filled the way the inspector would rather than by reflection
         var serialized = new SerializedObject(set);
@@ -74,7 +74,7 @@ public static class SoundSetCreator
         // trailing take numbers and separators are not part of the name the set should carry
         prefix = Regex.Replace(prefix, @"[\s_\-.]*\d*$", "");
 
-        return prefix.Length >= 2 ? prefix + "Set" : "SoundSet";
+        return prefix.Length >= 2 ? prefix + "Set" : "AudioSet";
     }
 
     private static string CommonPrefix(string a, string b)

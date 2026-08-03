@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The sound is a plain <see cref="Audio"/>, so a <see cref="SoundSet"/> can be dropped in and every
+/// The sound is a plain <see cref="Audio"/>, so an <see cref="AudioSet"/> can be dropped in and every
 /// repeat picks a different variant -- which is what keeps a repeating sound from reading as one sample on
 /// a timer. Nothing here knows which variant it got; the <see cref="AudioMaster"/> resolves it.
 /// </para>
@@ -14,16 +14,17 @@ using UnityEngine;
 /// caller can simply say "moving" or "not moving" without tracking state itself.
 /// </para>
 /// </remarks>
-public class SoundRepeater : MonoBehaviour
+public class AudioRepeater : MonoBehaviour
 {
     /// <summary>Floor on the scheduled gap, so a zero interval cannot fire a clip every frame.</summary>
-    private const float MinInterval = 0.02f;
+    /// <remarks>Public so the inspector's preview clamps the same way, and a rhythm auditioned there is one the game can actually produce.</remarks>
+    public const float MinInterval = 0.02f;
 
-    [Tooltip("What to play. A Sound Set here picks a different variant on every repeat.")]
+    [Tooltip("What to play. An Audio Set here picks a different variant on every repeat.")]
     [SerializeField] private Audio sound;
 
     [Tooltip("When the next repeat fires: as soon as the clip ends, after a gap once it ends, or on a fixed period regardless of clip length.")]
-    [SerializeField] private SoundRepeatMode mode = SoundRepeatMode.OnEndGap;
+    [SerializeField] private AudioRepeatMode mode = AudioRepeatMode.OnEndGap;
 
     [Tooltip("Seconds of gap, or the period in Every interval mode.")]
     [Min(0f)][SerializeField] private float interval = 0.3f;
@@ -54,6 +55,16 @@ public class SoundRepeater : MonoBehaviour
         get => sound;
         set => sound = value;
     }
+
+    /// <summary>When the next repeat fires. Read by the inspector preview so it schedules the way this does.</summary>
+    public AudioRepeatMode Mode => mode;
+
+    /// <summary>The clip this repeater has on the channel right now, or null between repeats.</summary>
+    /// <remarks>Exposed for the inspector's now-playing readout in Play mode. Callers must not hold it across repeats -- it is replaced every time one fires and nulled when the clip ends.</remarks>
+    public AudioMaster.PlayingClip Playing => playing;
+
+    /// <summary>Whether the current mode schedules the next repeat off the end of the clip rather than off the clock.</summary>
+    public bool WaitsForClipEnd => WaitsForEnd();
 
     /// <summary>The one shared channel. Not a serialized field: there is a single channel in the project, and a per-object copy of it is only ever a way to point half the scene at the wrong one.</summary>
     private static AudioEventChannel Channel => AudioEventChannel.Instance;
@@ -102,7 +113,7 @@ public class SoundRepeater : MonoBehaviour
             if (playing != null) return;
 
             waitingForEnd = false;
-            nextDueAt = Time.time + (mode == SoundRepeatMode.OnEndGap ? NextGap() : 0f);
+            nextDueAt = Time.time + (mode == AudioRepeatMode.OnEndGap ? NextGap() : 0f);
         }
 
         if (Time.time < nextDueAt) return;
@@ -146,9 +157,11 @@ public class SoundRepeater : MonoBehaviour
 
     private void OnClipEnded(bool completed) => playing = null;
 
-    private bool WaitsForEnd() => mode != SoundRepeatMode.EveryInterval;
+    private bool WaitsForEnd() => mode != AudioRepeatMode.EveryInterval;
 
-    private float NextGap() =>
+    /// <summary>One interval with its random variation applied, never below zero. Rolled per gap, so no two are the same.</summary>
+    /// <remarks>Public so the inspector preview rolls its gaps here rather than reimplementing the rule -- the rhythm auditioned is then the same code that produces the rhythm in game.</remarks>
+    public float NextGap() =>
         intervalVariation > 0f
             ? Mathf.Max(0f, interval + Random.Range(-intervalVariation, intervalVariation))
             : interval;

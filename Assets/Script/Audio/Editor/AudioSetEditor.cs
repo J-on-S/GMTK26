@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Test bench for a <see cref="SoundSet"/>: audition what its picker hands back, one clip at a time or as a
+/// Test bench for an <see cref="AudioSet"/>: audition what its picker hands back, one clip at a time or as a
 /// stream, without building a scene around it.
 /// </summary>
 /// <remarks>
@@ -18,8 +18,8 @@ using UnityEngine;
 /// the asset's GUID, so they follow the asset around the editor without being saved into it.
 /// </para>
 /// </remarks>
-[CustomEditor(typeof(SoundSet))]
-public class SoundSetEditor : Editor
+[CustomEditor(typeof(AudioSet))]
+public class AudioSetEditor : Editor
 {
     private const int RollCount = 20;
     private const int RecentShown = 8;
@@ -32,10 +32,10 @@ public class SoundSetEditor : Editor
 
     // ---- test state (not serialized into the asset) ----
     private bool autoPlay;
-    private SoundRepeatMode autoMode = SoundRepeatMode.OnEnd;
+    private AudioRepeatMode autoMode = AudioRepeatMode.OnEnd;
     private float interval = 1f;
 
-    /// <summary>Random amount added to or taken off each interval, matching <see cref="SoundRepeater"/>'s own variation.</summary>
+    /// <summary>Random amount added to or taken off each interval, matching <see cref="AudioRepeater"/>'s own variation.</summary>
     private float intervalVariation;
 
     /// <summary>When the next auto-play clip is due, on the <see cref="EditorApplication.timeSinceStartup"/> clock.</summary>
@@ -58,7 +58,7 @@ public class SoundSetEditor : Editor
     private readonly List<Audio> recent = new();
     private readonly List<KeyValuePair<Audio, int>> rollResults = new();
 
-    private SoundSet Set => (SoundSet)target;
+    private AudioSet Set => (AudioSet)target;
 
     public override bool RequiresConstantRepaint() =>
         Application.isPlaying || autoPlay || AudioPreview.IsPlayingAnything;
@@ -103,7 +103,7 @@ public class SoundSetEditor : Editor
         EditorGUILayout.PropertyField(variantsProperty, true);
         EditorGUILayout.PropertyField(pickProperty);
 
-        using (new EditorGUI.DisabledScope(Set.Pick != SoundPick.Random))
+        using (new EditorGUI.DisabledScope(Set.Pick != AudioPick.Random))
         {
             EditorGUILayout.PropertyField(avoidRepeatProperty);
         }
@@ -131,8 +131,6 @@ public class SoundSetEditor : Editor
             }
             return;
         }
-
-        EditorGUILayout.HelpBox("Edit mode: clips are previewed straight, without the AudioMaster. No fades, mixer group or solo/mute. Enter Play mode to hear the real path.", MessageType.None);
     }
 
     private void DrawTransport()
@@ -162,7 +160,7 @@ public class SoundSetEditor : Editor
         }
 
         Audio next = Set.Peek();
-        string nextLabel = Set.Pick == SoundPick.InOrder
+        string nextLabel = Set.Pick == AudioPick.InOrder
             ? (next != null ? next.name : "—")
             : "any (Random)";
         EditorGUILayout.LabelField("Next up", nextLabel, EditorStyles.miniLabel);
@@ -179,21 +177,21 @@ public class SoundSetEditor : Editor
 
             using (new EditorGUI.DisabledScope(!autoPlay))
             {
-                autoMode = (SoundRepeatMode)EditorGUILayout.EnumPopup("Mode", autoMode);
+                autoMode = (AudioRepeatMode)EditorGUILayout.EnumPopup("Mode", autoMode);
 
-                using (new EditorGUI.DisabledScope(autoMode == SoundRepeatMode.OnEnd))
+                using (new EditorGUI.DisabledScope(autoMode == AudioRepeatMode.OnEnd))
                 {
                     interval = Mathf.Max(0f, EditorGUILayout.FloatField(
                         new GUIContent("Interval (s)", "Gap after a clip ends, or the period between starts in Every interval mode."),
                         interval));
 
                     intervalVariation = Mathf.Max(0f, EditorGUILayout.FloatField(
-                        new GUIContent("± Variation (s)", "Random amount added to or taken off each interval. Same knob as a SoundRepeater's, so the rhythm you audition is the rhythm you can build."),
+                        new GUIContent("± Variation (s)", "Random amount added to or taken off each interval. Same knob as a AudioRepeater's, so the rhythm you audition is the rhythm you can build."),
                         intervalVariation));
                 }
             }
 
-            if (autoPlay && autoMode != SoundRepeatMode.EveryInterval && AnyVariantLoops(Set, MaxNesting))
+            if (autoPlay && autoMode != AudioRepeatMode.EveryInterval && AnyVariantLoops(Set, MaxNesting))
             {
                 EditorGUILayout.HelpBox("A looping clip never ends, so waiting for the end would stall on it. Looping picks fall back to the interval.", MessageType.Warning);
             }
@@ -264,7 +262,7 @@ public class SoundSetEditor : Editor
             if (playing == null)
             {
                 playingEnded = true;
-                Debug.LogWarning($"SoundSet '{Set.name}': no AudioMaster is listening on the channel, so nothing played.", Set);
+                Debug.LogWarning($"AudioSet '{Set.name}': no AudioMaster is listening on the channel, so nothing played.", Set);
                 StopAuto();
                 return;
             }
@@ -400,7 +398,7 @@ public class SoundSetEditor : Editor
             if (IsPlayingSomething()) return;
 
             waitingForEnd = false;
-            nextDueAt = now + (autoMode == SoundRepeatMode.OnEndGap ? NextGap() : 0d);
+            nextDueAt = now + (autoMode == AudioRepeatMode.OnEndGap ? NextGap() : 0d);
         }
 
         if (now < nextDueAt) return;
@@ -424,11 +422,11 @@ public class SoundSetEditor : Editor
     /// <summary>Whether the current mode should wait for the clip to finish. A looping pick never does, or it would wait forever.</summary>
     private bool WaitsForEnd()
     {
-        if (autoMode == SoundRepeatMode.EveryInterval) return false;
+        if (autoMode == AudioRepeatMode.EveryInterval) return false;
         return lastLeaf == null || !lastLeaf.Loop;
     }
 
-    private static bool AnyVariantLoops(SoundSet set, int depth)
+    private static bool AnyVariantLoops(AudioSet set, int depth)
     {
         if (set == null || depth <= 0) return false;
 
@@ -436,7 +434,7 @@ public class SoundSetEditor : Editor
         {
             if (variant == null) continue;
 
-            bool loops = variant is SoundSet nested
+            bool loops = variant is AudioSet nested
                 ? AnyVariantLoops(nested, depth - 1)
                 : variant.Loop;
 
@@ -448,12 +446,12 @@ public class SoundSetEditor : Editor
 
     // ---- settings ------------------------------------------------------------------------------
 
-    private string KeyPrefix => $"SoundSetEditor.{AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(target))}.";
+    private string KeyPrefix => $"AudioSetEditor.{AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(target))}.";
 
     private void LoadSettings()
     {
         autoPlay = SessionState.GetBool(KeyPrefix + "auto", false);
-        autoMode = (SoundRepeatMode)SessionState.GetInt(KeyPrefix + "mode", (int)SoundRepeatMode.OnEnd);
+        autoMode = (AudioRepeatMode)SessionState.GetInt(KeyPrefix + "mode", (int)AudioRepeatMode.OnEnd);
         interval = SessionState.GetFloat(KeyPrefix + "interval", 1f);
         intervalVariation = SessionState.GetFloat(KeyPrefix + "variation", 0f);
     }

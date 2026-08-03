@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d00b7a1d83a701945a2b0b76eacd763f, type: 3}
   m_Name: footstepSet
-  m_EditorClassIdentifier: Assembly-CSharp::SoundSet
+  m_EditorClassIdentifier: Assembly-CSharp::AudioSet
   AudioClip: {fileID: 0}
   Type: 0
   Volume: 0

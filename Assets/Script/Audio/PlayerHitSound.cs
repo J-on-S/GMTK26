@@ -2,20 +2,20 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public class PlayerHitSound : MonoBehaviour, SoundMaker
+public class PlayerHitSound : MonoBehaviour, AudioMaker
 {
-    [Tooltip("Optional. A Sound Set here replaces the list below: the asset does the picking, so the same sounds can be shared by every object that needs them.")]
+    [Tooltip("Optional. An Audio Set here replaces the list below: the asset does the picking, so the same sounds can be shared by every object that needs them.")]
     [SerializeField] private Audio soundSet;
 
     [SerializeField] private List<Audio> hitSounds = new List<Audio>();
 
     [SerializeField] private AudioEventChannel channel;
 
-    [SerializeField] private SoundPick decider = SoundPick.Random;
+    [SerializeField] private AudioPick decider = AudioPick.Random;
     private int index = 0;
 
     /// <summary>Whether an asset is doing the picking instead of the inline list.</summary>
-    public bool UsesSoundSet => soundSet != null;
+    public bool UsesAudioSet => soundSet != null;
 
     public void playAudio()
     {
@@ -25,7 +25,7 @@ public class PlayerHitSound : MonoBehaviour, SoundMaker
             return;
         }
 
-        // A SoundSet is an Audio, so it can be handed straight over: the AudioMaster asks it for a
+        // An AudioSet is an Audio, so it can be handed straight over: the AudioMaster asks it for a
         // variant when it starts playing. Nothing here needs to know which one it will be.
         if (soundSet != null)
         {
@@ -41,7 +41,7 @@ public class PlayerHitSound : MonoBehaviour, SoundMaker
 
         Audio s;
 
-        if (decider == SoundPick.Random)
+        if (decider == AudioPick.Random)
         {
             s = GetRandomSound();
         }

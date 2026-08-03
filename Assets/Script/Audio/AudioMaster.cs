@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -53,7 +53,7 @@ public class AudioMaster : MonoBehaviour
         public Coroutine FadeCoroutine;
         public bool IsPaused;
 
-        /// <summary>The clip actually on the source. Always a leaf: a <see cref="SoundSet"/> has been resolved by the time this is set.</summary>
+        /// <summary>The clip actually on the source. Always a leaf: an <see cref="AudioSet"/> has been resolved by the time this is set.</summary>
         public Audio Clip;
 
         /// <summary>What the caller asked for, which is the same as <see cref="Clip"/> unless a composite picked it. Kept for display only.</summary>
@@ -227,7 +227,7 @@ public class AudioMaster : MonoBehaviour
         return pClip;
     }
 
-    /// <summary>Turns what the caller asked for into the clip that will actually play, picking a variant when handed a <see cref="SoundSet"/>.</summary>
+    /// <summary>Turns what the caller asked for into the clip that will actually play, picking a variant when handed an <see cref="AudioSet"/>.</summary>
     /// <remarks>
     /// Done once, here, rather than wherever a field is read: a composite picks anew on every call, so
     /// resolving twice would put one variant's clip on the source and another variant's volume beside it.
@@ -486,7 +486,7 @@ public class AudioMaster : MonoBehaviour
     /// <summary>The playing clip a caller means when it names <paramref name="clip"/>.</summary>
     /// <remarks>
     /// Matches through <see cref="Audio.Contains"/>, not by reference: a caller that started a
-    /// <see cref="SoundSet"/> names the set when it stops or fades it, while what is playing is the leaf
+    /// <see cref="AudioSet"/> names the set when it stops or fades it, while what is playing is the leaf
     /// variant the set picked. Also matches the leaf itself, so a direct reference still works.
     /// </remarks>
     private PlayingClip GetPlayingClip(Audio clip)
