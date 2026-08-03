@@ -265,7 +265,8 @@ public class AudioMaster : MonoBehaviour
         while (t < duration)
         {
 
-            t += Time.unscaledDeltaTime;
+            // Don't allow a framerate drop below 50FPS to affect the fade in
+            t += Mathf.Clamp(Time.unscaledDeltaTime, 0.00f, 0.02f);
             // Exponential to match human hearing???
             clip.Source.volume = clip.Clip.Volume * (t / duration);
 
