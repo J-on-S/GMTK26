@@ -42,11 +42,11 @@ MonoBehaviour:
   toolEuler: {x: -180, y: -82.35, z: 0}
   sweepAngle: 86
   approachTilt: 90
-  bobAmp: 0.01
+  bobAmp: 0.002
   bobHz: 1
   autoSlashAfter: 0.4
-  hoverHeight: 0.03
-  sweepDist: 0.28
+  hoverHeight: 0.001
+  sweepDist: 0.04
   slashTime: 0.18
   slashEase:
     serializedVersion: 2

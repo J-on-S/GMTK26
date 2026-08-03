@@ -39,14 +39,14 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   toolPrefab: {fileID: 5202977873681375234, guid: e323b5d182e56d2489ff6f75949e9235, type: 3}
-  toolEuler: {x: 0, y: 82.34, z: 151.2}
-  sweepAngle: 69
-  approachTilt: 90
-  bobAmp: 0.01
-  bobHz: 1.5
+  toolEuler: {x: 0, y: 173.66, z: 106.46}
+  sweepAngle: 135
+  approachTilt: -1
+  bobAmp: 0.001
+  bobHz: 0.5
   autoSlashAfter: 1
-  hoverHeight: 0.25
-  sweepDist: 1.73
+  hoverHeight: 0.11
+  sweepDist: 0.06
   slashTime: 0.18
   slashEase:
     serializedVersion: 2

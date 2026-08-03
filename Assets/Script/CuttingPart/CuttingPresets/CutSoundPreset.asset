@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: CutSoundPreset
   m_EditorClassIdentifier: Assembly-CSharp::CutSoundPreset
   channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
-  cutSound: {fileID: 11400000, guid: 5e749ac49c61e1b449bb726909acced2, type: 2}
-  tearSound: {fileID: 11400000, guid: 968d4e00044910e1b8b0671d0c5bdc86, type: 2}
+  cutSound: {fileID: 11400000, guid: 53e7e9d65b4de0de08155bfe1169ef23, type: 2}
+  tearSound: {fileID: 11400000, guid: e3b57f51b95914ed8a644f29eb68e278, type: 2}
   cutSoundSpeedThreshold: 0.01

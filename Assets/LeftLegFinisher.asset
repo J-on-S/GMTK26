@@ -46,7 +46,7 @@ MonoBehaviour:
   bobHz: 0
   autoSlashAfter: 1
   hoverHeight: 0.04
-  sweepDist: 0.29
+  sweepDist: 0.02
   slashTime: 0.18
   slashEase:
     serializedVersion: 2
