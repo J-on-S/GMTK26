@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: paper
   m_EditorClassIdentifier: Assembly-CSharp::Audio
   AudioClip: {fileID: 8300000, guid: c6fa2ac6606c45f45ae41d004a67fb5f, type: 3}
-  Volume: 1
+  Type: 0
+  Volume: 0.232
   Loop: 0
   Pan: 0
   Pitch: 1

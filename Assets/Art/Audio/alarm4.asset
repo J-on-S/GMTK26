@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: alarm4
   m_EditorClassIdentifier: Assembly-CSharp::Audio
   AudioClip: {fileID: 8300000, guid: 88134351332288746af7915d716e109c, type: 3}
-  Volume: 1
+  Type: 0
+  Volume: 0.142
   Loop: 0
   Pan: 0
   Pitch: 1

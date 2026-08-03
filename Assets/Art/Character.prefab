@@ -157,7 +157,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -166,7 +166,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -378,7 +378,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -387,7 +387,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -552,8 +552,8 @@ MonoBehaviour:
   meshFollow: {fileID: 3313838873672738016}
   plane: {fileID: 1260518596109249020}
   preset: {fileID: 11400000, guid: 34f8aae6db27fbc48a75864d17e8e80f, type: 2}
-  curveWidth: 0.024860008
-  curveHoverLength: 0.124300025
+  curveWidth: 0.0020000003
+  curveHoverLength: 0.010000001
   curveResolution: 64
   showCurvedLoop: 0
   showFlatLoop: 1
@@ -773,8 +773,8 @@ MonoBehaviour:
   meshFollow: {fileID: 3313838873672738016}
   plane: {fileID: 8336224465172761309}
   preset: {fileID: 11400000, guid: 01d5a639055a2844b9b2e815d4481571, type: 2}
-  curveWidth: 0.012430004
-  curveHoverLength: 0.024860008
+  curveWidth: 0.0010000002
+  curveHoverLength: 0.0020000003
   curveResolution: 64
   showCurvedLoop: 0
   showFlatLoop: 1
@@ -1035,7 +1035,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -1044,7 +1044,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -1209,8 +1209,8 @@ MonoBehaviour:
   meshFollow: {fileID: 3313838873672738016}
   plane: {fileID: 5830156287581667544}
   preset: {fileID: 11400000, guid: 34f8aae6db27fbc48a75864d17e8e80f, type: 2}
-  curveWidth: 0.012430004
-  curveHoverLength: 0.012430004
+  curveWidth: 0.0010000002
+  curveHoverLength: 0.0010000002
   curveResolution: 64
   showCurvedLoop: 0
   showFlatLoop: 1
@@ -1421,7 +1421,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -1430,7 +1430,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -1662,7 +1662,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 21
+  startAngle: 0
   offsetSpace: 0
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 0
@@ -1824,7 +1824,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -1833,7 +1833,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2048,7 +2048,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2057,7 +2057,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2261,7 +2261,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2270,7 +2270,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2435,7 +2435,7 @@ MonoBehaviour:
   meshFollow: {fileID: 3313838873672738016}
   plane: {fileID: 902453762344033884}
   preset: {fileID: 11400000, guid: 34f8aae6db27fbc48a75864d17e8e80f, type: 2}
-  curveWidth: 0.012430004
+  curveWidth: 0.0010000002
   curveHoverLength: 0
   curveResolution: 64
   showCurvedLoop: 0
@@ -2712,7 +2712,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.024860008
+        value: 0.0020000003
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2721,7 +2721,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.024860008
+        value: 0.0020000003
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2997,7 +2997,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -3006,7 +3006,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -3282,7 +3282,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -3291,7 +3291,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -3447,7 +3447,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -3456,7 +3456,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -3660,7 +3660,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -3669,7 +3669,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -4090,8 +4090,8 @@ MonoBehaviour:
   meshFollow: {fileID: 3313838873672738016}
   plane: {fileID: 7109082471819564514}
   preset: {fileID: 11400000, guid: 01d5a639055a2844b9b2e815d4481571, type: 2}
-  curveWidth: 0.012430004
-  curveHoverLength: 0.0012430003
+  curveWidth: 0.0010000002
+  curveHoverLength: 0.00010000001
   curveResolution: 64
   showCurvedLoop: 0
   showFlatLoop: 1
@@ -4439,7 +4439,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.062150013
+        value: 0.0050000004
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -4448,7 +4448,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.062150013
+        value: 0.0050000004
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -4680,8 +4680,8 @@ MonoBehaviour:
   meshFollow: {fileID: 3313838873672738016}
   plane: {fileID: 650958314405803188}
   preset: {fileID: 11400000, guid: 01d5a639055a2844b9b2e815d4481571, type: 2}
-  curveWidth: 0.012430004
-  curveHoverLength: 0.024860008
+  curveWidth: 0.0010000002
+  curveHoverLength: 0.0020000003
   curveResolution: 64
   showCurvedLoop: 0
   showFlatLoop: 1
@@ -5079,7 +5079,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -5088,7 +5088,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -5338,7 +5338,7 @@ MonoBehaviour:
   loopTowardTop: 0
   upMode: 1
   angleOffset: 0
-  startAngle: 0
+  startAngle: 21
   offsetSpace: 0
   positionOffset: {x: 0, y: 0, z: 0}
   maxHorizontalDerive: 0
@@ -5495,7 +5495,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -5504,7 +5504,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -6167,7 +6167,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.024860008
+        value: 0.0020000003
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -6176,7 +6176,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.024860008
+        value: 0.0020000003
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -6463,7 +6463,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -6472,7 +6472,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.087010026
+        value: 0.007000001
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -6687,7 +6687,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -6696,7 +6696,7 @@ LineRenderer:
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 0.012430004
+        value: 0.0010000002
         inSlope: 0
         outSlope: 0
         tangentMode: 0
