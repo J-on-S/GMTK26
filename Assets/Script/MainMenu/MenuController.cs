@@ -22,7 +22,7 @@ public class MenuController : MonoBehaviour
 
         if(volumeSlider==null)
 	{
-            Debug.LogWarning("volumeSlider: please use the dropdown in Inspector to assign me :sob:")
+            Debug.LogWarning("volumeSlider: please use the dropdown in Inspector to assign me :sob:");
 	    return;
 	}
 
@@ -110,7 +110,7 @@ public class MenuController : MonoBehaviour
     {
         if(volumeSlider==null)
 	{
-            Debug.LogWarning("volumeSlider: please use the dropdown in Inspector to assign me :sob:")
+            Debug.LogWarning("volumeSlider: please use the dropdown in Inspector to assign me :sob:");
 	    return;
 	}
         float volume = volumeSlider.value;
@@ -124,7 +124,7 @@ public class MenuController : MonoBehaviour
         // Save value of Volume in variable masterVolume
         if(volumeSlider==null)
 	{
-            Debug.LogWarning("volumeSlider: please use the dropdown in Inspector to assign me :sob:")
+            Debug.LogWarning("volumeSlider: please use the dropdown in Inspector to assign me :sob:");
 	    return;
 	}
         PlayerPrefs.SetFloat("masterVolume", volumeSlider.value);
