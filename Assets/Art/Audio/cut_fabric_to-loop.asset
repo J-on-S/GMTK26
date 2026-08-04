@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: cut_fabric_to-loop
   m_EditorClassIdentifier: Assembly-CSharp::Audio
   AudioClip: {fileID: 8300000, guid: de8aff1638166d58e9866eff5078c638, type: 3}
+  Type: 0
   Volume: 1
-  Loop: 0
+  Loop: 1
   Pan: 0
   Pitch: 1
   PitchVariation: 0

@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Greys out the inline sound list while a Sound Set is assigned, so the fields that are being ignored
+/// Greys out the inline sound list while an Audio Set is assigned, so the fields that are being ignored
 /// cannot be mistaken for the ones being played.
 /// </summary>
 [CustomEditor(typeof(PlayerHitSound))]

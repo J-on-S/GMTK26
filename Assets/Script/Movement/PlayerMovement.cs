@@ -13,7 +13,7 @@ public class PlayerMovement : MonoBehaviour
   public float groundDistance = 0.4f;
   public LayerMask groundMask;
 
-  public SoundRepeater StepSounds;
+  public AudioRepeater StepSounds;
 
   public float stepSoundSpeedThreshold = 0.1f;
 

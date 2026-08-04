@@ -47,7 +47,7 @@ public class Audio : ScriptableObject
     public float GetRandomizedPitch() =>
         Pitch + UnityEngine.Random.Range(-PitchVariation, PitchVariation);
 
-    /// <summary>The clip that actually plays. A plain Audio is itself; a <see cref="SoundSet"/> picks one of its variants.</summary>
+    /// <summary>The clip that actually plays. A plain Audio is itself; an <see cref="AudioSet"/> picks one of its variants.</summary>
     /// <remarks>
     /// Callers must resolve once and then read the fields off the result, never call this per field:
     /// a composite picks a new variant on every call, so re-resolving mid-playback would read

@@ -16,22 +16,22 @@ using UnityEngine;
 /// variant's own values are what play. The custom editor hides them so they cannot be mistaken for live.
 /// </para>
 /// </remarks>
-[CreateAssetMenu(fileName = "SoundSet", menuName = "Audio/Sound Set")]
-public class SoundSet : Audio
+[CreateAssetMenu(fileName = "AudioSet", menuName = "Audio Set")]
+public class AudioSet : Audio
 {
     /// <summary>How deep nesting may go before a set is treated as referencing itself in a loop.</summary>
     private const int MaxNesting = 8;
 
-    [Tooltip("Clips this set can hand back. A variant can be another Sound Set, which is then asked in turn.")]
+    [Tooltip("Clips this set can hand back. A variant can be another Audio Set, which is then asked in turn.")]
     [SerializeField] private List<Audio> variants = new();
 
     [Tooltip("Random hands back any variant; In Order walks the list, wrapping at the end.")]
-    [SerializeField] private SoundPick pick = SoundPick.Random;
+    [SerializeField] private AudioPick pick = AudioPick.Random;
 
     [Tooltip("Random only: never hand back the same variant twice in a row. Two identical footsteps back to back are exactly what a set of them is meant to avoid.")]
     [SerializeField] private bool avoidRepeat = true;
 
-    /// <summary>Round-robin cursor for <see cref="SoundPick.InOrder"/>.</summary>
+    /// <summary>Round-robin cursor for <see cref="AudioPick.InOrder"/>.</summary>
     private int index;
 
     /// <summary>The variant handed back last, so <see cref="avoidRepeat"/> can skip it. -1 before the first pick.</summary>
@@ -39,7 +39,7 @@ public class SoundSet : Audio
 
     public IReadOnlyList<Audio> Variants => variants;
 
-    public SoundPick Pick => pick;
+    public AudioPick Pick => pick;
 
     /// <summary>Where the In Order cursor currently sits.</summary>
     public int Index => index;
@@ -59,20 +59,20 @@ public class SoundSet : Audio
 
         for (int depth = 0; depth < MaxNesting; depth++)
         {
-            SoundSet set = current as SoundSet;
+            AudioSet set = current as AudioSet;
             if (set == null) return current;
 
             Audio next = set.Take();
             if (next == null)
             {
-                Debug.LogWarning($"SoundSet '{set.name}': nothing to play -- the variant list is empty or the picked entry is empty.", set);
+                Debug.LogWarning($"AudioSet '{set.name}': nothing to play -- the variant list is empty or the picked entry is empty.", set);
                 return null;
             }
 
             current = next;
         }
 
-        Debug.LogWarning($"SoundSet '{name}': variants nest more than {MaxNesting} deep, or a set contains itself.", this);
+        Debug.LogWarning($"AudioSet '{name}': variants nest more than {MaxNesting} deep, or a set contains itself.", this);
         return null;
     }
 
@@ -88,7 +88,7 @@ public class SoundSet : Audio
         {
             if (variant == null) continue;
 
-            bool hit = variant is SoundSet set
+            bool hit = variant is AudioSet set
                 ? set.ContainsInternal(other, depth - 1)
                 : variant.Contains(other);
 
@@ -99,11 +99,11 @@ public class SoundSet : Audio
     }
 
     /// <summary>The variant the next <see cref="GetAudio"/> would take, without advancing the cursor.</summary>
-    /// <remarks>Only meaningful for <see cref="SoundPick.InOrder"/>; a random set has no next until it picks one. Returns the variant as authored, so a nested set reads as the set rather than as whatever it would resolve to.</remarks>
+    /// <remarks>Only meaningful for <see cref="AudioPick.InOrder"/>; a random set has no next until it picks one. Returns the variant as authored, so a nested set reads as the set rather than as whatever it would resolve to.</remarks>
     public Audio Peek()
     {
         if (!HasVariants()) return null;
-        return pick == SoundPick.InOrder ? variants[index % variants.Count] : null;
+        return pick == AudioPick.InOrder ? variants[index % variants.Count] : null;
     }
 
     /// <summary>Puts the In Order cursor back to the start of the list, and forgets what Random handed back last.</summary>
@@ -118,7 +118,7 @@ public class SoundSet : Audio
     {
         if (!HasVariants()) return null;
 
-        if (pick == SoundPick.Random)
+        if (pick == AudioPick.Random)
         {
             lastIndex = RandomIndex();
             return variants[lastIndex];

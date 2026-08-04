@@ -296,7 +296,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1b9e2f05d6d0304fa11652deebce987, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SoundRepeater
+  m_EditorClassIdentifier: Assembly-CSharp::AudioRepeater
   sound: {fileID: 11400000, guid: 72e40c6ac83d0804ba8898af76e2599a, type: 2}
   mode: 1
   interval: 0.3
