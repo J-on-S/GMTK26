@@ -1,15 +1,6 @@
 using UnityEngine;
 
-/// <summary>Manages the cut travel speed: turns wheel/key input into <see cref="currentSpeed"/>, with coast and friction. Owns nothing else -- consumers (camera, tracer) read the speed.</summary>
-/// <remarks>
-/// Shared by every <see cref="CuttingManager"/>: reach it through <see cref="Shared"/>, which finds the
-/// scene's driver or makes one. The entering cut assigns a <see cref="CameraMovesPreset"/> that carries
-/// its direction, speeds and backward-input rules, which is what lets one driver serve cuts that travel
-/// different ways. With no preset assigned, the inline fields below stand in -- the same preset-over-inline
-/// fallback the rest of the cutting components use, so a driver dropped in a scene can be tuned by hand and
-/// a cut with no CameraMovesPreset still moves. Its only per-run state is the live speed, wiped on enter
-/// and quit.
-/// </remarks>
+/// <summary>Manages the cut travel speed: turns wheel/key input into <see cref="currentSpeed"/></summary>
 public class CutSpeedDriver : MonoBehaviour, ISpeedSource {
 
     [Tooltip("Tuning for the cut currently running. Assigned by the CuttingManager on entry, not by hand. When null, the inline fields below are used instead.")]
