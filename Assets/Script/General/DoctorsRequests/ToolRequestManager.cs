@@ -329,32 +329,29 @@ public class ToolRequestManager : MonoBehaviour
         {
             if(currentRequest is BodyPartRequest bodyPartRequest)
             {
-                if(bodyPart.BodyPartType == bodyPartRequest.BodyPartType) return Succeed();
+                if(bodyPart.BodyPartType == bodyPartRequest.BodyPartType) return Succeed(receivedItem);
             }
             
         }else if(receivedItem is Tool tool)
         {
             if(currentRequest is ToolRequest toolRequest)
             {
-                if(tool.toolType == toolRequest.Tool.toolType) return Succeed();
+                if(tool.toolType == toolRequest.Tool.toolType) return Succeed(receivedItem);
             }
         }
         return Failure(receivedItem);
     }
-    private bool Succeed()
+    private bool Succeed(Item receivedItem)
     {
-        Debug.Log("Dude thanks for giving me that.");
-            SetRequestText("Dude thanks for giving me that.");
-            if (myTextLabel != null)
-                myTextLabel.text = "Dude thanks for giving me that.";
+        //Debug.Log("Dude thanks for giving me that.");
+        SetRequestText(DoctorDialogueTexts.getRandomAcceptingText(currentRequest, receivedItem));
         CompleteActiveRequest();
         return true;
     }
     private bool Failure(Item receivedItem)
     {
         Debug.Log($"Nah man wrong tool. I needed {currentRequest.ItemType} named {currentRequest.ItemName}, but you gave me {receivedItem.Type} named {receivedItem.Name}.");
-            if (myTextLabel != null)
-                SetRequestText("Nah man wrong tool.");
+        SetRequestText(DoctorDialogueTexts.getRandomFailureText(currentRequest, receivedItem));
         return false;
     }
 
