@@ -4141,6 +4141,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3836159868758367089, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
+      propertyPath: duration
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6878925314053301928, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: m_Name
       value: Player
@@ -4148,10 +4152,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7098176738416348241, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1655449900}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
 --- !u!1 &978502415
 GameObject:
@@ -6925,50 +6926,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 413890736}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1655449895 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7098176738416348241, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
-  m_PrefabInstance: {fileID: 974695388}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1655449900
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1655449895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a761165cdd4c79b4b8fee8ae97e60591, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraFovIntro
-  startFov: 160
-  duration: 2
-  ease:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  unscaledTime: 1
 --- !u!4 &1669849251 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6847219504603749610, guid: f0399b87d218e694abe57d72ac657598, type: 3}

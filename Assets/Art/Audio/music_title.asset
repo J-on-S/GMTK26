@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Audio
   AudioClip: {fileID: 8300000, guid: df9dd00a5fd1cde4d977020b32f1ff14, type: 3}
   Type: 0
-  Volume: 0.224
+  Volume: 0.166
   Loop: 1
   Pan: 0
-  Pitch: 0.95
+  Pitch: 1
   PitchVariation: 0
   RandomizePitchEachLoop: 0
