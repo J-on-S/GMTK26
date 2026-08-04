@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d00b7a1d83a701945a2b0b76eacd763f, type: 3}
+  m_Name: surgeon_angrySet
+  m_EditorClassIdentifier: Assembly-CSharp::AudioSet
+  AudioClip: {fileID: 0}
+  Type: 0
+  Volume: 0
+  Loop: 0
+  Pan: 0
+  Pitch: 1
+  PitchVariation: 0
+  RandomizePitchEachLoop: 0
+  variants:
+  - {fileID: 11400000, guid: 858b9c5a0bf5f4752a0fd54f9da563d9, type: 2}
+  - {fileID: 11400000, guid: 3a8982382d45c4eb7920abeea9414a80, type: 2}
+  - {fileID: 11400000, guid: e7a7ef1b499f0467ea6ff068ea660793, type: 2}
+  - {fileID: 11400000, guid: 933688b9f51e14d67aad4de0fd7f4b16, type: 2}
+  pick: 0
+  avoidRepeat: 1

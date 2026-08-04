@@ -14,6 +14,9 @@ public class CheckState : State
     [SerializeField] private string doctorAngryDialogue;
     [SerializeField] private IdleState idleState;
     [ReadOnly] [SerializeField] private float checkTime;
+
+    [SerializeField] private AudioSet angryDoctorAudio;
+
     
     
     private float waitCheckTime;
@@ -81,6 +84,7 @@ public class CheckState : State
         previousDialogue = doctorDialogue.text;
         doctorDialogue.text = doctorAngryDialogue;
         StartCoroutine(WaitForSwitchBack());
+        AudioEventChannel.Instance.Play(angryDoctorAudio);
 
     }
     [SerializeField] private float waitSwitchBackSecond;

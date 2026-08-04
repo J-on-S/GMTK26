@@ -77,7 +77,7 @@ public class ToolRequestManager : MonoBehaviour
     }
 
     // request sound
-    public PlayerHitSound confusedDoctor;
+    public AudioSet DoctorRequestAudio;
 
     private void Awake()
     {
@@ -311,7 +311,7 @@ public class ToolRequestManager : MonoBehaviour
                 chairText;
         }
 
-        confusedDoctor?.playAudio();
+        AudioEventChannel.Instance.Play(DoctorRequestAudio);
         RequestStarted?.Invoke(currentRequest);
         Debug.Log(
             $"Doctor requests remaining in queue: {doctorCurrentRequests.Count}.",

@@ -1513,7 +1513,6 @@ GameObject:
   - component: {fileID: 7953782567705911876}
   - component: {fileID: 1390945864971356416}
   - component: {fileID: 7309803597861253452}
-  - component: {fileID: 7375749645735773164}
   m_Layer: 0
   m_Name: Doctor
   m_TagString: Untagged
@@ -1628,7 +1627,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59c5f1de79dfc4015af0154ddef88074, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoctorAccepting
-  angerSound: {fileID: 7375749645735773164}
+  confusedSound: {fileID: 11400000, guid: f84e8a41ef6fede4aa4029af83f40d81, type: 2}
 --- !u!136 &1390945864971356416
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1671,26 +1670,6 @@ MonoBehaviour:
   flashThreshold: 10
   maxIntensity: 3
   flashLight: {fileID: 0}
---- !u!114 &7375749645735773164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2112398837450586553}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 46c6db39aba9b6b4b9499367412e4b88, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitSound
-  hitSounds:
-  - {fileID: 11400000, guid: 3c8a9169e06af4f5991c12943974da12, type: 2}
-  - {fileID: 11400000, guid: 5d2f2652751ee4dcfb7b41125b71a5e8, type: 2}
-  - {fileID: 11400000, guid: 6b20f7e8a913a45549bb12f3547e2749, type: 2}
-  - {fileID: 11400000, guid: 31dc5a78f70634d07b622cd22fef94af, type: 2}
-  - {fileID: 11400000, guid: 253094b26ab6749e2b36b591b1feebcf, type: 2}
-  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
-  decider: 1
 --- !u!1 &2152321910453675204
 GameObject:
   m_ObjectHideFlags: 0
@@ -2702,9 +2681,14 @@ MonoBehaviour:
   minCheckTime: 3
   maxCheckTime: 6
   isTestSawIllegal: 0
+  desiredStartCheckDuration: 3
+  doctorDialogue: {fileID: 0}
+  doctorAngryDialogue: <color=red>What are you doing!!!</color>
+  idleState: {fileID: 4724078581359780543}
   checkTime: 0
-  channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
+  angryDoctorAudio: {fileID: 11400000, guid: 109cbe423ac1aec428b50e9176e66525, type: 2}
   startCheckHintAudio: {fileID: 11400000, guid: d36ae8ff5bff66bd9ac2e28d5760b939, type: 2}
+  waitSwitchBackSecond: 2
 --- !u!1 &3804182564366267407
 GameObject:
   m_ObjectHideFlags: 0
@@ -3127,12 +3111,12 @@ GameObject:
   - component: {fileID: 196616373875335512}
   - component: {fileID: 8518726656618795149}
   m_Layer: 0
-  m_Name: Main Camera
-  m_TagString: MainCamera
+  m_Name: Doctor Camera
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &4756763180263504099
 Transform:
   m_ObjectHideFlags: 0
@@ -3141,13 +3125,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4911956609683891140}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.9968761, z: 0.07898104, w: 0}
-  m_LocalPosition: {x: -0.08, y: 0.65, z: 1.14}
+  m_LocalRotation: {x: 0, y: -0.9859086, z: 0.16728498, w: 0}
+  m_LocalPosition: {x: -0.001, y: 0.624, z: 0.309}
   m_LocalScale: {x: 0.20408162, y: 0.20408162, z: 0.20408162}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6147473892293745811}
-  m_LocalEulerAnglesHint: {x: 9.06, y: -180, z: 0}
+  m_LocalEulerAnglesHint: {x: 19.26, y: -180, z: 0}
 --- !u!20 &7696554692003225640
 Camera:
   m_ObjectHideFlags: 0

@@ -6,14 +6,7 @@ using UnityEngine;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It is an <see cref="Audio"/> itself, which is the point -- every field, preset and channel call that
-/// already takes an Audio accepts a set with no change at the call site. <see cref="AudioMaster"/> resolves
-/// it through <see cref="GetAudio"/> the moment it starts playing, so what ends up on the AudioSource is a
-/// leaf clip with its own volume, pitch and loop settings.
-/// </para>
-/// <para>
-/// The inherited leaf fields (AudioClip, Volume, Loop, Pan, Pitch...) are unused here -- the picked
-/// variant's own values are what play. The custom editor hides them so they cannot be mistaken for live.
+/// The inherited leaf fields (AudioClip, Volume, Loop, Pan, Pitch...) are unused here.The custom editor hides them so they cannot be mistaken for live.
 /// </para>
 /// </remarks>
 [CreateAssetMenu(fileName = "AudioSet", menuName = "Audio Set")]

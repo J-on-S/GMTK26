@@ -505,12 +505,16 @@ public class LoopGuideBuilder : MonoBehaviour {
 
     /// <summary>Renders the selected loops into their line renderers.</summary>
     private void DrawLoopGuide(bool drawFlat, bool drawCurved, List<Vector3> flat) {
+        // the off branches are guarded on the LINE, not on the points: a line whose points were never
+        // built this session is exactly the one that needs switching off. LineRenderer.enabled and its
+        // point array are serialised, so an edit-mode draw (which ignores the toggles) leaves the
+        // renderer on with a ring baked in, while the cached loops -- private and non-serialised -- come
+        // back null on entering play. Guarding on the points there left the stale ring drawn for the run.
         if (drawFlat && flat != null) {
             flatLine.enabled = true;
             DrawInto(flatLine, flat, closed: true);
         }
-        else if(flat != null)
-        {
+        else if (flatLine != null) {
             flatLine.enabled = false;
         }
         if (drawCurved && curvedGuide != null) {
@@ -518,8 +522,7 @@ public class LoopGuideBuilder : MonoBehaviour {
             // the line the player traces
             DrawGuideLine(curvedDraw ?? curvedGuide);
         }
-        else if(curvedGuide != null)
-        {
+        else if (loopLine != null) {
             loopLine.enabled = false;
         }
     }

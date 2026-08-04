@@ -1240,17 +1240,9 @@ public enum CuttingState
             // the width wants the line to change under the cursor.
             loopGuide.ApplyLineWidth();
 
-            // guide lines are always shown in play, and only the straight (flat) loop is drawn -- the
-            // curved target line is hidden. Forced every push so it holds for every cut, whatever an
-            // older guide serialized. Hiding the curved line is draw-only: TryGetCurvedLoop still
-            // rebuilds it on demand for the camera, finisher and scorer.
-            loopGuide.showInPlayMode = true;
-            loopGuide.showFlatLoop = true;
-            loopGuide.showCurvedLoop = false;
+           
 
             AfterPushWrite(loopGuide);
-            AfterPushWrite(loopGuide.loopLine);
-            AfterPushWrite(loopGuide.flatLine);
         }
 
         // cutting speed driver reads the camera-moves preset.

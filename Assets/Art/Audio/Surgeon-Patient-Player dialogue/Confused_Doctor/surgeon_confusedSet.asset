@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d00b7a1d83a701945a2b0b76eacd763f, type: 3}
+  m_Name: surgeon_confusedSet
+  m_EditorClassIdentifier: Assembly-CSharp::AudioSet
+  AudioClip: {fileID: 0}
+  Type: 0
+  Volume: 0
+  Loop: 0
+  Pan: 0
+  Pitch: 1
+  PitchVariation: 0
+  RandomizePitchEachLoop: 0
+  variants:
+  - {fileID: 11400000, guid: 81c3e96530705d048a3dd7228e7b1c66, type: 2}
+  - {fileID: 11400000, guid: f21b85e2f7ab72a429a82772d5772c32, type: 2}
+  - {fileID: 11400000, guid: 5fecfa7120d099940b3282b4889a00e3, type: 2}
+  - {fileID: 11400000, guid: 227fc38845748c740876c4b31cc16c38, type: 2}
+  - {fileID: 11400000, guid: 262238121eeb60840a4b7e2b92de6a2f, type: 2}
+  pick: 0
+  avoidRepeat: 1

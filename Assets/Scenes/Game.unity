@@ -1684,7 +1684,7 @@ MonoBehaviour:
   focusedChairIndex: -1
   spawnBodyPartCustomer: {fileID: 0}
   myTextLabel: {fileID: 762544826}
-  confusedDoctor: {fileID: 0}
+  DoctorRequestAudio: {fileID: 11400000, guid: a8e479b68629e3245866b9020d2cc8ea, type: 2}
 --- !u!4 &379738031
 Transform:
   m_ObjectHideFlags: 0
@@ -4095,7 +4095,7 @@ PrefabInstance:
       objectReference: {fileID: 5173584454049063563, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: startAngle
-      value: 0
+      value: 80
       objectReference: {fileID: 0}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: speedSourceBehaviour
@@ -5443,17 +5443,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1253011897 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4724078581359780543, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-  m_PrefabInstance: {fileID: 1991736019}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 98366665a26e9dc4e80521856599914c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IdleState
 --- !u!65 &1255490865
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5654,7 +5643,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5317870188911474072, guid: e0a153dda5ab97ce5901642bf4c47852, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6922249673318775136, guid: e0a153dda5ab97ce5901642bf4c47852, type: 3}
       propertyPath: m_IsActive
@@ -7914,25 +7903,9 @@ PrefabInstance:
       value: Doctor
       objectReference: {fileID: 0}
     - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: idleState
-      value: 
-      objectReference: {fileID: 1253011897}
-    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
       propertyPath: doctorDialogue
       value: 
       objectReference: {fileID: 762544826}
-    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: doctorAngryDialogue
-      value: <color=red>What are you doing!!!</color>
-      objectReference: {fileID: 0}
-    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: waitSwitchBackSecond
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 3321185013552740941, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: desiredStartCheckDuration
-      value: 3
-      objectReference: {fileID: 0}
     - target: {fileID: 3482715850342139871, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
       propertyPath: bedA
       value: 
@@ -7949,42 +7922,6 @@ PrefabInstance:
       propertyPath: surgeryTableBTransform
       value: 
       objectReference: {fileID: 413890736}
-    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -0.001
-      objectReference: {fileID: 0}
-    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.624
-      objectReference: {fileID: 0}
-    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0.309
-      objectReference: {fileID: 0}
-    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.9859086
-      objectReference: {fileID: 0}
-    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0.16728498
-      objectReference: {fileID: 0}
-    - target: {fileID: 4756763180263504099, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 19.26
-      objectReference: {fileID: 0}
-    - target: {fileID: 4911956609683891140, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_Name
-      value: Doctor Camera
-      objectReference: {fileID: 0}
-    - target: {fileID: 4911956609683891140, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4911956609683891140, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_TagString
-      value: Untagged
-      objectReference: {fileID: 0}
     - target: {fileID: 6147473892293745811, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
       propertyPath: m_LocalPosition.x
       value: -53.75
@@ -8033,10 +7970,6 @@ PrefabInstance:
       propertyPath: flashLight
       value: 
       objectReference: {fileID: 1544463956}
-    - target: {fileID: 7696554692003225640, guid: e4eb7fff304b7c7428691081f69f8235, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
