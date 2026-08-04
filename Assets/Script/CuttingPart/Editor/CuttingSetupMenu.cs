@@ -346,14 +346,18 @@ public static class CuttingSetupMenu
         return driver;
     }
 
-    /// <summary>Builds one world-space closed-loop LineRenderer for a guide, sharing the guide material.</summary>
+    /// <summary>Builds one closed-loop LineRenderer for a guide, in the line's own space, sharing the guide material.</summary>
+    /// <remarks>Local, not world: a LineRenderer's points are serialized, and world-space points are a
+    /// property of where the body stands -- so the same ring writes different numbers in the prefab stage
+    /// than on an instance in a scene, and every alternation rewrites the lot. <see cref="LoopGuideBuilder"/>
+    /// takes the loop into this space before it writes, and flips any line still left on world space.</remarks>
     private static LineRenderer CreateLine(string name, Transform parent)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
 
         LineRenderer lr = go.AddComponent<LineRenderer>();
-        lr.useWorldSpace = true;
+        lr.useWorldSpace = false;
         lr.loop = true;
         lr.positionCount = 0;
         lr.alignment = LineAlignment.View;

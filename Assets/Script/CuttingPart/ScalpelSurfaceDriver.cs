@@ -236,14 +236,21 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     /// because the scalpel is moved and orbited every frame and local points would wind around it.
     /// Deliberately narrow: alignment, texture mode, shadows and the rest are presentation, set once when
     /// this component creates the renderer and left to the author from then on.
+    /// <para>Play only, though. The edit-mode preview also lives on the scalpel, and a LineRenderer's
+    /// points are serialized -- so world-space points there wrote the whole ring into the prefab in
+    /// coordinates that depend on where the body was standing, and rewrote every one of them whenever it
+    /// was next opened somewhere else. The preview has no winding to fear: it rebuilds the entire ring
+    /// each frame rather than appending to a trail, so it is stable in the scalpel's own space.</para>
     /// </remarks>
     private void ConfigureTraceRenderer()
     {
         if (traceRenderer == null) return;
 
-        // world space only while the line is parked on the scalpel; on the body's own child the points
-        // are body-local so the line rides the body.
-        traceRenderer.useWorldSpace = owned == null || traceRenderer.transform == owned.transform;
+        // world space only while a RUNNING trail is parked on the scalpel; on the body's own child the
+        // points are body-local so the line rides the body, and the edit-mode preview is always local so
+        // nothing it draws is serialized in world coordinates.
+        traceRenderer.useWorldSpace = Application.isPlaying
+            && (owned == null || traceRenderer.transform == owned.transform);
 
         // only when the slot above is filled: an empty slot means the material is the renderer's own.
         if (traceMaterial != null && traceRenderer.sharedMaterial != traceMaterial)
@@ -315,15 +322,23 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         var drawn = new List<Vector3>(builder.BuildHoverLift(center, points, hover));
         if (drawn.Count < 2) return;
 
-        // closed: the full line is the whole ring, not a ring with a gap where the run would have started
-        line.loop = true;
-        line.positionCount = drawn.Count;
-        previewCount = drawn.Count;
-
         // the loop comes out of the builder in world space; hand it to the line in whatever space the
         // line draws in, so a body-hosted preview sits on the body rather than winding off it.
         for (int i = 0; i < drawn.Count; i++) drawn[i] = ToRendererSpace(drawn[i]);
-        line.SetPositions(drawn.ToArray());
+
+        previewCount = drawn.Count;
+
+        // the reference check above is instance state, so a domain reload or a prefab reopen empties it
+        // and this frame would rewrite the array with the values already in it -- exactly the override
+        // that comment is about. Comparing what the line actually stores survives the reload.
+        if (!LoopGuideBuilder.HoldsPoints(line, drawn))
+        {
+            // closed: the full line is the whole ring, not a ring with a gap where the run would have started
+            if (!line.loop) line.loop = true;
+            line.positionCount = drawn.Count;
+            line.SetPositions(drawn.ToArray());
+        }
+
         ApplyTraceWidth();
     }
 

@@ -648,17 +648,139 @@ public class LoopGuideBuilder : MonoBehaviour {
     }
 
     /// <summary>Pushes a loop of points into a LineRenderer at the guide width, skipping a redraw that would change nothing.</summary>
+    /// <remarks>
+    /// The points arrive in world space and are written in the line's own space, with
+    /// <c>useWorldSpace</c> off. World-space points are a property of where the body happens to stand,
+    /// so the same ring serialises to different numbers in the prefab stage (root at the origin) than on
+    /// an instance placed in a scene -- and a LineRenderer's points ARE serialised, so alternating
+    /// between the two rewrote every point of every guide line on this body each time. In the line's own
+    /// space the numbers depend only on the mesh, the plane and the preset, so they are written once and
+    /// then match forever. It also fixes a latent bug: a body that moves during play now takes its
+    /// drawn ring with it instead of leaving it behind until the next re-extraction.
+    /// </remarks>
     private void DrawInto(LineRenderer lr, List<Vector3> points, bool closed) {
-        LineCache cache = lr == flatLine ? flatCache : curvedCache;
-        if (!Application.isPlaying && cache.WouldDrawTheSame(lr, points, curveWidth, closed)) {
-            return;
+        Matrix4x4 toLocal = lr.transform.worldToLocalMatrix;
+
+        if (!Application.isPlaying) {
+            LineCache cache = lr == flatLine ? flatCache : curvedCache;
+
+            // cheap check first: the same world list, drawn from the same line pose
+            if (cache.WouldDrawTheSame(lr, points, curveWidth, closed, toLocal)) {
+                return;
+            }
+
+            // and the one that matters: a fresh list whose points equal what the line already holds.
+            // This is the common case on a scene or prefab open -- the cache is empty after a domain
+            // reload, so the first frame would otherwise rewrite the array with the values already in
+            // it and leave a whole-array override on the prefab that nobody authored.
+            if (AlreadyHolds(lr, points, toLocal, closed)) {
+                return;
+            }
         }
 
-        lr.loop = closed;
+        FillWriteScratch(points, toLocal);
+
+        WriteSpace(lr);
+        if (lr.loop != closed) lr.loop = closed;
         WriteWidth(lr); // same path as a push, so a redraw cannot leave a width nobody could undo
         lr.positionCount = points.Count;
-        lr.SetPositions(points.ToArray());
+        lr.SetPositions(writeScratch);
     }
+
+    /// <summary>How far two guide points may sit apart and still count as the same point.</summary>
+    /// <remarks>
+    /// The stored points came from this same computation on an earlier open, and every step of it --
+    /// the contour extraction, the warp, the collider raycasts -- is deterministic for an unchanged
+    /// mesh, plane and preset, so a match here is normally exact. The tolerance only absorbs the last
+    /// bit or two; it is orders of magnitude below any movement an author could make by hand, so a real
+    /// edit is never mistaken for a redraw of the same ring.
+    /// </remarks>
+    private const float SamePointEpsilon = 1e-6f;
+
+    /// <summary>Scratch buffers, sized to the loop. Reused rather than allocated per call: these run every edit-mode frame, and the comparison usually ends in "no change".</summary>
+    private static Vector3[] positionScratch = System.Array.Empty<Vector3>();
+    private static Vector3[] writeScratch = System.Array.Empty<Vector3>();
+
+    /// <summary>Fills <see cref="writeScratch"/> with <paramref name="points"/> taken into the line's own space.</summary>
+    private static void FillWriteScratch(List<Vector3> points, Matrix4x4 toLocal) {
+        if (writeScratch.Length != points.Count) {
+            writeScratch = new Vector3[points.Count];
+        }
+        for (int i = 0; i < points.Count; i++) {
+            writeScratch[i] = toLocal.MultiplyPoint3x4(points[i]);
+        }
+    }
+
+    /// <summary>Takes a line off world space, undoably in edit mode, and only when it is not already off.</summary>
+    /// <remarks>Flipped in code rather than left to authoring so a guide line built before this -- every one currently in the project -- converts itself the first time it draws.</remarks>
+    private static void WriteSpace(LineRenderer line) {
+        if (!line.useWorldSpace) return;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying) {
+            UnityEditor.Undo.RecordObject(line, "Set guide line space");
+        }
+#endif
+
+        line.useWorldSpace = false;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying) {
+            UnityEditor.EditorUtility.SetDirty(line);
+        }
+#endif
+    }
+
+    /// <summary>Whether <paramref name="lr"/> is already drawing exactly these world points, compared in the line's own space.</summary>
+    private static bool AlreadyHolds(LineRenderer lr, List<Vector3> points, Matrix4x4 toLocal, bool closed) {
+        if (lr.useWorldSpace || lr.loop != closed || !ReadInto(lr, points.Count)) {
+            return false;
+        }
+
+        for (int i = 0; i < points.Count; i++) {
+            if (Apart(positionScratch[i], toLocal.MultiplyPoint3x4(points[i]))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Whether a line already holds exactly these points, given in whatever space it draws in.</summary>
+    /// <remarks>
+    /// Public because every component that previews into a serialized LineRenderer in edit mode needs
+    /// this same guard, and they were each carrying their own reference cache -- which a domain reload
+    /// empties, so the first frame after rewrote the whole positions array with the values already in
+    /// it and left an override nobody authored. Comparing what is stored survives the reload.
+    /// </remarks>
+    public static bool HoldsPoints(LineRenderer lr, List<Vector3> pointsInLineSpace) {
+        if (lr == null || pointsInLineSpace == null || !ReadInto(lr, pointsInLineSpace.Count)) {
+            return false;
+        }
+
+        for (int i = 0; i < pointsInLineSpace.Count; i++) {
+            if (Apart(positionScratch[i], pointsInLineSpace[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Reads a line's current points into <see cref="positionScratch"/>. <c>false</c> when it does not hold <paramref name="count"/> of them, which already settles the comparison.</summary>
+    private static bool ReadInto(LineRenderer lr, int count) {
+        if (lr.positionCount != count) {
+            return false;
+        }
+        if (positionScratch.Length != count) {
+            positionScratch = new Vector3[count];
+        }
+        lr.GetPositions(positionScratch);
+        return true;
+    }
+
+    private static bool Apart(Vector3 a, Vector3 b) =>
+        (a - b).sqrMagnitude > SamePointEpsilon * SamePointEpsilon;
 
     /// <summary>What was last pushed into one line, so an edit-mode frame that would redraw the same thing writes nothing.</summary>
     /// <remarks>
@@ -677,11 +799,16 @@ public class LoopGuideBuilder : MonoBehaviour {
         private bool closed;
         private int count = -1;
 
+        /// <summary>Line pose the points were last taken into. Part of the signature because the stored points are in the line's own space, so moving the line changes them while the world list stays the same object.</summary>
+        private Matrix4x4 toLocal = Matrix4x4.zero;
+
         /// <summary>True when the line already holds this exact drawing; otherwise remembers it and returns false.</summary>
-        public bool WouldDrawTheSame(LineRenderer lr, List<Vector3> pts, float lineWidth, bool loop) {
+        public bool WouldDrawTheSame(LineRenderer lr, List<Vector3> pts, float lineWidth, bool loop, Matrix4x4 lineToLocal) {
             if (ReferenceEquals(pts, points)
                 && closed == loop
                 && Mathf.Approximately(width, lineWidth)
+                && toLocal == lineToLocal
+                && !lr.useWorldSpace
                 && lr.positionCount == count) {
                 return true;
             }
@@ -690,6 +817,7 @@ public class LoopGuideBuilder : MonoBehaviour {
             width = lineWidth;
             closed = loop;
             count = pts.Count;
+            toLocal = lineToLocal;
             return false;
         }
     }
