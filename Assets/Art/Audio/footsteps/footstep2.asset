@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60834d41c5f1b8846b0be01492d2c418, type: 3}
   m_Name: footstep2
   m_EditorClassIdentifier: Assembly-CSharp::Audio
-  AudioClip: {fileID: 8300000, guid: 5d2642d117795d87dad87ceb69065612, type: 3}
+  AudioClip: {fileID: 8300000, guid: af69eeb947260994896163c965122326, type: 3}
   Type: 0
-  Volume: 0.15
+  Volume: 0.3
   Loop: 0
   Pan: 0
   Pitch: 1
