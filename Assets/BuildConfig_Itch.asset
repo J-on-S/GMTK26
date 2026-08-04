@@ -12,12 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3fae27f9ec739b49ae5e6c2cb3b2c40, type: 3}
   m_Name: BuildConfig_Itch
   m_EditorClassIdentifier: Assembly-CSharp-Editor::BuildTools.BuildConfig
-  productNameOverride: Tick and Stitch
   outputPath: Builds/Game
   developmentBuild: 0
   scriptingFlags: []
   prefSeeds: []
-  zipAfterBuild: 1
+  zipAfterBuild: 0
   zipOutputPath: C:/Users/Olivier/Downloads
   uploadToItch: 1
   itchGameUrl: https://acaciesong.itch.io/tick-and-stitch
