@@ -4095,7 +4095,7 @@ PrefabInstance:
       objectReference: {fileID: 7353964041308117819, guid: e3669c2b26de5614fb4699ea2f26f691, type: 3}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: startAngle
-      value: 80
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 833744866927382051, guid: 0144c426dca5446f0b66097650f05a55, type: 3}
       propertyPath: speedSourceBehaviour
