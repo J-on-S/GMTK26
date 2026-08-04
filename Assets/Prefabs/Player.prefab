@@ -500,7 +500,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFovIntro
   startFov: 160
-  duration: 3.5
+  duration: 2
   ease:
     serializedVersion: 2
     m_Curve:
@@ -526,3 +526,4 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   unscaledTime: 1
+  maxStep: 0.1
