@@ -48,12 +48,12 @@ public class PlaySceneMusic : MonoBehaviour
     /// <summary>Silences the scene's music while the game is paused. Wired from PauseMenu's onGamePause.</summary>
     public void Pause()
     {
-        if (SceneMusicPlayer.Instance != null) SceneMusicPlayer.Instance.Pause();
+        if (SceneMusicPlayer.Instance != null) SceneMusicPlayer.Instance.FadePause();
     }
 
     /// <summary>Brings the scene's music back. Wired from PauseMenu's onGameResume.</summary>
     public void Resume()
     {
-        if (SceneMusicPlayer.Instance != null) SceneMusicPlayer.Instance.Resume();
+        if (SceneMusicPlayer.Instance != null) SceneMusicPlayer.Instance.FadeResume();
     }
 }
