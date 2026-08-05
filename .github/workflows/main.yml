@@ -13,7 +13,7 @@ jobs:
       matrix:
         include:
           - targetPlatform: StandaloneWindows64
-            itchio_channel: Win64
+            itchio_channel: Win-64
           - targetPlatform: WebGL
             itchio_channel: html5
     runs-on: ubuntu-latest
