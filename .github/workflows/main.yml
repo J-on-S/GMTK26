@@ -3,6 +3,7 @@ on:
   push:
     branches:
     - UnityBuildUploader
+  workflow_dispatch:
 env:
   itchio_project: acaciesong/tick-and-stitch
   itchio_channel: html5
@@ -12,6 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Check files
+      run: |
+        ls
+        find . -name ProjectVersion.txt
     - uses: actions/cache@v3
       with:
         path: Library
