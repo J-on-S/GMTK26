@@ -1,0 +1,41 @@
+name: buildUnity
+on: 
+  push:
+    branches:
+    - UnityBuildUploader
+env:
+  itchio_project: acaciesong/tick-and-stitch
+  itchio_channel: html5
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/cache@v3
+      with:
+        path: Library
+        key: Library-GMTK26-WebGL
+        restore-keys: |
+          Library-GMTK26-
+          Library-
+    - uses: game-ci/unity-builder@v4
+      env:
+        UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+      with:
+        targetPlatform: WebGL
+    
+    - uses: actions/upload-artifact@v4
+      with:
+          name: Build
+          path: build
+    - uses: robpc/itchio-upload-action@v1
+      with:
+        path: build/
+        project: ${{ env.itchio_project }}
+        channel: ${{ env.itchio_channel }}
+        api-key: ${{ secrets.ITCHIO_API_KEY }}
+
+    
