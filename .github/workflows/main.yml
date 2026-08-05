@@ -6,10 +6,16 @@ on:
   workflow_dispatch:
 env:
   itchio_project: acaciesong/tick-and-stitch
-  itchio_channel: html5
 
 jobs:
   build:
+  strategy:
+      matrix:
+        include:
+          - targetPlatform: StandaloneWindows64
+            itchio_channel: Win64
+          - targetPlatform: WebGL
+            itchio_channel: html5
     runs-on: ubuntu-latest
     
     steps:
@@ -17,10 +23,18 @@ jobs:
     - uses: actions/cache@v3
       with:
         path: Library
-        key: Library-GMTK26-WebGL
+        key: Library-GMTK26-${{ matrix.targetPlatform }}
         restore-keys: |
           Library-GMTK26-
           Library-
+    - uses: actions/cache@v4
+      with:
+        path: |
+          Library
+          ~/.cache/unity3d
+        key: UnityCache-${{ matrix.targetPlatform }}-${{ hashFiles('Packages/packages-lock.json') }}
+        restore-keys: |
+          UnityCache-${{ matrix.targetPlatform }}-
     - uses: game-ci/unity-builder@v4
       env:
         UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -28,17 +42,17 @@ jobs:
         UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
       with:
         projectPath: .
-        targetPlatform: WebGL
+        targetPlatform: ${{ matrix.targetPlatform }}
   
     - uses: actions/upload-artifact@v4
       with:
-          name: Build
+          name: Build-${{ matrix.targetPlatform }}
           path: build
     - uses: robpc/itchio-upload-action@v1
       with:
         path: build/
         project: ${{ env.itchio_project }}
-        channel: ${{ env.itchio_channel }}
+        channel: ${{ matrix.itchio_channel }}
         api-key: ${{ secrets.ITCHIO_API_KEY }}
 
     
