@@ -25,7 +25,6 @@ public static class AudioPreview
     /// <summary>Playhead position at the last tick, in samples. A drop means the loop wrapped.</summary>
     private static int lastSamples;
 
-    /// <summary>The source doing the auditioning, or null if nothing has been previewed yet. For reading progress and volume.</summary>
     public static AudioSource Source => source;
 
     /// <summary>The asset currently being auditioned, or null.</summary>

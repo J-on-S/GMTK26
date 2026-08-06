@@ -51,7 +51,7 @@ public class LoopGuideBuilder : MonoBehaviour {
     [Tooltip("Draw the lines in play mode too. Off, they are an authoring aid and only appear in edit mode. The curved target loop always draws either way. Pushed down by the CuttingManager that owns this guide.")]
     public bool showInPlayMode = true;
 
-    [Tooltip("Rub the curved guide out behind the scalpel as it passes, so the drawn line is what is left to cut. Off, the whole ring stays drawn for the run.")]
+    [Tooltip("Rub the guide lines out behind the scalpel as it passes -- both the curved guide and the flat loop -- so what is drawn is what is left to cut. Off, the whole ring stays drawn for the run.")]
     public bool eraseTraced = true;
 
     /// <summary>How much of the ring has been traced, 0..1. Negative means nothing is driving the cut and the whole ring draws.</summary>
@@ -511,46 +511,50 @@ public class LoopGuideBuilder : MonoBehaviour {
         // renderer on with a ring baked in, while the cached loops -- private and non-serialised -- come
         // back null on entering play. Guarding on the points there left the stale ring drawn for the run.
         if (drawFlat && flat != null) {
-            flatLine.enabled = true;
-            DrawInto(flatLine, flat, closed: true);
+            DrawRemainingInto(flatLine, flat);
         }
         else if (flatLine != null) {
             flatLine.enabled = false;
         }
         if (drawCurved && curvedGuide != null) {
-            // the flat line is left whole: it is the raw cross-section, an authoring aid rather than
-            // the line the player traces
-            DrawGuideLine(curvedDraw ?? curvedGuide);
+            DrawRemainingInto(loopLine, curvedDraw ?? curvedGuide);
         }
         else if (loopLine != null) {
             loopLine.enabled = false;
         }
     }
 
-    /// <summary>Draws the target loop, minus whatever the scalpel has already gone over.</summary>
-    private void DrawGuideLine(List<Vector3> points) {
+    /// <summary>Draws one loop into its line, minus whatever the scalpel has already gone over.</summary>
+    /// <remarks>
+    /// Shared by both lines. The two draw the same ring -- the flat cross-section and the warped guide
+    /// built from it -- so the stretch that is behind the scalpel is the same stretch in both, and a flat
+    /// line left whole while the curved one is rubbed out reads as a cut that is not going anywhere.
+    /// <para>The erase is driven purely by <see cref="tracedFraction"/>, which is <c>-1</c> unless a cut
+    /// is pushing progress: edit mode and an idle cut still draw the whole ring.</para>
+    /// </remarks>
+    private void DrawRemainingInto(LineRenderer line, List<Vector3> points) {
         if (!eraseTraced || tracedFraction < 0f) {
-            loopLine.enabled = true;
-            DrawInto(loopLine, points, closed: true);
+            line.enabled = true;
+            DrawInto(line, points, closed: true);
             return;
         }
 
         if (tracedFraction >= 1f) {
             // the whole ring is behind the scalpel
-            loopLine.enabled = false;
+            line.enabled = false;
             return;
         }
 
         List<Vector3> remaining = Remaining(points, tracedFraction);
         if (remaining == null || remaining.Count < 2) {
-            loopLine.enabled = false;
+            line.enabled = false;
             return;
         }
 
-        loopLine.enabled = true;
+        line.enabled = true;
 
         // open: closing it would draw a chord across the body between the scalpel and the start
-        DrawInto(loopLine, remaining, closed: false);
+        DrawInto(line, remaining, closed: false);
     }
 
     /// <summary>The stretch of the loop still ahead of the scalpel, in draw order.</summary>
