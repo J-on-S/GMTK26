@@ -4,7 +4,6 @@ MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
-  - minigamePreset: {instanceID: 0}
   - rig: {instanceID: 0}
   - GameObjectBeingCut: {instanceID: 0}
   - sceneCamera: {instanceID: 0}

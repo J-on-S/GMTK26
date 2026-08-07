@@ -51,7 +51,7 @@ Mesh surgery is `CuttableObject.SpliceWindowed(CutPlane)` on top of the vendored
 
 Two conventions worth preserving:
 
-- **Presets over inline fields**: `CutMinigamePreset`, `CutFinisherPreset`, `CameraFollowPreset`, `ScalpelSurfacePreset`, `CutSoundPreset` (menu `Cutting/…`). Each number falls back to the component's inline field when no preset is assigned, so pre-preset scenes keep behaving identically. When adding tuning, add it to the preset *and* the fallback field.
+- **Presets over inline fields**: `CutFinisherPreset`, `CameraFollowPreset`, `ScalpelSurfacePreset`, `CameraMovesPreset`, `CurvePreset`, `CutSoundPreset` (menu `Cutting/…`). Each preset covers *one* collaborator's feel, and is assigned per cut on the `CuttingManager`. `CutFinisherPreset` still falls back to the component's inline field when unassigned; keep both in step when adding tuning there. There is deliberately no cut-wide preset — `CutMinigamePreset` was removed because one asset spanning framing, feel and geometry could not be retuned for a wrist without moving the thigh. Cut-level numbers (`cameraFOV`, `scalpelAngleLead`, guide width/hover/resolution, both orbit presets) live on the manager only.
 - **Editor authoring**: `GameObject > Cutting > New Cut Minigame` builds the wired hierarchy in code rather than from a prefab (a prefab would carry stale per-scene references to camera/scalpel/speed driver). `CuttingManager.AutoWire()` / `MissingWiring()` back that up; several components are `[ExecuteAlways]` so authoring previews in edit mode.
 
 ### Cross-system communication

@@ -82,7 +82,7 @@ Cut Copy window) reports a cut as **not runnable** when any of these is missing:
 | Scene camera / A CameraFollow on the scene camera | scene needs a camera; Auto-wire |
 | Free-look MoveCamera | created by the tool; Auto-wire |
 | Scalpel CameraFollow / A ScalpelSurfaceDriver on the scalpel | 6 |
-| Camera moves preset / Curve preset | assign a `CutMinigamePreset`, or the inline presets |
+| Camera moves preset / Curve preset | assign them in the manager's "How it plays" section |
 | **Item name (what the severed piece is called)** | 4 |
 | **Body part (a BodyPart asset)** | 5 |
 | **Start/End angle span (they are equal, so the cut has no length)** | 3 |
