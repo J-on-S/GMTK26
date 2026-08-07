@@ -43,6 +43,8 @@ Rules for the upstream branch:
   - why the slicer's own caps are discarded in the windowed split
   - why the bounds centre offset is baked into the matrix
   - why pieces are found by connectivity rather than proximity
+  - why the weld key carries UV and normal as well as position, and why a
+    stricter key still welds the cut shut
 - **Do not comment the obvious.** No `// increment i`. The existing upstream
   comments are sparse and explanatory; ours should read as more of the same, not
   as a different author showing up.
@@ -95,7 +97,7 @@ Established by diffing against `56aabb9`, the commit that vendored the library.
 | File | Change |
 | --- | --- |
 | `Framework/Triangulator.cs` | +140. `EarClip` (two overloads), `EmitEar`, `PointInTriangle`. Nothing existing altered except one trailing-whitespace fix. |
-| `SlicerExtensions.cs` | +411. `WeldWithinBounds`, `WeldWhole`, `SliceWindowedSplit`, private `HullBuilder` and helpers. Nothing existing altered. |
+| `SlicerExtensions.cs` | +512. `WeldWithinBounds`, `WeldWhole`, `SliceWindowedSplit`, private `HullBuilder`, `VertexKey` and helpers. Nothing existing altered. |
 | `Slicer.cs` | +3, **all whitespace.** No logic touched. |
 
 **New:** `CutContour.cs` (511 lines). A deleted `CutContourAuthoring.cs` (184
@@ -401,6 +403,22 @@ Work before it can go up:
   slicer's cap is a single convex hull spanning every cross-section at once, so
   it both bridges disjoint loops and — being a fan from one vertex — cannot be
   attributed to a chunk.
+- **Keep `HullBuilder`'s attribute-preserving weld, and document why the key is
+  what it is.** Two vertices merge only when position, UV *and* normal all agree
+  (`VertexKey`), and the slicer's normals are carried through to the output
+  rather than thrown away and recomputed. This is not polish to add in a later
+  pass — §4.8a is what the position-only version did to a mesh nobody cut — and
+  it is the difference between a splitter a hard-surface project can use and one
+  it cannot. The doc block needs to say *why the merge still works*: a straddled
+  triangle's upper and lower fragments take their seam position, UV and normal
+  from a single `GenerateUV`/`GenerateNormal` call in `Intersector`, so the two
+  sides carry bit-identical values and rejoin. A reviewer's first question will
+  be whether a stricter key stops the cut welding shut. It does not, and the
+  reason is one sentence.
+- Note the one attribute still not carried: tangents. `HullBuilder` rebuilds
+  them with `RecalculateTangents()` from the (correct) normals and UVs rather
+  than interpolating the slicer's. Fine for the game, worth stating as a known
+  limitation rather than letting a reviewer find it.
 
 ### 4.8 Bounded slice, done properly
 
@@ -409,31 +427,86 @@ Work before it can go up:
 A `Slice` overload taking bounds, rejecting **during** the cut rather than
 repairing afterwards.
 
-Our local `WeldWithinBounds` approach — slice with the infinite plane, then glue
-shut everything outside the window — is correct for the game and wrong for a
-library:
+Our local approach — slice with the infinite plane, then glue shut everything
+outside the window — is correct for the game and wrong for a library:
 
 - an extra full vertex pass over both hulls
-- `RecalculateNormals()` over the whole mesh, softening every hard edge the
-  plane never approached
-- position-welding collapses UV seams across the entire outside-window region
+- every triangle the plane never came near is still torn down and rebuilt, so
+  anything the rebuild fails to carry is lost across the whole mesh, not just
+  along the cut
 
-Invisible on organic meshes, destructive on hard-surface ones.
+The second bullet used to read as two specific defects — `RecalculateNormals()`
+over the whole mesh, and position-welding collapsing UV seams outside the
+window. Both are now fixed locally; see §4.8a, which is also a correction to
+what this section used to claim about them.
 
 The proper version tests the window at triangle classification: a triangle that
 straddles the plane but lies outside the window is emitted whole to one side and
-never split. Untouched triangles keep their normals, UVs, and tangents exactly.
-No repair pass, and it is *faster* than an unbounded slice rather than slower.
+never split. Untouched triangles keep their normals, UVs, and tangents exactly —
+not "reconstructed correctly", *untouched*, which is a guarantee no repair pass
+can make. No repair pass, and it is *faster* than an unbounded slice rather than
+slower.
 
 This is the largest single piece of work in the series and the only one that
 requires understanding `Slicer`'s internals. Consider deferring it past the
 first PR round.
 
+### 4.8a The attribute-destroying weld — what it actually did
+
+Recorded because this document previously called the defect "invisible on
+organic meshes, destructive on hard-surface ones," and the first organic mesh we
+put through it disagreed loudly. Anyone re-deriving the priority of §4.8 from
+that sentence would get it wrong.
+
+**Where it was.** Not only `WeldWithinBounds`. The same defect sat in
+`HullBuilder`, the private accumulator behind `SliceWindowedSplit` — the live
+path, the one every cut in the game actually runs. `WeldWithinBounds` is
+unreferenced.
+
+**What it was.** `HullBuilder.Id` keyed its merge table on quantized *position
+alone*. Any two vertices at the same place became one, first writer winning the
+attributes. Then `Build()` called `RecalculateNormals()` and never wrote
+tangents at all.
+
+**What that costs on a real mesh.** The failure is not proportional to how
+hard-surface the mesh is; it is proportional to **how many vertices the mesh
+duplicates in place**, and every UV-atlas character duplicates one at every
+island border. On our client body — organic, soft-shaded, single 2048 atlas —
+cutting any one part visibly rewrote the whole model:
+
+| Duplicate pair merged | Result |
+| --- | --- |
+| Two vertices at a UV island border | One island's texture drags across its neighbour, mesh-wide |
+| Two vertices at a hard edge | Edge smooths over; `RecalculateNormals` finishes the job on everything else |
+| A cap vertex and the skin vertex beneath it | The cut face wears whichever was inserted first — skin UVs on the body's cap, planar cap UVs on the severed piece's skin |
+
+The third row is worth keeping in mind for §6.2: a carve leaves k cut faces, so
+it multiplies whatever the cap-vs-skin confusion does.
+
+Missing tangents were separately visible: a normal-mapped material with no
+tangent array renders its bumps as flat dark patches.
+
+**The fix, and why it is safe.** Merge only when position, UV and normal all
+agree, carry the slicer's normals to the output, and rebuild tangents from the
+corrected normals and UVs. The seam still welds shut because `Intersector`
+computes a crossing point's UV and normal **once per source triangle** and hands
+the same values to both the upper- and lower-hull fragments — bit-identical, so
+they collide in the table and merge. Values that only nearly match now stay two
+vertices, which costs a vertex and changes nothing on screen.
+
+**What this does and does not do to §4.8.** It removes two of that section's
+three bullets, so bounded-slice-during-classification is now a performance and
+purity argument rather than a correctness one. It does not remove the section:
+rebuilding untouched geometry at all is still the wrong shape for a library, and
+a weld that reconstructs attributes correctly is strictly weaker than one that
+never disturbs them. It does mean §4.8 can safely be deferred, which it could
+not before.
+
 ### 4.9 What does not go upstream
 
 | Thing | Reason |
 | --- | --- |
-| `WeldWithinBounds`, `WeldWhole` | Built around our "cross-section material must be null so the cap lands in a trailing submesh" convention (`CuttableObject.cs:85-92`) and around meshes that want smooth shading. Game semantics. |
+| `WeldWithinBounds`, `WeldWhole` | Built around our "cross-section material must be null so the cap lands in a trailing submesh" convention (`CuttableObject.cs:85-92`) and around meshes that want smooth shading. Game semantics. Also **still carry the position-only weld and the `RecalculateNormals()` that §4.8a fixed in `HullBuilder`** — they were left alone because nothing calls them. Delete them locally rather than fixing them; a dead function with a known defect in it is a trap for whoever reaches for it next. |
 | `Ribbon`, `Bisector`, `ScaleLoop`, `GetCenter` | Guide rendering. Move to `Assets/Script/CuttingPart/`. |
 | `CuttableObject`, `CutPlane` as they exist | Welded to the game — `SavedLoop`, `ApplyMaterials`, `CenterPivot`, `SpawnPiece`, the two-phase pending hull. See §5 for what a clean version looks like. |
 
@@ -698,6 +771,10 @@ drift for no reason:
       input points, on a triangle away from the origin.
 - [ ] `SliceConnected` documents the `Flipped()` negation as the way to choose
       which side comes off, and takes no side parameter.
+- [ ] `SliceConnected`'s weld merges on position + UV + normal, and its doc block
+      says why that still welds the cut shut (§4.8a). Prove it with a slice
+      across a UV-atlas mesh and a hard-edged one: the geometry the plane never
+      reached must come out byte-identical in UVs and normals.
 - [ ] Trailing newline at end of `SlicerExtensions.cs` (currently missing).
 - [ ] At least three manual test cases exercised and screenshotted: a plane
       through a torus (multiple loops), through a two-pronged fork
