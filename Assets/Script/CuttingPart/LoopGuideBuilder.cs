@@ -1,12 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using EzySlice;
 
-/// <summary>Builds and draws the curved target loop the player must trace.</summary>
+/// <summary>Builds and draws the target loop the player must trace.</summary>
 /// <remarks>
 /// Self-contained: it extracts the flat cut loop from <c>meshFollow</c> against its <c>plane</c>
-/// (re-extracting only when either moves), reshapes it into a wavy, surface-snapped guide and renders
-/// it into <c>loopLine</c> every frame, including edit mode. It never moves the camera.
+/// (re-extracting only when either moves) and renders it into <c>flatLine</c> every frame, including
+/// edit mode. It never moves the camera.
+/// <para>
+/// The wavy "curved guide" is dormant, not gone: nothing outside this file mentions it any more, no
+/// <c>CuttingManager</c> hands it a <see cref="CurvePreset"/> and no cut wires <c>loopLine</c>, so
+/// <see cref="MaybeRebuildGuide"/> returns on its null-preset guard and the flat ring is the only loop
+/// built, drawn, orbited or scored against. The maths is kept here, and only here, in case the wavy
+/// cut comes back.
+/// </para>
 /// </remarks>
 [ExecuteAlways]
 public class LoopGuideBuilder : MonoBehaviour {
@@ -20,9 +28,14 @@ public class LoopGuideBuilder : MonoBehaviour {
     /// <summary>The plane's transform, or null when no plane is assigned.</summary>
     private Transform PlaneTransform => plane != null ? plane.transform : null;
 
+    /// <summary>Shape of the dormant wavy guide. Left null by every cut, which is what keeps the curve switched off; assign one by hand to bring it back.</summary>
     [HideInInspector] public CurvePreset preset;
-    
-    [HideInInspector] public float curveWidth = 0.005f;
+
+    /// <summary>Width both guide lines are drawn at. Owned by the <c>CuttingManager</c>, which pushes it every frame it validates or enters.</summary>
+    [FormerlySerializedAs("curveWidth")]
+    [HideInInspector] public float lineWidth = 0.005f;
+
+    /// <summary>Lift of the drawn curved loop off the surface. Curve-only; the flat line sits on the cut.</summary>
     [HideInInspector] public float curveHoverLength = 0.01f;
 
     /// <summary>Smallest number of points the loop is warped and drawn with; 0 leaves the extraction as it came.</summary>
@@ -36,10 +49,10 @@ public class LoopGuideBuilder : MonoBehaviour {
 
 
     [Header("Loop guide")]
-    [Tooltip("Draw the curved target loop into loopLine. Off by default: cuts show only the straight flat loop in play. CuttingManager forces this off every push.")]
+    [Tooltip("Draw the curved target loop into loopLine. Off by default: cuts show only the straight flat loop in play. Only applies while this cut is running -- an idle cut draws nothing in play whatever this says.")]
     public bool showCurvedLoop = false;
 
-    [Tooltip("Draw the raw flat (straight) cut loop into flatLine. On by default: this is the line shown in play. CuttingManager forces this on every push.")]
+    [Tooltip("Draw the raw flat (straight) cut loop into flatLine. On by default: this is the line shown in play. Only applies while this cut is running -- an idle cut draws nothing in play whatever this says.")]
     public bool showFlatLoop = true;
 
     [Tooltip("Optional LineRenderer that draws the curved target loop each frame so the player can see where to cut.")]
@@ -48,7 +61,7 @@ public class LoopGuideBuilder : MonoBehaviour {
     [Tooltip("Optional LineRenderer for the flat cut loop (raw cross-section).")]
     public LineRenderer flatLine;
 
-    [Tooltip("Draw the lines in play mode too. Off, they are an authoring aid and only appear in edit mode. The curved target loop always draws either way. Pushed down by the CuttingManager that owns this guide.")]
+    [Tooltip("Draw the flat loop in play mode too. Off, it is an authoring aid and only appears in edit mode. The curved target loop always draws either way -- while the cut is running.")]
     public bool showInPlayMode = true;
 
     [Tooltip("Rub the guide lines out behind the scalpel as it passes -- both the curved guide and the flat loop -- so what is drawn is what is left to cut. Off, the whole ring stays drawn for the run.")]
@@ -115,6 +128,14 @@ public class LoopGuideBuilder : MonoBehaviour {
         // and an author who cannot see the loop cannot place the plane. The toggles govern play only.
         bool editMode = !Application.isPlaying;
 
+        // in play the guide belongs to the cut that is running, and to nothing else: there is one of
+        // these per cut, so without the gate every guide in the scene draws its ring on its body from
+        // the first frame, on bodies nobody is cutting. Same reason ScalpelSurfaceDriver parks itself.
+        if (!editMode && !cutRunning) {
+            HideLines();
+            return;
+        }
+
         // curved is exempt from showInPlayMode: it is the loop the player cuts along.
         bool drawCurved = loopLine != null && (editMode || showCurvedLoop);
         bool drawFlat = flatLine != null && (editMode || (showFlatLoop && showInPlayMode));
@@ -171,7 +192,7 @@ public class LoopGuideBuilder : MonoBehaviour {
     }
 #endif
 
-    /// <summary>Writes <see cref="curveWidth"/> onto both line renderers.</summary>
+    /// <summary>Writes <see cref="lineWidth"/> onto both line renderers.</summary>
     /// <remarks>Public so the <see cref="CuttingManager"/> that owns the width can land it the moment it
     /// pushes: this component's own OnValidate does not fire when another script writes its fields, so
     /// without this the new width waits for the next frame that happens to draw.</remarks>
@@ -189,7 +210,7 @@ public class LoopGuideBuilder : MonoBehaviour {
 
         if (Mathf.Approximately(line.widthMultiplier, 1f)
             && line.widthCurve.length == 1
-            && Mathf.Approximately(line.widthCurve[0].value, curveWidth)) {
+            && Mathf.Approximately(line.widthCurve[0].value, lineWidth)) {
             return;
         }
 
@@ -199,7 +220,7 @@ public class LoopGuideBuilder : MonoBehaviour {
         }
 #endif
 
-        line.widthCurve = AnimationCurve.Constant(0, 1, curveWidth);
+        line.widthCurve = AnimationCurve.Constant(0, 1, lineWidth);
         line.widthMultiplier = 1f;
 
 #if UNITY_EDITOR
@@ -648,6 +669,22 @@ public class LoopGuideBuilder : MonoBehaviour {
         tracedFraction = -1f;
     }
 
+    /// <summary>Whether the cut that owns this guide is on screen right now. Play only; edit mode always draws.</summary>
+    /// <remarks>
+    /// Not serialized and false to start with, so a guide nobody has claimed draws nothing in play --
+    /// the <c>showFlatLoop</c> / <c>showInPlayMode</c> toggles say WHICH lines a running cut draws, never
+    /// whether it is running. Driven by <c>CuttingManager.SetCutVisuals</c> at entry and exit.
+    /// </remarks>
+    [System.NonSerialized] private bool cutRunning;
+
+    /// <summary>Tells the guide its cut has the screen (or has given it back). Off takes both lines down at once, so nothing is left standing for a frame.</summary>
+    public void SetCutRunning(bool on) {
+        cutRunning = on;
+        if (!on) {
+            HideLines();
+        }
+    }
+
     /// <summary>Takes both lines off screen, leaving their points alone.</summary>
     private void HideLines() {
         if (loopLine != null) loopLine.enabled = false;
@@ -672,7 +709,7 @@ public class LoopGuideBuilder : MonoBehaviour {
             LineCache cache = lr == flatLine ? flatCache : curvedCache;
 
             // cheap check first: the same world list, drawn from the same line pose
-            if (cache.WouldDrawTheSame(lr, points, curveWidth, closed, toLocal)) {
+            if (cache.WouldDrawTheSame(lr, points, lineWidth, closed, toLocal)) {
                 return;
             }
 

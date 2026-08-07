@@ -131,24 +131,15 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         // Undo entry, saved into the scene the next time it is written.
         EnsureTraceRenderer();
 
-        // play only: [ExecuteAlways] runs Start in the editor too, and locking there grabs the
-        // editor's cursor while nothing is even playing.
+      
         Cursor.lockState = CursorLockMode.Locked;
 
         HideScalpelRenderers();
 
-        // clear the edit-mode preview the line was left holding. ShowTrace fills it with the whole
-        // closed loop as an authoring aid, and those points serialize into the scene -- left as they
-        // are, play opens with every scalpel's full cut ring floating on its body before anything is
-        // cut. ResetTrace empties the points and reopens the loop, so the trail starts clean and only
-        // grows once a cut is running.
+
         ResetTrace();
 
-        // Parked until a cut claims it. There is one of these per cut, so every driver in the scene
-        // would otherwise start snapping its own scalpel onto its own body and drawing its own trail
-        // from the first frame, on bodies nobody is cutting. CuttingManager.SetScalpelTrace switches
-        // the running cut's driver on at entry and off again on the way out.
-        // Edit mode is left alone: there the driver IS the authoring preview.
+        
         enabled = false;
     }
 
@@ -289,8 +280,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
         // the loop as it sits on the surface, then lifted by this line's own hover: drawn flush with the
         // mesh it z-fights and dips through it, which reads as a tangle rather than a ring.
-        if (!builder.TryGetCurvedLoop(out Vector3 center, out List<Vector3> points)
-            && !builder.TryGetFlatLoop(out center, out points))
+        if (!builder.TryGetFlatLoop(out Vector3 center, out List<Vector3> points))
         {
             return;
         }
@@ -392,23 +382,13 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         }
     }
 
-    /// <summary>Score against the flat cut loop; off = the curved guide.</summary>
-    public bool useFlatCurve = true;
-
     /// <summary>Closest point on the target loop to <c>onMeshPos</c>, drawn by the precision gizmo.</summary>
     private Vector3 expected;
 
     /// <summary>Logs how far the snapped object sits from the target loop and records the nearest loop point for the gizmo.</summary>
     void calculatePrecision()
     {
-        bool result;
-        List<Vector3> points;
-        if (useFlatCurve) {
-            result = builder.TryGetFlatLoop(out Vector3 center, out points);
-        } else {
-            result = builder.TryGetCurvedLoop(out Vector3 center, out points);
-        }
-        if (!result) return;
+        if (!builder.TryGetFlatLoop(out _, out List<Vector3> points)) return;
 
         expected = LoopScorer.ClosestPointOnPolyline(points, onMeshPos, out float t, out float dst);
         //Debug.Log(dst.ToString("0.000"));
@@ -417,7 +397,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     void OnDrawGizmos()
     {
         if (owned == null) return;
-
+        return;
         Color c = Gizmos.color;
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(expected, 0.01f);
@@ -480,18 +460,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         calculatePrecision();
     }
 
-    /// <summary>Appends a surface point to the trail, skipping near-duplicates and filling in long jumps.</summary>
-    /// <remarks>
-    /// The trail is sampled once a frame, so how far apart its points land is the scalpel's speed times
-    /// the frame time -- a fast sweep, or a frame that hitched, leaves a straight chord across a curve
-    /// the player did not cut that way. Anything longer than <see cref="traceMaxStep"/> is walked in
-    /// even steps so the drawn line keeps the shape of the surface at any speed.
-    /// <para>The fill-in is a straight line between two surface points, not re-projected onto the mesh:
-    /// over a step this short the two are the same to the eye, and a projection per fill point would put
-    /// a raycast burst on the frames that are already the slowest.</para>
-    /// <para>Points go in one at a time with <c>SetPosition</c>. Rewriting the whole array on every
-    /// append allocated a copy of the trail per point, which a denser trail turns into real garbage.</para>
-    /// </remarks>
+
     void AddTracePoint(Vector3 p)
     {
         int n = tracePoints.Count;

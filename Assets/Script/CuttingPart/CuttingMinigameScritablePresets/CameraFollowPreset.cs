@@ -27,9 +27,6 @@ using UnityEngine;
 public class CameraFollowPreset : ScriptableObject
 {
     [Header("Path")]
-    [Tooltip("Orbit the raw flat cut, or the curved (surface-snapped) guide loop.")]
-    public CameraFollow.LoopSource loopSource = CameraFollow.LoopSource.Flat;
-
     [Tooltip("Orbit path: a perfect circle, or the loop's own shape offset outward.")]
     public CameraFollow.MoveMode moveMode = CameraFollow.MoveMode.Circle;
 
@@ -122,7 +119,6 @@ public class CameraFollowPreset : ScriptableObject
     {
         if (follow == null) return;
 
-        follow.loopSource = loopSource;
         follow.moveMode = moveMode;
         follow.framingUnits = framingUnits;
         follow.scale = scale;
@@ -160,7 +156,6 @@ public class CameraFollowPreset : ScriptableObject
     {
         if (follow == null) return;
 
-        loopSource = follow.loopSource;
         moveMode = follow.moveMode;
         framingUnits = follow.framingUnits;
         scale = follow.scale;
@@ -212,7 +207,7 @@ public static class CameraFollowCategories
 
     public static readonly Group[] All =
     {
-        new("Path", new[] { "loopSource", "moveMode", "framingUnits", "scale", "height", "offsetSpace", "positionOffset", "moveSpeed" }),
+        new("Path", new[] { "moveMode", "framingUnits", "scale", "height", "offsetSpace", "positionOffset", "moveSpeed" }),
         new("Aim", new[] { "lookMode", "lookSpeed", "loopTowardTop", "upMode", "controlRotation", "controlPosition" }),
         new("Roll", new[] { "rollDegrees", "rollAmplitude", "rollSpeed" }),
         new("Off-centre pivot", new[] { "pivotAffectsPosition", "pivotAffectsLook", "pivotOffset", "pivotMoves", "pivotMoveRadius", "pivotMoveSpeed" }),

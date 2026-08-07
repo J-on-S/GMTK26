@@ -12,8 +12,8 @@ public class CuttingManagerEditor : Editor
     // startAngle/endAngle are not here: they are per-cut geometry drawn with the target above.
     private static readonly string[] TuningFields =
     {
-        "cameraFOV", "scalpelAngleLead", "guideLineWidth", "guideHoverLength", "guideResolution",
-        "cameraPreset", "curvePreset", "scalpelSurfacePreset",
+        "cameraFOV", "scalpelAngleLead", "guideLineWidth",
+        "cameraPreset", "scalpelSurfacePreset",
     };
 
       private static readonly string[] HardwareFields =

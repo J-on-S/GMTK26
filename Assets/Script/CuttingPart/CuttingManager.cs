@@ -12,7 +12,7 @@ using UnityEngine.InputSystem;
 /// Every number a cut plays by lives on this component. There is no cut-wide preset asset to read
 /// them from instead: one shared asset covering framing, feel and geometry at once could not be
 /// retuned for a wrist without moving the thigh. What IS shared is the sub-presets each collaborator
-/// reads -- <see cref="CameraMovesPreset"/>, <see cref="CurvePreset"/>,
+/// reads -- <see cref="CameraMovesPreset"/>,
 /// <see cref="ScalpelSurfacePreset"/>, <see cref="CameraFollowPreset"/>, <see cref="CutSoundPreset"/>
 /// -- assigned per cut in the slots below, so reusable feel stays reusable.
 /// </para>
@@ -173,9 +173,6 @@ public enum CuttingState
     [Tooltip("Along-limb input, speeds and smoothing. Handed to the scalpel's ScalpelSurfaceDriver.")]
     public ScalpelSurfacePreset scalpelSurfacePreset;
 
-    [Tooltip("Shape of the wavy target loop. Handed to this cut's LoopGuideBuilder.")]
-    public CurvePreset curvePreset;
-
     [Header("Framing")]
     [Tooltip("How the camera frames THIS cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts frame differently without each owning a camera.")]
     public CameraFollowPreset cameraOrbitPreset;
@@ -183,23 +180,14 @@ public enum CuttingState
     [Tooltip("The same, for the scalpel's CameraFollow. Normally has Control Position off, since the ScalpelSurfaceDriver owns the scalpel's position.")]
     public CameraFollowPreset scalpelOrbitPreset;
 
-    [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane + curvePreset.")]
+    [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane.")]
     public LoopGuideBuilder loopGuide;
 
-    [Tooltip("Drawn width of every guide line this cut owns, at the body's own scale (multiplied by the CuttableObject's scale, so a body scaled up or down keeps the same look). The scalpel's own trace keeps its own width.")]
+    [Tooltip("Drawn width of the guide line this cut owns, at the body's own scale (multiplied by the CuttableObject's scale, so a body scaled up or down keeps the same look). The scalpel's own trace keeps its own width.")]
     public float guideLineWidth = 0.005f;
 
-    [Tooltip("How far the guide lines float off the body, at the body's own scale (multiplied by the CuttableObject's scale). Drawing only -- scoring uses the unlifted loop. Too low and the line z-fights the mesh.")]
-    public float guideHoverLength = 0.01f;
-
-    [Tooltip("Smallest number of points the loop is warped and drawn with. A low-poly body gives a cross-section of only a handful, and curving those few makes a zigzag instead of a wave. 0 keeps the raw extraction.")]
-    public int guideResolution = 64;
-
-    /// <summary>Width every guide line of this cut is drawn at, scaled by the body so it keeps its look on a body scaled up or down.</summary>
+    /// <summary>Width this cut's guide line is drawn at, scaled by the body so it keeps its look on a body scaled up or down.</summary>
     public float GuideLineWidth => guideLineWidth * BodyScale;
-
-    /// <summary>Hover the guide lines are drawn at, scaled by the body so it keeps its look on a body scaled up or down.</summary>
-    public float GuideHoverLength => guideHoverLength * BodyScale;
 
     /// <summary>The cut body's own scale as a single factor, so the guide widths and hover (world-space quantities) stay proportional to a body scaled up or down. The average of the three lossy-scale axes, to survive a non-uniform scale; 1 when there is no body yet.</summary>
     private float BodyScale
@@ -320,7 +308,6 @@ public enum CuttingState
         else if (!scalpelFollow.TryGetComponent<ScalpelSurfaceDriver>(out _)) missing.Add("A ScalpelSurfaceDriver on the scalpel");
         // no speed-driver entry: it is provisioned on demand, so it can never be "missing".
         if (cameraPreset == null) missing.Add("Camera moves preset");
-        if (curvePreset == null) missing.Add("Curve preset");
 
         // ---- per-cut authoring, not wiring: the data a cut needs to mean something ----
 
@@ -1179,24 +1166,19 @@ public enum CuttingState
 /// <summary>This manager owns the tuning; it pushes its presets + wiring down into the loop guide, both CameraFollows and the cutting speed driver so they can't drift apart. Live in edit mode too.</summary>
     void PushParameters()
     {
-        // loop guide: target, curve shape and drawn width.
+        // loop guide: target and drawn width.
         if (loopGuide != null)
         {
             BeforePushWrite(loopGuide);
 
-            // the width lands on the two line renderers, which are objects of their own
-            BeforePushWrite(loopGuide.loopLine);
+            // the width lands on the line renderer, which is an object of its own
             BeforePushWrite(loopGuide.flatLine);
 
             if (GameObjectBeingCut != null) loopGuide.meshFollow = GameObjectBeingCut;
-            if (curvePreset != null) loopGuide.preset = curvePreset;
 
-            // width and hover both go down every push, preset first and the inline field otherwise.
-            // Never conditional on there being a preset: the guide's own copies are outputs, hidden in
-            // its inspector, so a push that skips them leaves numbers nobody can reach or correct.
-            loopGuide.curveWidth = GuideLineWidth;
-            loopGuide.curveHoverLength = GuideHoverLength;
-            loopGuide.curveResolution = guideResolution;
+            // goes down every push, unconditionally: the guide's own copy is an output, hidden in its
+            // inspector, so a push that skipped it would leave a number nobody can reach or correct.
+            loopGuide.lineWidth = GuideLineWidth;
 
             // applied here and not left to the next draw: OnValidate calls this, and an author dragging
             // the width wants the line to change under the cursor.

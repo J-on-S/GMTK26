@@ -64,22 +64,11 @@ public class CameraFollow : MonoBehaviour {
         Plane,
     }
 
-    /// <summary>Which loop from the guide the camera orbits.</summary>
-    public enum LoopSource {
-        /// <summary>Raw flat cross-section.</summary>
-        Flat,
-        /// <summary>Curved, surface-snapped guide loop.</summary>
-        Curved,
-    }
-
     [Tooltip("All the framing below in one asset. Assigned, it overwrites those fields on enable and on validate -- and a CuttingManager swaps it in on entry, which is what lets one CameraFollow serve every cut.")]
     [HideInInspector] public CameraFollowPreset preset;
 
     [Tooltip("Supplies the cut loop and cutting-plane axes the camera orbits around.")]
     [HideInInspector] public LoopGuideBuilder loopGuide;
-
-    [Tooltip("Orbit the raw flat cut, or the curved (surface-snapped) guide loop.")]
-    public LoopSource loopSource = LoopSource.Flat;
 
     [Tooltip("What every distance below (orbit radius, height, pivot, drift, position offset) is measured in. World = exactly as authored. Loop Radius = multiples of THIS cut's ring, so one framing fits a wrist and a thigh and follows a body scaled up or down.")]
     public FramingUnits framingUnits = FramingUnits.World;
@@ -293,10 +282,7 @@ public class CameraFollow : MonoBehaviour {
             return false;
         }
 
-        bool got = loopSource == LoopSource.Curved
-            ? loopGuide.TryGetCurvedLoop(out Vector3 center, out List<Vector3> loopPoints)
-            : loopGuide.TryGetFlatLoop(out center, out loopPoints);
-        if (!got) {
+        if (!loopGuide.TryGetFlatLoop(out Vector3 center, out List<Vector3> loopPoints)) {
             return false;
         }
 
