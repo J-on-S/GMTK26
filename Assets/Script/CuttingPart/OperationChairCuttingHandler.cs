@@ -1,16 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>Gives every client placed in an operation chair the cuts authored for its body shape.</summary>
-/// <remarks>
-/// Clients are spawned from <c>RandomizedClientList</c> at runtime, so their cuts cannot be authored in
-/// the scene: nothing exists to author against until a chair spawns one. This listens for that moment
-/// and copies the cuts in from a prefab, through <see cref="CutCopier"/>.
-/// <para>
-/// No matching: every placed client takes the cuts of the first assigned template, whatever mesh its
-/// body wears. This assumes the clients share the shape the template's cuts were authored against.
-/// </para>
-/// </remarks>
+
 [DisallowMultipleComponent]
 public class OperationChairCuttingHandler : MonoBehaviour
 {
