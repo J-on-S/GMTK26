@@ -177,6 +177,11 @@ public class ScalpelSurfaceDriver : MonoBehaviour
             return traceRenderer;
         }
 
+        // read before the slot below is repointed: this is the hand-authored line the edit-mode preview
+        // draws into, and its look is the one the author signed off on. A renderer created for play
+        // copies it, so the preview is a preview.
+        LineRenderer authored = traceRenderer;
+
         // host moved (a body was wired, or a different one): the old line's points are in the old frame,
         // so drop them and start the trail again on the new host.
         if (traceRenderer != null && traceRenderer.transform != wantHost)
@@ -185,22 +190,75 @@ public class ScalpelSurfaceDriver : MonoBehaviour
             traceRenderer.positionCount = 0;
         }
 
+        // and the same for whatever line is parked on the fallback host, whether or not this driver's
+        // slot points at it. A LineRenderer's points are serialized, so the ring the edit-mode preview
+        // drew onto the scalpel is still there when play starts: on a cut whose traceRenderer was never
+        // assigned the branch above cannot reach it, and the authored ring hangs over the body,
+        // undrivable and never cleared, for the whole run. It is also the only thing left to copy a
+        // look from, so an unassigned cut still gets the authored one rather than the bare defaults.
+        if (wantHost != owned.transform
+            && owned.TryGetComponent(out LineRenderer parked)
+            && parked != traceRenderer)
+        {
+            parked.positionCount = 0;
+            if (authored == null) authored = parked;
+        }
+
         if (!wantHost.TryGetComponent(out traceRenderer))
         {
             traceRenderer = wantHost.gameObject.AddComponent<LineRenderer>();
             traceRenderer.positionCount = 0;
 
-            // starting point for a renderer nobody has authored yet. Set once, on creation only, so
-            // every one of these stays editable afterwards.
-            traceRenderer.alignment = LineAlignment.View;
-            traceRenderer.textureMode = LineTextureMode.Stretch;
-            traceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            traceRenderer.receiveShadows = false;
+            CopyPresentation(authored, traceRenderer);
             ApplyTraceWidth();
         }
 
         ConfigureTraceRenderer();
         return traceRenderer;
+    }
+
+    /// <summary>Gives a freshly created trace line the look of the one the author tuned on the scalpel.</summary>
+    /// <remarks>
+    /// The two lines are different components on different objects: edit mode previews into a
+    /// LineRenderer authored by hand, play draws into one this component creates on the body. Anything
+    /// that lives only on the authored component does not travel unless it is copied, and a fresh
+    /// LineRenderer arrives with <c>textureMode</c> at <c>Stretch</c> — which maps the whole trace
+    /// texture once across the line instead of repeating it along it. With a stitch texture that is the
+    /// difference between a row of stitches in the scene view and one smear in play, and it is exactly
+    /// the setting the note at the bottom of <c>LoopGuideBuilder</c> asks authors to set to Tile.
+    /// <para>Deliberately not copied: points (the trail owns its own), width (<c>traceWidth</c> through
+    /// <see cref="ApplyTraceWidth"/>), space (follows the host, see <see cref="ConfigureTraceRenderer"/>)
+    /// and material (this component's <c>traceMaterial</c> slot). Those four have an owner already, and
+    /// copying them would let the authored line quietly overrule it.</para>
+    /// </remarks>
+    /// <param name="from">The authored line, or <c>null</c> when this cut has none to follow.</param>
+    private static void CopyPresentation(LineRenderer from, LineRenderer to)
+    {
+        if (to == null) return;
+
+        if (from == null)
+        {
+            // nothing authored to follow. Tile rather than the LineRenderer default of Stretch: every
+            // trace material in this project is a repeating stitch, so Stretch is never the right guess.
+            to.alignment = LineAlignment.View;
+            to.textureMode = LineTextureMode.Tile;
+            to.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            to.receiveShadows = false;
+            return;
+        }
+
+        to.alignment = from.alignment;
+        to.textureMode = from.textureMode;
+        to.textureScale = from.textureScale;
+        to.colorGradient = from.colorGradient;
+        to.numCornerVertices = from.numCornerVertices;
+        to.numCapVertices = from.numCapVertices;
+        to.shadowBias = from.shadowBias;
+        to.generateLightingData = from.generateLightingData;
+        to.shadowCastingMode = from.shadowCastingMode;
+        to.receiveShadows = from.receiveShadows;
+        to.sortingLayerID = from.sortingLayerID;
+        to.sortingOrder = from.sortingOrder;
     }
 
     /// <summary>The managed child of the body that hosts this driver's line, sitting at the body's origin so its local space is the body's own.</summary>
