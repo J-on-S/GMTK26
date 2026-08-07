@@ -244,7 +244,7 @@ public class CutFinisher : MonoBehaviour
         get
         {
             LoopGuideBuilder guide = Manager != null ? Manager.loopGuide : null;
-            if (guide != null && guide.TryGetCurvedLoop(out Vector3 center, out _))
+            if (guide != null && guide.TryGetFlatLoop(out Vector3 center, out _))
             {
                 return center;
             }

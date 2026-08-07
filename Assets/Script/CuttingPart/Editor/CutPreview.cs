@@ -53,7 +53,7 @@ public static class CutPreview
         EditorCameraClaim.Claim(ClaimOwner, Stop, manager.name);
 
         Active = manager;
-        Angle = manager.StartAngle;
+        Angle = manager.startAngle;
         Playing = true;
         clock = 0d;
         lastTickTime = EditorApplication.timeSinceStartup;
@@ -152,7 +152,7 @@ public static class CutPreview
         if (Playing)
         {
             clock += delta;
-            Angle = Wrap(Angle + Speed * delta, Active.StartAngle, Active.EndAngle);
+            Angle = Wrap(Angle + Speed * delta, Active.startAngle, Active.endAngle);
         }
 
         Apply();
@@ -191,18 +191,18 @@ public static class CutPreview
         if (manager.scalpelFollow != null)
         {
             manager.scalpelFollow.ApplyPreset();
-            manager.scalpelFollow.PreviewAt(Angle + manager.ScalpelAngleLead, (float)clock);
+            manager.scalpelFollow.PreviewAt(Angle + manager.scalpelAngleLead, (float)clock);
         }
 
         // erased behind the sweep as play mode does, so the framing is judged against the line the
         // player actually sees
         if (manager.loopGuide != null)
         {
-            float span = manager.EndAngle - manager.StartAngle;
+            float span = manager.endAngle - manager.startAngle;
             float traced = Mathf.Abs(span) > 1e-3f
-                ? (Angle + manager.ScalpelAngleLead - manager.StartAngle) / span
+                ? (Angle + manager.scalpelAngleLead - manager.startAngle) / span
                 : 0f;
-            manager.loopGuide.SetTraceProgress(manager.StartAngle, manager.EndAngle, traced);
+            manager.loopGuide.SetTraceProgress(manager.startAngle, manager.endAngle, traced);
         }
 
         SceneView.RepaintAll();

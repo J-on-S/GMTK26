@@ -9,9 +9,12 @@ using UnityEngine.InputSystem;
 /// Authoring shape: a cut needs a <see cref="CuttableObject"/> to cut, a <see cref="LoopGuideBuilder"/>
 /// for the target loop, and the camera/scalpel/speed hardware it drives.
 /// <para>
-/// Tuning can come from a <see cref="CutMinigamePreset"/>; each number falls back to this
-/// manager's own inline field when no preset is assigned, so a scene wired before the preset
-/// existed behaves exactly as it did.
+/// Every number a cut plays by lives on this component. There is no cut-wide preset asset to read
+/// them from instead: one shared asset covering framing, feel and geometry at once could not be
+/// retuned for a wrist without moving the thigh. What IS shared is the sub-presets each collaborator
+/// reads -- <see cref="CameraMovesPreset"/>,
+/// <see cref="ScalpelSurfacePreset"/>, <see cref="CameraFollowPreset"/>, <see cref="CutSoundPreset"/>
+/// -- assigned per cut in the slots below, so reusable feel stays reusable.
 /// </para>
 /// </remarks>
 // runs before CameraFollow so the scalpel angle it sets is consumed the same frame.
@@ -84,23 +87,20 @@ public enum CuttingState
     /// <summary>Travel progress, 0..1, raw (before <see cref="travelEase"/>).</summary>
     private float travelT;
 
-    [Tooltip("All of this cut's tuning in one asset. Assign it and every inline number below is ignored.")]
-    public CutMinigamePreset minigamePreset;
-
-    [Tooltip("Angle around the ring this cut opens at, in degrees. Progress is measured from here. Per-cut geometry, never taken from a preset.")]
+    [Tooltip("Angle around the ring this cut opens at, in degrees. Progress is measured from here. Per-cut geometry: it is fixed by where this cut's plane is.")]
     public float startAngle;
 
-    [Tooltip("Angle this cut completes at, in degrees. 360 = one full turn from startAngle. Per-cut geometry, never taken from a preset.")]
+    [Tooltip("Angle this cut completes at, in degrees. 360 = one full turn from startAngle. Per-cut geometry, like startAngle.")]
     public float endAngle= 360;
 
-    [Tooltip("Turns the whole orbit around the ring, in degrees, without changing where the cut starts or how fast it travels -- it moves which side of the body the camera watches from. Pushed onto both follows on entry. Per-cut geometry, never taken from a preset.")]
+    [Tooltip("Turns the whole orbit around the ring, in degrees, without changing where the cut starts or how fast it travels -- it moves which side of the body the camera watches from. Pushed onto both follows on entry. Per-cut geometry, like startAngle.")]
     public float orbitAngleOffset;
 
     [ReadOnly] public float currentAngle;
 
     [ReadOnly] public float currentProgress => scalpelFollow == null
         ? 0f
-        : (scalpelFollow.Angle - StartAngle) / (EndAngle - StartAngle); // normalized 0-1
+        : (scalpelFollow.Angle - startAngle) / (endAngle - startAngle); // normalized 0-1
 
     [ReadOnly] public RigPhase phase = RigPhase.Free;
 
@@ -163,11 +163,15 @@ public enum CuttingState
 
     CuttingState state= CuttingState.NOT_STARTED;
 
+    // The three sub-presets: reusable feel, one asset per collaborator, assigned per cut and pushed
+    // down by PushParameters. Shared on purpose -- unlike framing and geometry, "how fast the cut
+    // travels" means the same thing on a wrist and on a thigh.
+
+    [Tooltip("Travel speed, acceleration, coast and friction. Handed to the shared CutSpeedDriver on entry.")]
     public CameraMovesPreset cameraPreset;
 
+    [Tooltip("Along-limb input, speeds and smoothing. Handed to the scalpel's ScalpelSurfaceDriver.")]
     public ScalpelSurfacePreset scalpelSurfacePreset;
-
-    public CurvePreset curvePreset;
 
     [Header("Framing")]
     [Tooltip("How the camera frames THIS cut: orbit radius, height, aim, roll, pivot, drift. Pushed onto the shared camera CameraFollow on entry, so cuts frame differently without each owning a camera.")]
@@ -176,23 +180,14 @@ public enum CuttingState
     [Tooltip("The same, for the scalpel's CameraFollow. Normally has Control Position off, since the ScalpelSurfaceDriver owns the scalpel's position.")]
     public CameraFollowPreset scalpelOrbitPreset;
 
-    [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane + curvePreset.")]
+    [Tooltip("Draws this cut's target loop; one per CuttingManager, wired to this manager's object + plane.")]
     public LoopGuideBuilder loopGuide;
 
-    [Tooltip("Drawn width of every guide line this cut owns, at the body's own scale (multiplied by the CuttableObject's scale, so a body scaled up or down keeps the same look). The scalpel's own trace keeps its own width.")]
+    [Tooltip("Drawn width of the guide line this cut owns, at the body's own scale (multiplied by the CuttableObject's scale, so a body scaled up or down keeps the same look). The scalpel's own trace keeps its own width.")]
     public float guideLineWidth = 0.005f;
 
-    [Tooltip("How far the guide lines float off the body, at the body's own scale (multiplied by the CuttableObject's scale). Drawing only -- scoring uses the unlifted loop. Too low and the line z-fights the mesh.")]
-    public float guideHoverLength = 0.01f;
-
-    [Tooltip("Smallest number of points the loop is warped and drawn with. A low-poly body gives a cross-section of only a handful, and curving those few makes a zigzag instead of a wave. 0 keeps the raw extraction.")]
-    public int guideResolution = 64;
-
-    /// <summary>Width every guide line of this cut is drawn at, from the preset when there is one, scaled by the body so it keeps its look on a body scaled up or down.</summary>
-    public float GuideLineWidth => (minigamePreset != null ? minigamePreset.curveWidth : guideLineWidth) * BodyScale;
-
-    /// <summary>Hover the guide lines are drawn at, from the preset when there is one, scaled by the body so it keeps its look on a body scaled up or down.</summary>
-    public float GuideHoverLength => (minigamePreset != null ? minigamePreset.curveHoverLength : guideHoverLength) * BodyScale;
+    /// <summary>Width this cut's guide line is drawn at, scaled by the body so it keeps its look on a body scaled up or down.</summary>
+    public float GuideLineWidth => guideLineWidth * BodyScale;
 
     /// <summary>The cut body's own scale as a single factor, so the guide widths and hover (world-space quantities) stay proportional to a body scaled up or down. The average of the three lossy-scale axes, to survive a non-uniform scale; 1 when there is no body yet.</summary>
     private float BodyScale
@@ -205,9 +200,6 @@ public enum CuttingState
             return (Mathf.Abs(s.x) + Mathf.Abs(s.y) + Mathf.Abs(s.z)) / 3f;
         }
     }
-
-    /// <summary>Point count the loop is warped and drawn at, from the preset when there is one.</summary>
-    public int GuideResolution => minigamePreset != null ? minigamePreset.curveResolution : guideResolution;
 
     /// <summary>The camera's orbit -- the live angle that IS the cut progress, and that the scalpel slaves to.</summary>
     /// <remarks>
@@ -284,57 +276,6 @@ public enum CuttingState
     /// </remarks>
     public static event Action<CuttingManager> OnMinigameExited;
 
-    // ---- resolved tuning: the preset when one is assigned, the inline field otherwise ----
-
-    // Note the two below are NOT preset-backed: a preset is a reusable feel, and where a cut opens
-    // around its ring is fixed by its own cutting plane. Sharing one preset must not move them.
-
-    /// <summary>Angle the cut opens at, in degrees. Progress is measured from here.</summary>
-    public float StartAngle => startAngle;
-
-    /// <summary>Angle the cut completes at, in degrees.</summary>
-    public float EndAngle => endAngle;
-
-    /// <summary>Field of view held while cutting, in degrees.</summary>
-    public float CameraFOV => minigamePreset != null ? minigamePreset.cameraFOV : cameraFOV;
-
-    /// <summary>Fixed angular gap the scalpel keeps ahead of the camera, in degrees.</summary>
-    public float ScalpelAngleLead => minigamePreset != null ? minigamePreset.scalpelAngleLead : scalpelAngleLead;
-
-    /// <summary>Travel-speed tuning handed to the speed driver.</summary>
-    public CameraMovesPreset SpeedPreset => minigamePreset != null && minigamePreset.cameraPreset != null
-        ? minigamePreset.cameraPreset
-        : cameraPreset;
-
-    /// <summary>Target-loop shape handed to the loop guide.</summary>
-    public CurvePreset Curve => minigamePreset != null && minigamePreset.curvePreset != null
-        ? minigamePreset.curvePreset
-        : curvePreset;
-
-    /// <summary>Along-limb tuning handed to the scalpel's surface driver.</summary>
-    public ScalpelSurfacePreset ScalpelPreset => minigamePreset != null && minigamePreset.scalpelFollowPreset != null
-        ? minigamePreset.scalpelFollowPreset
-        : scalpelSurfacePreset;
-
-    /// <summary>Framing pushed onto the shared camera orbit on entry: this cut's own, or the minigame preset's while a scene still holds it there.</summary>
-    /// <remarks>
-    /// The manager owns framing, not the preset. Where the camera sits is geometry, like
-    /// <see cref="startAngle"/>: <c>angleOffset</c> is measured from the plane's right axis, so sharing
-    /// one asset drags two cuts to the same opening angle -- and a radius authored in world units is a
-    /// wide shot of a wrist and a camera inside a thigh.
-    /// <para>The preset is still read as a fallback so scenes authored before this keep their framing
-    /// until the slot above is filled. Once every cut has been moved over, that half of the expression
-    /// and the two fields on <see cref="CutMinigamePreset"/> can go.</para>
-    /// </remarks>
-    public CameraFollowPreset CameraOrbitPreset => cameraOrbitPreset != null
-        ? cameraOrbitPreset
-        : (minigamePreset != null ? minigamePreset.cameraOrbitPreset : null);
-
-    /// <summary>Framing pushed onto the scalpel's orbit on entry. Same resolution as <see cref="CameraOrbitPreset"/>.</summary>
-    public CameraFollowPreset ScalpelOrbitPreset => scalpelOrbitPreset != null
-        ? scalpelOrbitPreset
-        : (minigamePreset != null ? minigamePreset.scalpelOrbitPreset : null);
-
     // ---- sound, all of it off the one sound preset ----
 
     /// <summary>Channel the cut sounds play on.</summary>
@@ -366,8 +307,7 @@ public enum CuttingState
         if (scalpelFollow == null) missing.Add("Scalpel CameraFollow");
         else if (!scalpelFollow.TryGetComponent<ScalpelSurfaceDriver>(out _)) missing.Add("A ScalpelSurfaceDriver on the scalpel");
         // no speed-driver entry: it is provisioned on demand, so it can never be "missing".
-        if (SpeedPreset == null) missing.Add("Camera moves preset");
-        if (Curve == null) missing.Add("Curve preset");
+        if (cameraPreset == null) missing.Add("Camera moves preset");
 
         // ---- per-cut authoring, not wiring: the data a cut needs to mean something ----
 
@@ -453,7 +393,7 @@ public enum CuttingState
         CaptureCameraState();
 
         // seed the kept progress, so the first entry opens at startAngle and not at 0.
-        currentAngle = StartAngle;
+        currentAngle = startAngle;
         PushParameters();
 
         // ExecuteAlways also runs this in edit mode; input + camera setup is play-only.
@@ -474,7 +414,7 @@ public enum CuttingState
     {
         if (scalpelFollow == null || cameraFollow == null) return;
 
-        float lead = cameraFollow.startAngle + ScalpelAngleLead;
+        float lead = cameraFollow.startAngle + scalpelAngleLead;
 
         // only when it actually moves: this runs every frame in edit mode, and an unconditional write
         // would register an undo step and dirty the scalpel on frames that changed nothing.
@@ -515,7 +455,7 @@ public enum CuttingState
                 // rub the guide out behind the scalpel, so the drawn line is always what is left
                 // to cut. Driven off the scalpel's progress, not the camera's: the scalpel is the
                 // thing passing over the line.
-                if (loopGuide != null) loopGuide.SetTraceProgress(StartAngle, EndAngle, currentProgress);
+                if (loopGuide != null) loopGuide.SetTraceProgress(startAngle, endAngle, currentProgress);
 
                 if (currentProgress >= 1) HandleCompletion();
                 // edge, not held: a held E would quit again the instant the player re-entered.
@@ -575,7 +515,7 @@ public enum CuttingState
         speedDriver.ResetDrive();
         speedDriver.Enable();
 
-        SetScalpelTrace(true);
+        SetCutVisuals(true);
 
         phase = RigPhase.Cutting;
     }
@@ -648,7 +588,7 @@ public enum CuttingState
             speedDriver.Disable();
         }
 
-        SetScalpelTrace(false);
+        SetCutVisuals(false);
 
         CompleteExit();
     }
@@ -777,7 +717,7 @@ public enum CuttingState
         // CameraFollow.OnEnable re-seeds its angle from startAngle, and the enable in ClaimCamera
         // fires it, so re-entering would rewind the cut. currentAngle is the kept progress: put it back.
         cameraFollow.Angle = currentAngle;
-        if (scalpelFollow != null) scalpelFollow.Angle = currentAngle + ScalpelAngleLead;
+        if (scalpelFollow != null) scalpelFollow.Angle = currentAngle + scalpelAngleLead;
 
         // the orbit computes but does not drive while the camera is flying in: the travel owns
         // the transform until CompleteEnter hands it back. Set here rather than in ClaimCamera,
@@ -819,7 +759,7 @@ public enum CuttingState
         // scalpel angle is driven by SyncScalpel; stop its CameraFollow from self-advancing.
         if (scalpelFollow != null) scalpelFollow.rotationSpeed = 0f;
 
-        SetScalpelTrace(true);
+        SetCutVisuals(true);
     }
 
     /// <summary>Gives the camera back: pose and FOV restored, orbit off, trace off. Mirror of <see cref="ClaimCamera"/>.</summary>
@@ -834,13 +774,13 @@ public enum CuttingState
 
         if (cameraFollow != null) cameraFollow.enabled = false;
 
-        SetScalpelTrace(false);
+        SetCutVisuals(false);
     }
 
     /// <summary>Re-reads the tuning that can change while a cut is already on screen: field of view, and which framing preset each follow uses.</summary>
     /// <remarks>
     /// Called on entry and on every editor-preview tick. Without the per-tick call these are read
-    /// once and never again, so editing cameraFOV on the CutMinigamePreset appears to do nothing
+    /// once and never again, so editing cameraFOV or swapping a framing preset appears to do nothing
     /// until the preview is restarted.
     /// <para>
     /// Deliberately narrow: it does not re-run <see cref="PushParameters"/>, which writes serialized
@@ -849,10 +789,10 @@ public enum CuttingState
     /// </remarks>
     public void RefreshLiveTuning()
     {
-        if (SceneCamera != null) SceneCamera.fieldOfView = CameraFOV;
+        if (SceneCamera != null) SceneCamera.fieldOfView = cameraFOV;
 
-        if (cameraFollow != null && CameraOrbitPreset != null) cameraFollow.preset = CameraOrbitPreset;
-        if (scalpelFollow != null && ScalpelOrbitPreset != null) scalpelFollow.preset = ScalpelOrbitPreset;
+        if (cameraFollow != null && cameraOrbitPreset != null) cameraFollow.preset = cameraOrbitPreset;
+        if (scalpelFollow != null && scalpelOrbitPreset != null) scalpelFollow.preset = scalpelOrbitPreset;
     }
 
     /// <summary>Sets the scene up exactly as entering the cut would, for the editor preview. No input, no speed driver -- the preview owns the angle.</summary>
@@ -885,12 +825,12 @@ public enum CuttingState
     /// <summary>Rewinds the cut to <c>startAngle</c>: orbit angles, progress, travel speed and the scalpel's trail. Called on every entry, so quitting always costs the run.</summary>
     void ResetCut()
     {
-        currentAngle = StartAngle;
+        currentAngle = startAngle;
 
         // set the live angles, not just startAngle: CameraFollow only re-seeds itself in
         // OnEnable, which doesn't fire when the rig is already enabled.
-        if (cameraFollow != null) cameraFollow.Angle = StartAngle;
-        if (scalpelFollow != null) scalpelFollow.Angle = StartAngle + ScalpelAngleLead;
+        if (cameraFollow != null) cameraFollow.Angle = startAngle;
+        if (scalpelFollow != null) scalpelFollow.Angle = startAngle + scalpelAngleLead;
 
         if (speedDriver != null) speedDriver.ResetDrive();
 
@@ -923,7 +863,7 @@ public enum CuttingState
             speedDriver.Disable();
         }
 
-        SetScalpelTrace(false);
+        SetCutVisuals(false);
 
         // put the whole ring back: a quit costs the run, so the guide must not still show the
         // stretch the abandoned attempt got through.
@@ -944,12 +884,21 @@ public enum CuttingState
         initialcameraFOV = cam.fieldOfView;
     }
 
-    /// <summary>Turns the scalpel's surface trail on or off, if it has a follower.</summary>
-    /// <remarks>Invariant: off stops the trail growing but leaves the drawn line standing. The line is
-    /// the cut the player made, so it stays on the body through the quit and the fly-out; only the tear
-    /// takes it down, in <see cref="PlayTearSound"/>.</remarks>
-    void SetScalpelTrace(bool on)
+    /// <summary>Turns this cut's on-body drawing on or off: the target loop the guide draws, and the scalpel's surface trail.</summary>
+    /// <remarks>
+    /// Invariant: off stops the trail growing but leaves the drawn line standing. The line is the cut
+    /// the player made, so it stays on the body through the quit and the fly-out; only the tear takes it
+    /// down, in <see cref="PlayTearSound"/>. The guide is the opposite -- it is a target, not a record --
+    /// so off takes it off screen outright.
+    /// <para>Both halves are here rather than each on its own switch because they answer the same
+    /// question: is this cut the one on screen? There is one guide and one driver per cut, so a cut that
+    /// misses either one leaves its ring drawn on a body nobody is cutting.</para>
+    /// </remarks>
+    void SetCutVisuals(bool on)
     {
+        // the guide has no follower to hang off, so it is switched first and unconditionally.
+        if (loopGuide != null) loopGuide.SetCutRunning(on);
+
         CameraFollow scalpel = scalpelFollow;
         if (scalpel == null) return;
         if (!scalpel.TryGetComponent<ScalpelSurfaceDriver>(out var scalpelLoop)) return;
@@ -1079,7 +1028,7 @@ public enum CuttingState
         if (speedDriver != null && speedDriver.IsPushingBackward()) return;
 
         // set before CameraFollow.Update (which runs after this, at order 0) so BasePosition uses it this frame.
-        scalpelFollow.Angle = cameraFollow.Angle + ScalpelAngleLead;
+        scalpelFollow.Angle = cameraFollow.Angle + scalpelAngleLead;
 
 
     }
@@ -1117,7 +1066,7 @@ public enum CuttingState
             speedDriver.Disable();
         }
 
-        SetScalpelTrace(false);
+        SetCutVisuals(false);
 
         finisher.Begin(ApplySplice, FinishUp);
     }
@@ -1217,24 +1166,19 @@ public enum CuttingState
 /// <summary>This manager owns the tuning; it pushes its presets + wiring down into the loop guide, both CameraFollows and the cutting speed driver so they can't drift apart. Live in edit mode too.</summary>
     void PushParameters()
     {
-        // loop guide: target, curve shape and drawn width.
+        // loop guide: target and drawn width.
         if (loopGuide != null)
         {
             BeforePushWrite(loopGuide);
 
-            // the width lands on the two line renderers, which are objects of their own
-            BeforePushWrite(loopGuide.loopLine);
+            // the width lands on the line renderer, which is an object of its own
             BeforePushWrite(loopGuide.flatLine);
 
             if (GameObjectBeingCut != null) loopGuide.meshFollow = GameObjectBeingCut;
-            if (Curve != null) loopGuide.preset = Curve;
 
-            // width and hover both go down every push, preset first and the inline field otherwise.
-            // Never conditional on there being a preset: the guide's own copies are outputs, hidden in
-            // its inspector, so a push that skips them leaves numbers nobody can reach or correct.
-            loopGuide.curveWidth = GuideLineWidth;
-            loopGuide.curveHoverLength = GuideHoverLength;
-            loopGuide.curveResolution = GuideResolution;
+            // goes down every push, unconditionally: the guide's own copy is an output, hidden in its
+            // inspector, so a push that skipped it would leave a number nobody can reach or correct.
+            loopGuide.lineWidth = GuideLineWidth;
 
             // applied here and not left to the next draw: OnValidate calls this, and an author dragging
             // the width wants the line to change under the cursor.
@@ -1247,10 +1191,10 @@ public enum CuttingState
 
         // cutting speed driver reads the camera-moves preset.
         CutSpeedDriver driver = speedDriver;
-        if (driver != null && SpeedPreset != null)
+        if (driver != null && cameraPreset != null)
         {
             BeforePushWrite(driver);
-            driver.preset = SpeedPreset;
+            driver.preset = cameraPreset;
             AfterPushWrite(driver);
         }
 
@@ -1267,12 +1211,12 @@ public enum CuttingState
             // only when there is one to give: in edit mode the driver is not provisioned yet, and
             // clearing the slot on every OnValidate would just churn the scene.
             if (driver != null) orbit.SetSpeedSource(driver);
-            orbit.startAngle = StartAngle;
+            orbit.startAngle = startAngle;
 
             // framing: the follow is shared, so this cut reclaims it with its own preset.
-            if (CameraOrbitPreset != null)
+            if (cameraOrbitPreset != null)
             {
-                orbit.preset = CameraOrbitPreset;
+                orbit.preset = cameraOrbitPreset;
                 orbit.ApplyPreset();
             }
 
@@ -1293,9 +1237,9 @@ public enum CuttingState
             if (loopGuide != null) scalpel.loopGuide = loopGuide;
             scalpel.SetSpeedSource(null);
 
-            if (ScalpelOrbitPreset != null)
+            if (scalpelOrbitPreset != null)
             {
-                scalpel.preset = ScalpelOrbitPreset;
+                scalpel.preset = scalpelOrbitPreset;
                 scalpel.ApplyPreset();
             }
 
@@ -1319,7 +1263,7 @@ public enum CuttingState
 
                 // tuning, unlike the builder, is optional: with no preset the driver keeps its own
                 // inline values, which is what a scalpel authored before presets existed relies on.
-                if (ScalpelPreset != null) scalpelLoop.preset = ScalpelPreset;
+                if (scalpelSurfacePreset != null) scalpelLoop.preset = scalpelSurfacePreset;
 
                 AfterPushWrite(scalpelLoop);
             }

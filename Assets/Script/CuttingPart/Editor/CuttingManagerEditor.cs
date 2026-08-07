@@ -3,48 +3,25 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>Inspector for <see cref="CuttingManager"/> that shows only the knobs a given cut still needs.</summary>
-/// <remarks>
-/// Invariant: inline tuning is drawn only while no preset is assigned, so the fields on screen are
-/// always the ones in effect.
-/// <para>Invariant: missing wiring is reported before entry rather than surfacing as a null
-/// reference on the first frame of the cut.</para>
-/// <para>Invariant: this editor is the only thing that lays the component out. The manager carries no
-/// <c>[Header]</c> attributes, because one would be drawn a second time inside the section that already
-/// names it.</para>
-/// <para>The body is a stack of collapsible sections. A cut has far more tuning than any one authoring
-/// pass touches, so each section states in its own header what it is set to -- the answer is usually
-/// there without opening it, and what is open stays open while the session lasts.</para>
-/// </remarks>
 [CustomEditor(typeof(CuttingManager))]
 public class CuttingManagerEditor : Editor
 {
     private const string KeyPrefix = "CuttingManagerEditor.";
     private const string InlineKey = KeyPrefix + "showInline";
 
-    // startAngle/endAngle are not here: they are per-cut geometry drawn with the target above,
-    // not tuning a preset can supply.
-    private static readonly string[] InlineTuningFields =
+    // startAngle/endAngle are not here: they are per-cut geometry drawn with the target above.
+    private static readonly string[] TuningFields =
     {
-        "cameraFOV", "scalpelAngleLead", "guideLineWidth", "guideHoverLength", "guideResolution",
-        "cameraPreset", "curvePreset", "scalpelSurfacePreset",
+        "cameraFOV", "scalpelAngleLead", "guideLineWidth",
+        "cameraPreset", "scalpelSurfacePreset",
     };
 
-    // sceneCamera and speedDriver are absent on purpose: the manager finds the camera in the
-    // scene and provisions the shared driver itself, so neither is a serialized property. The aim
-    // highlight moved onto CuttableObject (IHoverable), so there is no free-look field here either.
-    private static readonly string[] HardwareFields =
+      private static readonly string[] HardwareFields =
     {
         "scalpelFollow",
     };
 
-    /// <summary>Stops this cut's preview when the inspector is torn down, so deselecting it puts the camera and rig back.</summary>
-    /// <remarks>
-    /// The preview is a static system on <c>EditorApplication.update</c>, not owned by this editor:
-    /// without this, selecting another object leaves it running with the game camera claimed at an
-    /// orbit pose and nothing ever puts it back until a domain reload. Only this cut's own preview is
-    /// stopped -- another cut's is left alone.
-    /// </remarks>
+
     private void OnDisable()
     {
         if (CutPreview.IsRunning && CutPreview.Active == target as CuttingManager)
@@ -61,7 +38,7 @@ public class CuttingManagerEditor : Editor
         DrawWiringStatus(manager);
 
         DrawTargetSection();
-        DrawPlaySection(manager);
+        DrawPlaySection();
         DrawCameraTravelSection();
         DrawSoundSection();
         DrawSeveredPieceSection(manager);
@@ -87,48 +64,32 @@ public class CuttingManagerEditor : Editor
             Draw("loopGuide");
 
             // identity: what the piece IS -- which also names it -- and what it takes to cut it.
-            // Per-cut, never from a preset.
             Draw("bodyPartType");
             Draw("requiredTool");
 
-            // geometry, so it sits with the target rather than in the tuning block: it is fixed by
-            // where this cut's plane is, and a preset must never move it.
+            // geometry, so it sits with the target rather than in the tuning block: it is fixed
+            // by where this cut's plane is.
             Draw("startAngle");
             Draw("endAngle");
             Draw("orbitAngleOffset");
 
             // framing is geometry too -- an orbit radius and an angleOffset only mean anything against
-            // THIS cut's ring -- so it is authored here rather than in the shared minigame preset.
+            // THIS cut's ring -- so it sits with the target rather than with the tuning below.
             Draw("cameraOrbitPreset");
             Draw("scalpelOrbitPreset");
         }
     }
 
-    private void DrawPlaySection(CuttingManager manager)
+    private void DrawPlaySection()
     {
-        SerializedProperty preset = serializedObject.FindProperty("minigamePreset");
-        string summary = preset != null && preset.objectReferenceValue != null
-            ? preset.objectReferenceValue.name
-            : "inline";
-
-        using (var section = new Section("play", "How it plays", true, summary))
+        using (var section = new Section("play", "How it plays", true, null))
         {
             if (!section.Open) return;
 
-            EditorGUILayout.PropertyField(preset);
-
-            if (preset.objectReferenceValue == null)
-            {
-                DrawInlineTuning(manager);
-                return;
-            }
-
-            EditorGUILayout.HelpBox("Tuning comes from the preset. Edit the asset to change it, here or in the Project window.", MessageType.None);
-            DrawEmbeddedPreset(preset);
+            DrawTuning();
         }
     }
 
-    // not in the inline block: no preset carries the travel, so these apply either way.
     private void DrawCameraTravelSection()
     {
         SerializedProperty enter = serializedObject.FindProperty("enterTravelTime");
@@ -284,64 +245,26 @@ public class CuttingManagerEditor : Editor
             manager.AutoWire();
             EditorUtility.SetDirty(manager);
 
-            // AutoWire wrote straight to the component, so the serializedObject snapshot taken at the top
-            // of OnInspectorGUI is now stale: without this resync the fields below still draw the old
-            // (empty) values and the ApplyModifiedProperties at the end pushes them back, so the wiring
-            // reads as reverted -- most visibly on a prefab, where it looks like the edit would not save.
+      
             serializedObject.Update();
         }
     }
 
-    /// <summary>Inline tuning, shown only while no preset is assigned, plus the button that turns it into one.</summary>
-    /// <remarks>A plain foldout, not a header group: this one is nested inside a section, and header
-    /// groups cannot nest.</remarks>
-    private void DrawInlineTuning(CuttingManager manager)
+
+    private void DrawTuning()
     {
         bool show = SessionState.GetBool(InlineKey, true);
-        show = EditorGUILayout.Foldout(show, "Inline tuning (no preset assigned)", true);
+        show = EditorGUILayout.Foldout(show, "Tuning", true);
         SessionState.SetBool(InlineKey, show);
 
         if (!show) return;
 
         EditorGUI.indentLevel++;
-        for (int i = 0; i < InlineTuningFields.Length; i++)
+        for (int i = 0; i < TuningFields.Length; i++)
         {
-            Draw(InlineTuningFields[i]);
-        }
-
-        if (GUILayout.Button("Save these as a preset asset"))
-        {
-            // apply first: the button can be clicked in the same frame a field was edited.
-            serializedObject.ApplyModifiedProperties();
-            CreatePresetFrom(manager);
-
-            // CreatePresetFrom assigned minigamePreset straight on the component; resync so the snapshot
-            // matches, or the ApplyModifiedProperties at the end of OnInspectorGUI clears the assignment
-            // back and the preset appears not to have been set.
-            serializedObject.Update();
+            Draw(TuningFields[i]);
         }
         EditorGUI.indentLevel--;
-    }
-
-    /// <summary>Draws the assigned preset's own fields inline, so tuning does not cost a trip to the Project window.</summary>
-    private void DrawEmbeddedPreset(SerializedProperty presetProperty)
-    {
-        var asset = (CutMinigamePreset)presetProperty.objectReferenceValue;
-        var presetObject = new SerializedObject(asset);
-        presetObject.Update();
-
-        EditorGUI.indentLevel++;
-        SerializedProperty iterator = presetObject.GetIterator();
-        bool enterChildren = true;
-        while (iterator.NextVisible(enterChildren))
-        {
-            enterChildren = false;
-            if (iterator.propertyPath == "m_Script") continue;
-            EditorGUILayout.PropertyField(iterator, true);
-        }
-        EditorGUI.indentLevel--;
-
-        presetObject.ApplyModifiedProperties();
     }
 
     /// <summary>Draws the edit-mode preview controls for the camera's sweep from start angle to end.</summary>
@@ -392,7 +315,7 @@ public class CuttingManagerEditor : Editor
                 CutPreview.Speed);
 
             // scrubbing pauses, so a bad spot can be held still and tuned
-            float scrubbed = EditorGUILayout.Slider("Angle", CutPreview.Angle, manager.StartAngle, manager.EndAngle);
+            float scrubbed = EditorGUILayout.Slider("Angle", CutPreview.Angle, manager.startAngle, manager.endAngle);
             if (!Mathf.Approximately(scrubbed, CutPreview.Angle))
             {
                 CutPreview.ScrubTo(scrubbed);
@@ -425,52 +348,7 @@ public class CuttingManagerEditor : Editor
         }
     }
 
-    /// <summary>Writes this manager's inline values into a new preset asset and assigns it, doing nothing when the save is cancelled.</summary>
-    private static void CreatePresetFrom(CuttingManager manager)
-    {
-        string path = EditorUtility.SaveFilePanelInProject(
-            "Save cut preset",
-            $"{manager.name} Preset",
-            "asset",
-            "Where should this cut's tuning live?");
-        if (string.IsNullOrEmpty(path))
-        {
-            return;
-        }
-
-        var preset = ScriptableObject.CreateInstance<CutMinigamePreset>();
-        // startAngle/endAngle are not copied: they stay on the manager, so a preset built from
-        // this cut can be handed to another one without dragging this cut's geometry along.
-        preset.cameraFOV = manager.cameraFOV;
-        preset.scalpelAngleLead = manager.scalpelAngleLead;
-        preset.cameraPreset = manager.cameraPreset;
-        preset.curvePreset = manager.curvePreset;
-        preset.scalpelFollowPreset = manager.scalpelSurfacePreset;
-
-        // read off the manager, not the guide: the guide's copies are pushed outputs, and taking them
-        // back would round-trip through whatever the last push happened to leave there.
-        preset.curveWidth = manager.guideLineWidth;
-        preset.curveHoverLength = manager.guideHoverLength;
-        preset.curveResolution = manager.guideResolution;
-
-        AssetDatabase.CreateAsset(preset, path);
-        AssetDatabase.SaveAssets();
-
-        Undo.RecordObject(manager, "Assign cut preset");
-        manager.minigamePreset = preset;
-        EditorUtility.SetDirty(manager);
-    }
-
-    /// <summary>One collapsible section: a foldout header, its contents indented, and the open/closed state kept for the session.</summary>
-    /// <remarks>
-    /// A scope rather than a pair of calls, because <c>BeginFoldoutHeaderGroup</c> must be closed on
-    /// every path out -- including the early <c>return</c>s the section bodies are written with. Leaving
-    /// one open corrupts the layout of everything drawn after it, in this inspector and the next.
-    /// <para>State lives in <see cref="SessionState"/>, so it survives assembly reloads and entering
-    /// play mode but does not follow the project to anyone else's machine.</para>
-    /// <para>Header groups cannot be nested; sections are top-level only, and anything folded inside one
-    /// uses a plain <c>Foldout</c>.</para>
-    /// </remarks>
+  
     private readonly struct Section : IDisposable
     {
         public readonly bool Open;

@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>The channel and clips a cutting minigame plays through.</summary>
 /// <remarks>
-/// Its own asset rather than fields on <see cref="CutMinigamePreset"/>: the sounds are the same for
+/// Its own asset rather than fields on the <see cref="CuttingManager"/>: the sounds are the same for
 /// every cut while the feel of each cut is not, so keeping them apart means adding a cut with a new
 /// difficulty does not mean re-picking the audio.
 /// </remarks>

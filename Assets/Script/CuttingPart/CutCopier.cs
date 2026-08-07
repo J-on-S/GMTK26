@@ -270,7 +270,7 @@ public static class CutCopier
         // entered. canEnterMinigame() demands Free, so the copy would refuse to start and give no
         // reason. A fresh copy is by definition at the beginning of its cut.
         cut.phase = CuttingManager.RigPhase.Free;
-        cut.currentAngle = cut.StartAngle;
+        cut.currentAngle = cut.startAngle;
 
         return cut;
     }
@@ -363,7 +363,7 @@ public static class CutCopier
     /// line for every cut in the scene, and whichever cut pushed last owns it -- so a copy on a second
     /// body would draw its trail over the first body's scalpel.
     /// <para>Only the running cut's driver is live: each parks itself when play starts and
-    /// <c>CuttingManager.SetScalpelTrace</c> switches the entered one on, so several scalpels in a scene
+    /// <c>CuttingManager.SetCutVisuals</c> switches the entered one on, so several scalpels in a scene
     /// cost nothing while nobody is cutting.</para>
     /// <para>This is also the migration path for a scene built when the scalpel was scene-wide: the
     /// original cut keeps the shared one, and every copy gets a scalpel of its own.</para>

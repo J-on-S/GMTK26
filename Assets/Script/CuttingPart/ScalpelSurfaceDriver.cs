@@ -131,24 +131,15 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         // Undo entry, saved into the scene the next time it is written.
         EnsureTraceRenderer();
 
-        // play only: [ExecuteAlways] runs Start in the editor too, and locking there grabs the
-        // editor's cursor while nothing is even playing.
+      
         Cursor.lockState = CursorLockMode.Locked;
 
         HideScalpelRenderers();
 
-        // clear the edit-mode preview the line was left holding. ShowTrace fills it with the whole
-        // closed loop as an authoring aid, and those points serialize into the scene -- left as they
-        // are, play opens with every scalpel's full cut ring floating on its body before anything is
-        // cut. ResetTrace empties the points and reopens the loop, so the trail starts clean and only
-        // grows once a cut is running.
+
         ResetTrace();
 
-        // Parked until a cut claims it. There is one of these per cut, so every driver in the scene
-        // would otherwise start snapping its own scalpel onto its own body and drawing its own trail
-        // from the first frame, on bodies nobody is cutting. CuttingManager.SetScalpelTrace switches
-        // the running cut's driver on at entry and off again on the way out.
-        // Edit mode is left alone: there the driver IS the authoring preview.
+        
         enabled = false;
     }
 
@@ -186,6 +177,11 @@ public class ScalpelSurfaceDriver : MonoBehaviour
             return traceRenderer;
         }
 
+        // read before the slot below is repointed: this is the hand-authored line the edit-mode preview
+        // draws into, and its look is the one the author signed off on. A renderer created for play
+        // copies it, so the preview is a preview.
+        LineRenderer authored = traceRenderer;
+
         // host moved (a body was wired, or a different one): the old line's points are in the old frame,
         // so drop them and start the trail again on the new host.
         if (traceRenderer != null && traceRenderer.transform != wantHost)
@@ -194,22 +190,75 @@ public class ScalpelSurfaceDriver : MonoBehaviour
             traceRenderer.positionCount = 0;
         }
 
+        // and the same for whatever line is parked on the fallback host, whether or not this driver's
+        // slot points at it. A LineRenderer's points are serialized, so the ring the edit-mode preview
+        // drew onto the scalpel is still there when play starts: on a cut whose traceRenderer was never
+        // assigned the branch above cannot reach it, and the authored ring hangs over the body,
+        // undrivable and never cleared, for the whole run. It is also the only thing left to copy a
+        // look from, so an unassigned cut still gets the authored one rather than the bare defaults.
+        if (wantHost != owned.transform
+            && owned.TryGetComponent(out LineRenderer parked)
+            && parked != traceRenderer)
+        {
+            parked.positionCount = 0;
+            if (authored == null) authored = parked;
+        }
+
         if (!wantHost.TryGetComponent(out traceRenderer))
         {
             traceRenderer = wantHost.gameObject.AddComponent<LineRenderer>();
             traceRenderer.positionCount = 0;
 
-            // starting point for a renderer nobody has authored yet. Set once, on creation only, so
-            // every one of these stays editable afterwards.
-            traceRenderer.alignment = LineAlignment.View;
-            traceRenderer.textureMode = LineTextureMode.Stretch;
-            traceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            traceRenderer.receiveShadows = false;
+            CopyPresentation(authored, traceRenderer);
             ApplyTraceWidth();
         }
 
         ConfigureTraceRenderer();
         return traceRenderer;
+    }
+
+    /// <summary>Gives a freshly created trace line the look of the one the author tuned on the scalpel.</summary>
+    /// <remarks>
+    /// The two lines are different components on different objects: edit mode previews into a
+    /// LineRenderer authored by hand, play draws into one this component creates on the body. Anything
+    /// that lives only on the authored component does not travel unless it is copied, and a fresh
+    /// LineRenderer arrives with <c>textureMode</c> at <c>Stretch</c> — which maps the whole trace
+    /// texture once across the line instead of repeating it along it. With a stitch texture that is the
+    /// difference between a row of stitches in the scene view and one smear in play, and it is exactly
+    /// the setting the note at the bottom of <c>LoopGuideBuilder</c> asks authors to set to Tile.
+    /// <para>Deliberately not copied: points (the trail owns its own), width (<c>traceWidth</c> through
+    /// <see cref="ApplyTraceWidth"/>), space (follows the host, see <see cref="ConfigureTraceRenderer"/>)
+    /// and material (this component's <c>traceMaterial</c> slot). Those four have an owner already, and
+    /// copying them would let the authored line quietly overrule it.</para>
+    /// </remarks>
+    /// <param name="from">The authored line, or <c>null</c> when this cut has none to follow.</param>
+    private static void CopyPresentation(LineRenderer from, LineRenderer to)
+    {
+        if (to == null) return;
+
+        if (from == null)
+        {
+            // nothing authored to follow. Tile rather than the LineRenderer default of Stretch: every
+            // trace material in this project is a repeating stitch, so Stretch is never the right guess.
+            to.alignment = LineAlignment.View;
+            to.textureMode = LineTextureMode.Tile;
+            to.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            to.receiveShadows = false;
+            return;
+        }
+
+        to.alignment = from.alignment;
+        to.textureMode = from.textureMode;
+        to.textureScale = from.textureScale;
+        to.colorGradient = from.colorGradient;
+        to.numCornerVertices = from.numCornerVertices;
+        to.numCapVertices = from.numCapVertices;
+        to.shadowBias = from.shadowBias;
+        to.generateLightingData = from.generateLightingData;
+        to.shadowCastingMode = from.shadowCastingMode;
+        to.receiveShadows = from.receiveShadows;
+        to.sortingLayerID = from.sortingLayerID;
+        to.sortingOrder = from.sortingOrder;
     }
 
     /// <summary>The managed child of the body that hosts this driver's line, sitting at the body's origin so its local space is the body's own.</summary>
@@ -289,8 +338,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
 
         // the loop as it sits on the surface, then lifted by this line's own hover: drawn flush with the
         // mesh it z-fights and dips through it, which reads as a tangle rather than a ring.
-        if (!builder.TryGetCurvedLoop(out Vector3 center, out List<Vector3> points)
-            && !builder.TryGetFlatLoop(out center, out points))
+        if (!builder.TryGetFlatLoop(out Vector3 center, out List<Vector3> points))
         {
             return;
         }
@@ -392,23 +440,13 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         }
     }
 
-    /// <summary>Score against the flat cut loop; off = the curved guide.</summary>
-    public bool useFlatCurve = true;
-
     /// <summary>Closest point on the target loop to <c>onMeshPos</c>, drawn by the precision gizmo.</summary>
     private Vector3 expected;
 
     /// <summary>Logs how far the snapped object sits from the target loop and records the nearest loop point for the gizmo.</summary>
     void calculatePrecision()
     {
-        bool result;
-        List<Vector3> points;
-        if (useFlatCurve) {
-            result = builder.TryGetFlatLoop(out Vector3 center, out points);
-        } else {
-            result = builder.TryGetCurvedLoop(out Vector3 center, out points);
-        }
-        if (!result) return;
+        if (!builder.TryGetFlatLoop(out _, out List<Vector3> points)) return;
 
         expected = LoopScorer.ClosestPointOnPolyline(points, onMeshPos, out float t, out float dst);
         //Debug.Log(dst.ToString("0.000"));
@@ -417,7 +455,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
     void OnDrawGizmos()
     {
         if (owned == null) return;
-
+        return;
         Color c = Gizmos.color;
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(expected, 0.01f);
@@ -480,18 +518,7 @@ public class ScalpelSurfaceDriver : MonoBehaviour
         calculatePrecision();
     }
 
-    /// <summary>Appends a surface point to the trail, skipping near-duplicates and filling in long jumps.</summary>
-    /// <remarks>
-    /// The trail is sampled once a frame, so how far apart its points land is the scalpel's speed times
-    /// the frame time -- a fast sweep, or a frame that hitched, leaves a straight chord across a curve
-    /// the player did not cut that way. Anything longer than <see cref="traceMaxStep"/> is walked in
-    /// even steps so the drawn line keeps the shape of the surface at any speed.
-    /// <para>The fill-in is a straight line between two surface points, not re-projected onto the mesh:
-    /// over a step this short the two are the same to the eye, and a projection per fill point would put
-    /// a raycast burst on the frames that are already the slowest.</para>
-    /// <para>Points go in one at a time with <c>SetPosition</c>. Rewriting the whole array on every
-    /// append allocated a copy of the trail per point, which a denser trail turns into real garbage.</para>
-    /// </remarks>
+
     void AddTracePoint(Vector3 p)
     {
         int n = tracePoints.Count;

@@ -33,15 +33,12 @@ public static class CuttingSetupMenu
         CuttingManager manager = root.AddComponent<CuttingManager>();
         LoopGuideBuilder guide = root.AddComponent<LoopGuideBuilder>();
 
-        LineRenderer guideLine = CreateLine("GuideLine", root.transform);
         LineRenderer flatLine = CreateLine("FlatLine", root.transform);
 
         // per-cut wiring, all of it: the manager only has to be told what it is cutting.
         guide.meshFollow = target != null ? target : null;
-        guide.loopLine = guideLine;
         guide.flatLine = flatLine;
-        guide.showCurvedLoop = true;
-        guide.showFlatLoop = false;
+        guide.showFlatLoop = true;
 
         manager.loopGuide = guide;
         manager.GameObjectBeingCut = target;
@@ -235,6 +232,14 @@ public static class CuttingSetupMenu
         go.name = "plane";
         go.transform.SetParent(guide.transform, false);
 
+        // the primitive is here for its BoxCollider -- that box IS the cut window -- and for nothing
+        // else. Its MESH is a 1mm-thin slab sitting exactly on the cut, drawn with URP's default
+        // material: edge-on from the game camera that reads as a black line across the body part, and
+        // in the scene view it hides under the plane's own gizmos so nobody notices until they press
+        // play. The window draws as a gizmo; it never needs a renderer.
+        Object.DestroyImmediate(go.GetComponent<MeshRenderer>());
+        Object.DestroyImmediate(go.GetComponent<MeshFilter>());
+
         // a body-part-sized start: a 1m cube would dwarf a limb and read as nothing but grey. Thin on Y
         // because a cut is a plane -- the window is the X/Z box, and Y is dropped by CutPlane anyway.
         go.transform.localScale = new Vector3(0.05f, 0.001f, 0.05f);
@@ -305,7 +310,7 @@ public static class CuttingSetupMenu
     /// <para>Built as a child of the cut, so it travels with it -- including through
     /// <see cref="CutCopier"/>, which copies the cut's hierarchy wholesale.</para>
     /// <para>Only the running cut's driver is live: it parks itself when play starts, and
-    /// <c>CuttingManager.SetScalpelTrace</c> switches it on at entry.</para>
+    /// <c>CuttingManager.SetCutVisuals</c> switches it on at entry.</para>
     /// <para>An already-assigned <c>scalpelFollow</c> is left alone -- a scene can carry a hand-placed
     /// scalpel, and that one keeps its transform and only gains the missing component.</para>
     /// <para>The mesh is left to the author: what the scalpel looks like is not something this tool can
