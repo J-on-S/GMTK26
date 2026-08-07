@@ -27,8 +27,7 @@ public class CutPlane : MonoBehaviour
     [Tooltip("Body this plane cuts. Left empty, the nearest CuttableObject up the hierarchy is used.")]
     public CuttableObject target;
 
-    [Tooltip("Outward offset of the orange preview loop from its centre, for the gizmo only.")]
-    public float previewScale = 0.05f;
+
 
     /// <summary>Loops last extracted for the gizmo, in the body's mesh-local space.</summary>
     private readonly List<CuttableObject.SavedLoop> gizmoLoops = new();
@@ -153,31 +152,17 @@ public class CutPlane : MonoBehaviour
         // the window first, and NOT behind the body's Draw Cut Loops switch: drawing a rectangle
         // costs nothing, and the thing that switch turns off is the loop re-extraction below. A
         // window you cannot see is how one ends up many times the size of the part it cuts.
-        if (drawLoop)
-        {
-            GizmoUtils.DrawBoundsGizmo(transform, WindowSize, WindowCenter);
-        }
+        
+        GizmoUtils.DrawBoundsGizmo(transform, WindowSize, WindowCenter);
+        
 
         if (!drawLoop || body == null || !body.drawCutLoops)
         {
             return;
         }
 
-        // re-extracted every editor frame so dragging the plane updates the loop live. This is the
-        // expensive part of authoring a cut; the body's Draw Cut Loops switch turns it off for
-        // every plane at once once the placement is settled.
         gizmoLoops.Clear();
         gizmoLoops.AddRange(CuttableObject.GetLoops(body.gameObject, transform, body.weld, WindowSize, WindowCenter));
-
-        for (int i = 0; i < gizmoLoops.Count; i++)
-        {
-            var preview = new CuttableObject.SavedLoop
-            {
-                closed = gizmoLoops[i].closed,
-                points = CutContour.ScaleLoop(gizmoLoops[i].points, previewScale),
-            };
-            GizmoUtils.DrawLoop(body.transform, preview, Color.orange, false);
-        }
 
         CuttableObject.DrawLoops(body.transform, gizmoLoops, Color.green, true);
     }
