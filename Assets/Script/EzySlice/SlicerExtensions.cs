@@ -304,14 +304,20 @@ namespace EzySlice {
             }
             Vector3[] v = hull.vertices;
             Vector2[] uv = hull.uv;
+            Vector3[] nrm = hull.normals;
             bool hasUV = uv.Length == v.Length;
+            bool hasNormals = nrm.Length == v.Length;
+            if (!hasNormals) {
+                body.DropNormals();
+            }
 
             for (int s = 0; s < origSubmeshes && s < hull.subMeshCount; s++) {
                 int[] tri = hull.GetTriangles(s);
                 for (int t = 0; t < tri.Length; t += 3) {
                     int a = tri[t], b = tri[t + 1], c = tri[t + 2];
                     body.AddTri(body.skin[s], v[a], v[b], v[c],
-                        hasUV ? uv[a] : default, hasUV ? uv[b] : default, hasUV ? uv[c] : default);
+                        hasUV ? uv[a] : default, hasUV ? uv[b] : default, hasUV ? uv[c] : default,
+                        hasNormals ? nrm[a] : default, hasNormals ? nrm[b] : default, hasNormals ? nrm[c] : default);
                 }
             }
         }
@@ -325,7 +331,12 @@ namespace EzySlice {
             }
             Vector3[] v = hull.vertices;
             Vector2[] uv = hull.uv;
+            Vector3[] nrm = hull.normals;
             bool hasUV = uv.Length == v.Length;
+            bool hasNormals = nrm.Length == v.Length;
+            if (!hasNormals) {
+                body.DropNormals();
+            }
 
             // 1. weld positions into stable ids so triangles that merely duplicate a vertex still share it
             float invWeld = 1.0f / Mathf.Max(weld, 1e-8f);
@@ -380,14 +391,21 @@ namespace EzySlice {
 
                     if (!pieceByRoot.TryGetValue(root, out HullBuilder pieceB)) {
                         pieceB = new HullBuilder(origSubmeshes, weld);
+                        if (!hasNormals) {
+                            pieceB.DropNormals();
+                        }
                         pieceByRoot.Add(root, pieceB);
                     }
 
                     for (int t = 0; t < capTris.Count; t++) {
                         Triangle ct = capTris[t];
-                        // piece cap faces up along the plane normal, body's mirror cap faces down into the gap
-                        pieceB.AddTri(pieceB.cap, ct.positionA, ct.positionB, ct.positionC, ct.uvA, ct.uvB, ct.uvC);
-                        body.AddTri(body.cap, ct.positionA, ct.positionC, ct.positionB, ct.uvA, ct.uvC, ct.uvB);
+                        // piece cap faces up along the plane normal, body's mirror cap faces down into the gap.
+                        // The body's copy is wound the other way, so its normals are the other way too --
+                        // handing it the piece's would light the far side of the hole.
+                        pieceB.AddTri(pieceB.cap, ct.positionA, ct.positionB, ct.positionC,
+                            ct.uvA, ct.uvB, ct.uvC, ct.normalA, ct.normalB, ct.normalC);
+                        body.AddTri(body.cap, ct.positionA, ct.positionC, ct.positionB,
+                            ct.uvA, ct.uvC, ct.uvB, -ct.normalA, -ct.normalC, -ct.normalB);
                     }
                 }
             }
@@ -399,7 +417,8 @@ namespace EzySlice {
                     int a = tri[t], b = tri[t + 1], c = tri[t + 2];
                     HullBuilder dst = pieceByRoot.TryGetValue(Find(parent, wid[a]), out HullBuilder pieceB) ? pieceB : body;
                     dst.AddTri(dst.skin[s], v[a], v[b], v[c],
-                        hasUV ? uv[a] : default, hasUV ? uv[b] : default, hasUV ? uv[c] : default);
+                        hasUV ? uv[a] : default, hasUV ? uv[b] : default, hasUV ? uv[c] : default,
+                        hasNormals ? nrm[a] : default, hasNormals ? nrm[b] : default, hasNormals ? nrm[c] : default);
                 }
             }
         }
@@ -437,15 +456,31 @@ namespace EzySlice {
             }
         }
 
-        /// <summary>Accumulates welded triangles into one mesh: per-skin-submesh buckets plus a trailing cap bucket, merging coincident vertices so seams rejoin.</summary>
+        /// <summary>Accumulates welded triangles into one mesh: per-skin-submesh buckets plus a trailing cap bucket, merging coincident vertices so a cut welds shut.</summary>
+        /// <remarks>
+        /// Two vertices merge only when position, UV and normal all agree. Position alone is not enough,
+        /// and getting that wrong rewrites the whole body: an atlas-mapped mesh duplicates a vertex at every
+        /// UV island border and at every hard edge, and merging those pairs drags one island's texture across
+        /// its neighbour and flattens the shading — on a mesh nobody cut, since a slice rebuilds ALL of it.
+        /// It also merged each cap vertex into the skin vertex underneath it, so the cut face wore whichever
+        /// of the two happened to be inserted first.
+        /// <para>The merge that matters still happens: a straddled triangle's upper and lower fragments get
+        /// their seam position, UV and normal from one <c>GenerateUV</c>/<c>GenerateNormal</c> call each, so
+        /// the two sides carry bit-identical values and rejoin. Anything that only nearly matches now stays
+        /// two vertices, which costs a vertex and changes nothing on screen.</para>
+        /// </remarks>
         private class HullBuilder {
             public readonly List<int>[] skin;
             public readonly List<int> cap = new List<int>();
 
             private readonly List<Vector3> verts = new List<Vector3>();
             private readonly List<Vector2> uvs = new List<Vector2>();
-            private readonly Dictionary<Vector3Int, int> lookup = new Dictionary<Vector3Int, int>();
+            private readonly List<Vector3> normals = new List<Vector3>();
+            private readonly Dictionary<VertexKey, int> lookup = new Dictionary<VertexKey, int>();
             private readonly float invWeld;
+
+            /// <summary>Whether every triangle so far arrived with a normal. Cleared by <see cref="DropNormals"/>; false makes <see cref="Build"/> recalculate the lot rather than ship a half-filled array.</summary>
+            private bool haveNormals = true;
 
             public HullBuilder(int submeshes, float weld) {
                 skin = new List<int>[submeshes];
@@ -455,10 +490,16 @@ namespace EzySlice {
                 invWeld = 1.0f / Mathf.Max(weld, 1e-8f);
             }
 
-            public void AddTri(List<int> bucket, Vector3 p0, Vector3 p1, Vector3 p2, Vector2 u0, Vector2 u1, Vector2 u2) {
-                int i0 = Id(p0, u0);
-                int i1 = Id(p1, u1);
-                int i2 = Id(p2, u2);
+            /// <summary>Says a hull feeding this builder carries no normals, so the built mesh recalculates them instead.</summary>
+            public void DropNormals() {
+                haveNormals = false;
+            }
+
+            public void AddTri(List<int> bucket, Vector3 p0, Vector3 p1, Vector3 p2,
+                Vector2 u0, Vector2 u1, Vector2 u2, Vector3 n0, Vector3 n1, Vector3 n2) {
+                int i0 = Id(p0, u0, n0);
+                int i1 = Id(p1, u1, n1);
+                int i2 = Id(p2, u2, n2);
                 if (i0 == i1 || i1 == i2 || i0 == i2) {
                     return; // welding collapsed the triangle
                 }
@@ -467,11 +508,8 @@ namespace EzySlice {
                 bucket.Add(i2);
             }
 
-            private int Id(Vector3 p, Vector2 uv) {
-                var key = new Vector3Int(
-                    Mathf.RoundToInt(p.x * invWeld),
-                    Mathf.RoundToInt(p.y * invWeld),
-                    Mathf.RoundToInt(p.z * invWeld));
+            private int Id(Vector3 p, Vector2 uv, Vector3 normal) {
+                var key = new VertexKey(p, uv, normal, invWeld);
 
                 if (lookup.TryGetValue(key, out int existing)) {
                     return existing;
@@ -480,6 +518,7 @@ namespace EzySlice {
                 lookup.Add(key, id);
                 verts.Add(p);
                 uvs.Add(uv);
+                normals.Add(normal);
                 return id;
             }
 
@@ -500,9 +539,71 @@ namespace EzySlice {
                 if (keepCap) {
                     mesh.SetTriangles(cap, skin.Length);
                 }
-                mesh.RecalculateNormals();
+
+                // the source normals, not recalculated ones: recalculating smooths every hard edge on the
+                // body, which is a visible reshading of geometry the cut never touched.
+                if (haveNormals) {
+                    mesh.SetNormals(normals);
+                } else {
+                    mesh.RecalculateNormals();
+                }
+
+                // tangents are not carried through the weld, and a normal-mapped material with none renders
+                // its bumps as flat dark patches. Rebuilt from the normals and UVs that are now correct.
+                mesh.RecalculateTangents();
                 mesh.RecalculateBounds();
                 return mesh;
+            }
+        }
+
+        /// <summary>Weld key: a vertex merges into another only when its position, UV and normal all land in the same quantized cell.</summary>
+        /// <remarks>
+        /// Position uses the caller's weld distance; UV and normal use fixed grids fine enough that only
+        /// values meant to be equal collide. All three are quantized rather than compared exactly so the
+        /// key is hashable, and identical floats always land in the same cell — which is the case the weld
+        /// actually depends on.
+        /// </remarks>
+        private readonly struct VertexKey : System.IEquatable<VertexKey> {
+            private const float UVGrid = 1e5f;      // ~1/100000 of a UV unit
+            private const float NormalGrid = 1e3f;  // ~0.001 on a unit vector
+
+            private readonly int px, py, pz;
+            private readonly int u, v;
+            private readonly int nx, ny, nz;
+
+            public VertexKey(Vector3 position, Vector2 uv, Vector3 normal, float invWeld) {
+                px = Mathf.RoundToInt(position.x * invWeld);
+                py = Mathf.RoundToInt(position.y * invWeld);
+                pz = Mathf.RoundToInt(position.z * invWeld);
+                u = Mathf.RoundToInt(uv.x * UVGrid);
+                v = Mathf.RoundToInt(uv.y * UVGrid);
+                nx = Mathf.RoundToInt(normal.x * NormalGrid);
+                ny = Mathf.RoundToInt(normal.y * NormalGrid);
+                nz = Mathf.RoundToInt(normal.z * NormalGrid);
+            }
+
+            public bool Equals(VertexKey other) {
+                return px == other.px && py == other.py && pz == other.pz
+                    && u == other.u && v == other.v
+                    && nx == other.nx && ny == other.ny && nz == other.nz;
+            }
+
+            public override bool Equals(object obj) {
+                return obj is VertexKey other && Equals(other);
+            }
+
+            public override int GetHashCode() {
+                unchecked {
+                    int hash = px;
+                    hash = hash * 397 ^ py;
+                    hash = hash * 397 ^ pz;
+                    hash = hash * 397 ^ u;
+                    hash = hash * 397 ^ v;
+                    hash = hash * 397 ^ nx;
+                    hash = hash * 397 ^ ny;
+                    hash = hash * 397 ^ nz;
+                    return hash;
+                }
             }
         }
     }
