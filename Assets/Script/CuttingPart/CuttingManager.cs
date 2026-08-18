@@ -113,7 +113,7 @@ public enum CuttingState
     public CuttableObject GameObjectBeingCut;
 
     [Tooltip("Which tool the player must be holding to start this cut.")]
-    public ToolType requiredTool;
+    public Tool requiredTool;
 
     [Tooltip("What this cut takes off. Carries both the piece's identity and its name -- there is no separate name to type, so a cut cannot be labelled one part and behave as another.")]
     [SerializeField] public BodyPart bodyPartType;
@@ -1577,7 +1577,7 @@ public enum CuttingState
     /// <param name="held">The player's held item, or null for empty hands. Anything that is not a matching Tool fails.</param>
     public bool HasRequiredTool(Item held)
     {
-        return held is Tool tool && tool.toolType == requiredTool;
+        return held is Tool tool && tool.toolType == requiredTool.toolType;
     }
 
 

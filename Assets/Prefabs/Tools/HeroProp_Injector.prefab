@@ -201,10 +201,10 @@ MonoBehaviour:
   respawnTime: 3
   audioPreset: {fileID: 11400000, guid: 63490d4edcff78340b3193fadbfb1738, type: 2}
   channel: {fileID: 11400000, guid: ce44df0f2cbc2b3429781e3c21c5cb7e, type: 2}
-  metalPickupAudio: {fileID: 0}
-  clothPickupAudio: {fileID: 0}
-  metalDropAudio: {fileID: 0}
-  clothDropAudio: {fileID: 0}
+  metalPickupAudio: {fileID: 11400000, guid: e13f608cbd95485cb8880489622f05c4, type: 2}
+  clothPickupAudio: {fileID: 11400000, guid: 8979acb1c662ac999aeb04e0e268e7a7, type: 2}
+  metalDropAudio: {fileID: 11400000, guid: 0d7c4b1b78bf1462eacef2952b352037, type: 2}
+  clothDropAudio: {fileID: 11400000, guid: a973311d54f57b0d28d80ca50b7eec1b, type: 2}
   holdOffset: {x: 0, y: 0, z: 0}
   holdRotationOffset: {x: 0, y: 0, z: 0}
   holdScaleMultiplier: {x: 1, y: 1, z: 1}

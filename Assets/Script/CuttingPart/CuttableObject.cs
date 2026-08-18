@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using EzySlice;
-using Unity.VisualScripting;
 
 [RequireComponent(typeof(MeshCollider))]
 [RequireComponent(typeof(MeshRenderer))]
@@ -406,7 +405,7 @@ public class CuttableObject : MonoBehaviour , IInteractable, IHoverable
 
         // and name the tool this cut wants on the scene HUD, e.g. "required: Scalpel"
         BodyPartDescriptionHUD hud = BodyPartDescriptionHUD.LastActiveInstance;
-        if (hud != null) hud.ShowText(this, $"required: {aimed.requiredTool}");
+        if (hud != null) hud.ShowText(this, $"required: {aimed.requiredTool.Name}");
     }
 
     /// <summary>Clears both this body's tint and its requirement line on the HUD, for the frames the aim is on the body but not on a cut.</summary>

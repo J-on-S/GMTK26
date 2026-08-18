@@ -71,7 +71,9 @@ public class GrabbableObject : MonoBehaviour, IInteractable, IHoverable{
           return gameObject.name;
         }
               
-
+        Debug.Log(string.IsNullOrWhiteSpace(item.Name)
+              ? gameObject.name
+              : item.Name);
           return string.IsNullOrWhiteSpace(item.Name)
               ? gameObject.name
               : item.Name;
