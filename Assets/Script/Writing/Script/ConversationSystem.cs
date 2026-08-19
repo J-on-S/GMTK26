@@ -24,6 +24,7 @@ public class ConversationSystem : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
+            Debug.LogError("Instance: "+gameObject.name);
             Destroy(gameObject);
             return;
         }
@@ -83,7 +84,8 @@ public class ConversationSystem : MonoBehaviour
         text.maxVisibleCharacters = 0;
         //
         Debug.Log("Stop");
-        ConversationFlow.Instance.FinishCurrentConversation();
+        TutorialFlowManager.Instance.FinishCurrentConversation();
+        //ConversationFlow.Instance.FinishCurrentConversation();
         currentDialogueCanvas.SetActive(false);
         //Do Something
     }

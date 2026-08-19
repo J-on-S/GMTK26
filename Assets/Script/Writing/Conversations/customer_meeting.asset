@@ -1,0 +1,482 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b34c8d988be03bd418871f596cd2b101, type: 3}
+  m_Name: customer_meeting
+  m_EditorClassIdentifier: Assembly-CSharp::Conversation
+  conversationName: Black Market Dealer
+  npcsTalking:
+  - {fileID: 11400000, guid: e76b800426f2e924897dce6d6b079524, type: 2}
+  dialogues:
+  - isLock: 0
+    npc: {fileID: 11400000, guid: e76b800426f2e924897dce6d6b079524, type: 2}
+    dialogue_line:
+      dialogue_line: This is your last chance.
+      words:
+      - word: This
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: is
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: your
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: last
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - word: chance.
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      characters:
+      - character: 84
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 104
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 105
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 105
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 121
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 117
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 114
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 108
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 97
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 99
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 104
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 97
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 110
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 99
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 46
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+  - isLock: 0
+    npc: {fileID: 11400000, guid: e76b800426f2e924897dce6d6b079524, type: 2}
+    dialogue_line:
+      dialogue_line: Don't waste it.
+      words:
+      - word: Don't
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - word: waste
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - word: it.
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      characters:
+      - character: 68
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 110
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 39
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 119
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 97
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 105
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+      - character: 46
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 4
+  - isLock: 1
+    npc: {fileID: 11400000, guid: e76b800426f2e924897dce6d6b079524, type: 2}
+    dialogue_line:
+      dialogue_line: 'We put you in that clinic for one reason, to get us the body
+        parts we asked for. '
+      words:
+      - word: We
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: put
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: you
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: in
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: that
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: clinic
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: for
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: one
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: reason,
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: to
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: get
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: us
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: the
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: body
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: parts
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: we
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: asked
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: for.
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - word: 
+        wordColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      characters:
+      - character: 87
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 112
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 117
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 121
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 117
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 105
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 110
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 104
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 97
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 99
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 108
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 105
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 110
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 105
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 99
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 102
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 114
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 110
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 114
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 97
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 110
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 44
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 103
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 117
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 104
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 98
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 100
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 121
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 112
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 97
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 114
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 116
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 119
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 97
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 115
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 107
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 101
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 100
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 102
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 111
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 114
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 46
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+      - character: 32
+        charColor: {r: 1, g: 1, b: 1, a: 1}
+        specialWordEffects: 0
+  defaultColor: {r: 0, g: 0, b: 0, a: 0}

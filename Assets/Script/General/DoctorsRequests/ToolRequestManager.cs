@@ -143,26 +143,6 @@ public class ToolRequestManager : MonoBehaviour
         }
     }
 
-    /*public void AddToDoctorRequestList(string bodyPartName)
-    {
-        AddToDoctorRequestList(bodyPartName, null, null);
-    }
-    //Todo: Reverse the order. We must have the task before and then 5 second to read it and then after have the timer, and not at the same time. This presents a disadvantage to the player
-    public void AddToDoctorRequestList(
-        string bodyPartName,
-        GameObject targetClient,
-        OperationChair targetChair)
-    {
-        // currentRequests.Add(new ToolRequest
-        // {
-        //     itemName = bodyPartName,
-        //     itemType = ItemType.BodyPart,
-        //     timeLimit = GenerateRequestTimeLimit(),
-        //     targetClient = targetClient,
-        //     targetChair = targetChair
-        // });
-    }
-*/
     public void GenerateDoctorRequestsTools()
     {
         int minimumQueueSize =
@@ -711,17 +691,6 @@ public class ToolRequestManager : MonoBehaviour
         yield return null;
         TryStartNextClientBatch();
     }
-
-    // private float ClampRequestTimeLimit(float timeLimit)
-    // {
-    //     float minimum = Mathf.Max(0f, minimumRequestTime);
-    //     float maximum = Mathf.Max(minimum, maximumRequestTime);
-
-    //     if (timeLimit < minimum || timeLimit > maximum)
-    //         return GenerateRequestTimeLimit();
-
-    //     return timeLimit;
-    // }
 
     private static bool CompleteAllClientRequirements(
         GameObject client,

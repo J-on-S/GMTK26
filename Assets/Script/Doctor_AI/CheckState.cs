@@ -82,6 +82,7 @@ public class CheckState : State
         CameraSwitch.Instance.SwitchCamera(CameraType.Doctor);
         HealthScript.Instance.TakeDamage(1);
         previousDialogue = doctorDialogue.text;
+        //TODO: The message might changed during these 3 seconds.
         doctorDialogue.text = doctorAngryDialogue;
         StartCoroutine(WaitForSwitchBack());
         AudioEventChannel.Instance.Play(angryDoctorAudio);
