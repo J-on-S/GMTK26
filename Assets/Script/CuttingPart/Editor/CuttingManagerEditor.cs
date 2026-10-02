@@ -69,7 +69,7 @@ public class CuttingManagerEditor : Editor
 
             // geometry, so it sits with the target rather than in the tuning block: it is fixed
             // by where this cut's plane is.
-            Draw("startAngle");
+            //Draw("startAngle");
             Draw("endAngle");
             Draw("orbitAngleOffset");
 

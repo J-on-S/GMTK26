@@ -84,8 +84,8 @@ public class ConversationSystem : MonoBehaviour
         text.maxVisibleCharacters = 0;
         //
         Debug.Log("Stop");
-        TutorialFlowManager.Instance.FinishCurrentConversation();
-        //ConversationFlow.Instance.FinishCurrentConversation();
+        //TutorialFlowManager.Instance.FinishCurrentConversation();
+        ConversationFlow.Instance.FinishCurrentConversation();
         currentDialogueCanvas.SetActive(false);
         //Do Something
     }

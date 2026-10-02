@@ -677,6 +677,7 @@ GameObject:
   - component: {fileID: 1646178247}
   - component: {fileID: 1646178246}
   - component: {fileID: 1646178245}
+  - component: {fileID: 1646178249}
   m_Layer: 0
   m_Name: ===== TUTORIAL ======
   m_TagString: Untagged
@@ -713,6 +714,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   conversations:
   - conversation: {fileID: 11400000, guid: dde8bcb8e650ea54c95f133482b0a213, type: 2}
+    hasFinished: 0
     onConversationFinished:
       m_PersistentCalls:
         m_Calls:
@@ -768,6 +770,60 @@ Transform:
   - {fileID: 1654071536}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1646178249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1646178244}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9b3789ac2514234f955357d5eddc795, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialFlowManager
+  cutscenes:
+  - name: Black Market Dealer
+    conversationNode:
+      conversation: {fileID: 11400000, guid: dde8bcb8e650ea54c95f133482b0a213, type: 2}
+      hasFinished: 0
+      onConversationFinished:
+        m_PersistentCalls:
+          m_Calls:
+          - m_Target: {fileID: 1646178247}
+            m_TargetAssemblyTypeName: Tutorial, Assembly-CSharp
+            m_MethodName: StartGame
+            m_Mode: 1
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 1718557079}
+            m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+            m_MethodName: SetActive
+            m_Mode: 6
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 1
+            m_CallState: 2
+    playableDirector: {fileID: 0}
+  currentCutScene:
+    name: 
+    conversationNode:
+      conversation: {fileID: 0}
+      hasFinished: 0
+      onConversationFinished:
+        m_PersistentCalls:
+          m_Calls: []
+    playableDirector: {fileID: 0}
 --- !u!1 &1654071535
 GameObject:
   m_ObjectHideFlags: 0

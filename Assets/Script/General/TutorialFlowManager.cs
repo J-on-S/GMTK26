@@ -11,7 +11,10 @@ public class CutScene
     [SerializeField] private PlayableDirector playableDirector;
     public string Name => name;
     public bool DialogueIsFinished => conversationNode.hasFinished;
-    public void SetDialogueFinished() => conversationNode.hasFinished = true;
+    public void SetDialogueFinished() {
+        
+        conversationNode.hasFinished = true;
+        conversationNode.onConversationFinished?.Invoke();}
     public void Play()
     {
         playableDirector.Play();
@@ -24,6 +27,11 @@ public class CutScene
     }
     public void Stop()
     {
+        if(playableDirector== null)
+        {
+            Debug.Log("playable director is null");
+            return;
+        }
         playableDirector.Stop();
     }
 }
@@ -44,7 +52,7 @@ public class TutorialFlowManager : MonoBehaviour
     }
     public void Start()
     {
-        StartCoroutine(StartTutorial());
+        //StartCoroutine(StartTutorial());
     }
     public IEnumerator PlayCutScene(string name)
     {
@@ -85,9 +93,9 @@ public class TutorialFlowManager : MonoBehaviour
 
     public IEnumerator StartTutorial()
     {
-        yield return PlayCutScene("doctor meeting");
+        yield return PlayCutScene("Black Market Dealer");
         
-        yield return PlayCutScene("customer meeting");
+        //yield return PlayCutScene("customer meeting");
         // tasks.StartTask("FindKey");
 
         // yield return new WaitUntil(
